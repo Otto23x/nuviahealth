@@ -542,6 +542,14 @@ function onb2Modulo(sc){
   const o=onb2Stato(),b=o.ris.bio||{};
   return onb2Chip("bio")+
    `<div class="o2form">
+      <!-- Il NOME (22/08): la prima voce della barra è il punto della
+           situazione di QUESTA persona, e finora si chiamava «Punto»
+           perché il nome non veniva mai chiesto. Anche l'assistente
+           salutava un nome che nessuno aveva scritto. Una riga, non
+           una schermata: chi non vuole darlo lo lascia vuoto. -->
+      <label>${esc(tr("Come ti chiami"))}</label>
+      <input type="text" id="o2nome" autocomplete="given-name" maxlength="40"
+             value="${esc(b.nome||(S.profile&&S.profile.name)||"")}" placeholder="${esc(tr("come ti chiamano gli amici"))}">
       <label>${esc(tr("Sei…"))}</label>
       <select id="o2gen"><option value="m"${b.gen!=="f"?" selected":""}>${esc(tr("Uomo"))}</option>
         <option value="f"${b.gen==="f"?" selected":""}>${esc(tr("Donna"))}</option></select>
@@ -709,7 +717,7 @@ window.onb2Bio=()=>{
   if(!dob||!(eta>=14&&eta<=100)||!(h>=120&&h<=230)||!(w>=30&&w<=300))
     return dlgAlert(tr("Mi servono età, altezza e peso per calcolare qualcosa di vero. Sono gli unici numeri obbligatori."));
   const o=onb2Stato();
-  o.ris.bio={gen:g("o2gen")||"m",dob,eta,h,w};onb2Salva();
+  o.ris.bio={nome:(g("o2nome")||"").trim().slice(0,40),gen:g("o2gen")||"m",dob,eta,h,w};onb2Salva();
   try{if(typeof confermaPasso==="function")confermaPasso("bio");}catch(e){}
   onb2Avanti();};
 
@@ -1002,6 +1010,7 @@ function onb2Travasa(){
   const goalMap={perdere:"deciso",mantenere:"mantenimento",massa:"massa"};
   if(b.eta>0){const n=new Date();n.setFullYear(n.getFullYear()-b.eta);
     S.profile.dob=S.profile.dob||n.toISOString().slice(0,10);}
+  if(b.nome)S.profile.name=b.nome;
   if(b.gen)S.profile.gender=b.gen;
   if(b.h>0)S.profile.h=b.h;
   if(b.w>0)S.profile.w=b.w;
@@ -1071,7 +1080,10 @@ window.onb2Chiudi=async(modo)=>{
     try{if(typeof confermaFine==="function")confermaFine();}catch(e){}
     const b=o.ris.bio||{};
     if(b.w>0){try{S.profile.weights.push({d:iso(new Date()),w:b.w,fat:null,mus:null,pa:null,spo2:null});}catch(e){}}
-    save();setTimeout(()=>show("oggi"),300);};
+    /* Si atterra sul PUNTO, non su Oggi: è il riepilogo di quello che
+       la persona ha appena costruito, e porta il suo nome. */
+    save();try{if(typeof rifaiTabs==="function")rifaiTabs();}catch(e){}
+    setTimeout(()=>show("punto"),300);};
   /* mai partita (percorso ripreso a metà, o schermata raggiunta di
      corsa): si avvia adesso e si aspetta */
   if(g.stato==="fermo")onb2GeneraOra();

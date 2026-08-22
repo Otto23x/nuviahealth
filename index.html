@@ -208,7 +208,7 @@ window._noChart=(typeof Chart==="undefined")?1:0;</script>
     <path d="M 150,140 C 170,70 220,70 220,120 C 220,150 170,160 150,140" fill="url(#coralGrad-cucina)"/>
     <path d="M 70,230 C 70,140 110,130 150,130 C 190,130 230,140 230,230 C 230,280 190,280 150,280 C 110,280 70,280 70,230" fill="url(#tealGrad-cucina)"/>
     <g class="occhi-cucina"><circle cx="120" cy="185" r="8" fill="#1A4D40"/><circle cx="180" cy="185" r="8" fill="#1A4D40"/></g>
-    <path class="tongue-cucina" d="M 148,216 L 148,225 A 6,6 0 0,0 160,225 L 160,212 Z" fill="#FF7F50"/>
+    
     <path d="M 135,210 Q 150,225 165,210" fill="none" stroke="#1A4D40" stroke-width="6" stroke-linecap="round"/>
       <g class="sopracciglia-cucina" opacity=".85"><path d="M 111 159 q 9 -5 18 0" stroke="#1A4D40" stroke-width="4" stroke-linecap="round" fill="none"/><path d="M 171 159 q 9 -5 18 0" stroke="#1A4D40" stroke-width="4" stroke-linecap="round" fill="none"/></g>
     <path class="bocca-cucina" d="M 138 223 q 12 10 24 0" stroke="#1A4D40" stroke-width="4.5" stroke-linecap="round" fill="none"/>
@@ -337,7 +337,7 @@ window._noChart=(typeof Chart==="undefined")?1:0;</script>
     <path d="M 70,230 C 70,140 110,130 150,130 C 190,130 230,140 230,230 C 230,280 190,280 150,280 C 110,280 70,280 70,230" fill="url(#tealGrad-festeggia)"/>
     <g class="occhi-festeggia"><path d="M 110,190 Q 120,175 130,190" fill="none" stroke="#1A4D40" stroke-width="6" stroke-linecap="round"/>
     <path d="M 170,190 Q 180,175 190,190" fill="none" stroke="#1A4D40" stroke-width="6" stroke-linecap="round"/></g>
-    <path d="M 130,205 Q 150,240 170,205 Z" fill="#1A4D40"/>
+    
       <g class="sopracciglia-festeggia" opacity=".85"><path d="M 111 159 q 9 -5 18 0" stroke="#1A4D40" stroke-width="4" stroke-linecap="round" fill="none"/><path d="M 171 159 q 9 -5 18 0" stroke="#1A4D40" stroke-width="4" stroke-linecap="round" fill="none"/></g>
     <path class="bocca-festeggia" d="M 132 223 q 18 16 36 0" stroke="#1A4D40" stroke-width="4.5" stroke-linecap="round" fill="none"/>
   </g></g></g></g>
@@ -440,7 +440,7 @@ window._noChart=(typeof Chart==="undefined")?1:0;</script>
 
     /* la mano che saluta: piccola, alterna, mai frenetica */
     @keyframes mano-saluta{0%,100%{transform:rotate(-6deg)}50%{transform:rotate(12deg)}}
-    .braccio-saluta{animation:mano-saluta 1.9s ease-in-out infinite;transform-origin:185px 130px}
+    .braccio-saluta{animation:mano-saluta 1.9s ease-in-out infinite;transform-origin:226px 152px}
     /* LE SOPRACCIGLIA — è qui che vive l'espressione. Due linee
        corte che si alzano di due gradi cambiano l'umore di una
        faccia più di qualunque altra cosa: il cinema d'animazione
@@ -473,9 +473,11 @@ window._noChart=(typeof Chart==="undefined")?1:0;</script>
       <circle cx="120" cy="185" r="8" fill="#1A4D40"/><circle cx="180" cy="185" r="8" fill="#1A4D40"/>
       <g class="pupille-saluta"><circle cx="123" cy="182" r="3" fill="#FFFFFF"/><circle cx="183" cy="182" r="3" fill="#FFFFFF"/></g>
     </g>
-    <path class="braccio-saluta" d="M 135,210 Q 150,235 165,210 Z" fill="#1A4D40"/>
-    <path d="M 140,215 Q 150,230 160,215 Z" fill="#FF7F50"/>
-      <g class="sopracciglia-saluta" opacity=".85"><path d="M 111 159 q 9 -5 18 0" stroke="#1A4D40" stroke-width="4" stroke-linecap="round" fill="none"/><path d="M 171 159 q 9 -5 18 0" stroke="#1A4D40" stroke-width="4" stroke-linecap="round" fill="none"/></g>
+    
+    
+      <g class="braccio-saluta"><path d="M 224,150 q 16,-14 26,-4 q 8,8 -6,18"
+      fill="none" stroke="url(#tealGrad-saluta)" stroke-width="13" stroke-linecap="round"/></g>
+    <g class="sopracciglia-saluta" opacity=".85"><path d="M 111 159 q 9 -5 18 0" stroke="#1A4D40" stroke-width="4" stroke-linecap="round" fill="none"/><path d="M 171 159 q 9 -5 18 0" stroke="#1A4D40" stroke-width="4" stroke-linecap="round" fill="none"/></g>
     <path class="bocca-saluta" d="M 138 223 q 12 10 24 0" stroke="#1A4D40" stroke-width="4.5" stroke-linecap="round" fill="none"/>
   </g></g></g></g></symbol><symbol id="masc-sport" viewBox="0 0 300 300"><style>
     @keyframes heavyBreath-sport { 0%, 100% { transform: translateY(0px) scaleY(1); } 50% { transform: translateY(-4px) scaleY(1.02); } }
@@ -575,6 +577,9 @@ if(_bs&&((window.matchMedia&&matchMedia("(display-mode: standalone)").matches)||
 <div class="page" id="pg-sport"></div>
 <div class="page" id="pg-comestai"></div>
 <div class="page" id="pg-storico"></div>
+<div class="page" id="pg-ruota"></div>
+<div class="page" id="pg-conto"></div>
+<div class="page" id="pg-costellazione"></div>
 <div class="page" id="pg-io"></div>
 <div class="page" id="pg-mia"></div>
 <div class="page" id="pg-insieme"></div>
@@ -645,6 +650,7 @@ if(_bs&&((window.matchMedia&&matchMedia("(display-mode: standalone)").matches)||
 <script defer src="js/62_orari.js"></script>
 <script defer src="js/61_gesti.js"></script>
 <script defer src="js/63_preparazioni.js"></script>
+<script defer src="js/63_progressi_invito.js"></script>
 <script defer src="js/64_inviti.js"></script>
 <script defer src="js/16_7_navigazione.js"></script>
 <script defer src="js/17_8_card_pasto_spunta_3_stati_sposta.js"></script>
@@ -658,6 +664,8 @@ if(_bs&&((window.matchMedia&&matchMedia("(display-mode: standalone)").matches)||
 <script defer src="js/26_arco_e_marchio.js"></script>
 <script defer src="js/58_conferme.js"></script>
 <script defer src="js/64_primo_avvio.js"></script>
+<script defer src="js/65_ruota.js"></script>
+<script defer src="js/65_costellazione.js"></script>
 <script defer src="js/25_onboarding_flow.js"></script>
 <script defer src="js/27_pasto_libero.js"></script>
 <script defer src="js/28_gioco_e_peso.js"></script>

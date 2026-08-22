@@ -59,7 +59,7 @@
     <path d="M 70,230 C 70,140 110,130 150,130 C 190,130 230,140 230,230 C 230,280 190,280 150,280 C 110,280 70,280 70,230" fill="url(#tealGrad-festeggia)"/>
     <g class="occhi-festeggia"><path d="M 110,190 Q 120,175 130,190" fill="none" stroke="#1A4D40" stroke-width="6" stroke-linecap="round"/>
     <path d="M 170,190 Q 180,175 190,190" fill="none" stroke="#1A4D40" stroke-width="6" stroke-linecap="round"/></g>
-    <path d="M 130,205 Q 150,240 170,205 Z" fill="#1A4D40"/>
+    
       <g class="sopracciglia-festeggia" opacity=".85"><path d="M 111 159 q 9 -5 18 0" stroke="#1A4D40" stroke-width="4" stroke-linecap="round" fill="none"/><path d="M 171 159 q 9 -5 18 0" stroke="#1A4D40" stroke-width="4" stroke-linecap="round" fill="none"/></g>
     <path class="bocca-festeggia" d="M 132 223 q 18 16 36 0" stroke="#1A4D40" stroke-width="4.5" stroke-linecap="round" fill="none"/>
   </g></g></g></g>

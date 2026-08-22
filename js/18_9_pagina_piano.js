@@ -85,7 +85,7 @@ function renderPiano(){const el=document.getElementById("pg-piano");const ti=wd(
         <div class="sfaccia">${f[0]}</div>
         <div class="sdett">
           <div class="stit">${f[1]}</div>
-          <div class="sbar"><i style="width:${v.v}%;background:${v.v>=70?"var(--salvia)":(v.v>=55?"var(--zaff)":"var(--rosso)")}"></i></div>
+          <div class="sbar"><i style="width:${v.v}%;background:${v.v>=70?"var(--salvia)":(v.v>=55?"var(--zaff)":"var(--zafft)")}"></i></div>
           <div class="snum">${v.v}/100 · ${v.tot} prodotti · ${v.vf}% frutta e verdura</div>
         </div></div>
       ${v.piu.length?`<div class="hint" style="margin-top:12px"><b>${tr("Prendine di più:")}</b> ${v.piu.join(", ")}.</div>`:""}
@@ -96,7 +96,7 @@ function renderPiano(){const el=document.getElementById("pg-piano");const ti=wd(
           <b>Spesa: ~${c.tot.toFixed(2).replace(".",",")} €</b> · ~${c.perGiorno.toFixed(2).replace(".",",")} ${tr("€ al giorno ·")} <b>~${c.perPasto.toFixed(2).replace(".",",")} ${tr("€ a pasto")}</b> ${trh("su {v1} pasti.",{v1:c.pastiSett})}<br>
           ${tr("Dove vanno:")} ${c.top.map(t=>t.cat+" "+t.pc+"%").join(" · ")}.${c.manca?` <span style="color:var(--grigio)">${trh("Prezzo assente su {v1} prodotti: toccali in dispensa per correggerlo.",{v1:c.manca})}</span>`:""}</div>`;})()}
       ${(function(){const k=spesaCopertura();if(!k)return "";
-        const col=k.pc>=85?"var(--salvia)":(k.pc>=60?"var(--zaff)":"var(--rosso)");
+        const col=k.pc>=85?"var(--salvia)":(k.pc>=60?"var(--zaff)":"var(--zafft)");
         return `<div class="hint" style="margin-top:12px;border-left:4px solid ${col};padding-left:12px">
           <b>${trh("Copre {v1}% di quello che serve</b> nei prossimi 7 giorni ({v3} ingredienti su {v2}).",{v1:k.pc,v3:k.coperti,v2:k.richiesti})}${k.manca.length?`<br><b style="color:var(--zafft)">Manca:</b> ${k.manca.map(m=>esc(m.k)+(m.pasti[0]?` <span style="color:var(--grigio)">(${esc(m.pasti[0])})</span>`:"")).join(" · ")}${k.mancaTot>k.manca.length?` e altri ${k.mancaTot-k.manca.length}`:""}.`:""}
           ${k.scarso.length?`<br><b>Poco:</b> ${k.scarso.map(m=>esc(m.k)+" (~"+Math.round(m.hai)+"g su ~"+Math.round(m.g)+"g)").join(" · ")}.`:""}
@@ -251,6 +251,7 @@ function renderPunto(){const el=document.getElementById("pg-punto");const di=vie
   const _vd=iso(VIEW);
   /* Il saluto e il riepilogo di ieri: si apre qui la mattina. */
   h+=puntoTesta(di);
+  h+=(function(){try{return progressiInvitoHTML();}catch(e){return "";}})();
   /* ── L'ORDINE (passo 4 del piano UX) ──────────────────────────
      Principio che non ha bisogno di dati: LA COSA CHE SI FA OGNI
      GIORNO VA PRIMA DI QUELLE CHE SUCCEDONO A VOLTE.
@@ -396,7 +397,7 @@ function renderPunto(){const el=document.getElementById("pg-punto");const di=vie
         <div class="tsub">${sotto.join(" · ")||(previsti?"Segna il primo pasto per iniziare":"Genera un piano o aggiungi quello che mangi con + Extra")}</div>
         <div class="tmeter">
           <div class="trow"><span>Mangiate</span><b>${eat.k} / ${plan}</b></div>
-          <div class="ttrack"><i style="width:${Math.min(100,Math.round(eat.k/Math.max(1,plan)*100))}%;background:${eat.k>plan?"var(--rosso)":"var(--bosco)"}"></i></div>
+          <div class="ttrack"><i style="width:${Math.min(100,Math.round(eat.k/Math.max(1,plan)*100))}%;background:${eat.k>plan?"var(--zaff)":"var(--bosco)"}"></i></div>
         </div>
         ${acquaRiga(di)}
         ${prox?`<div class="tnext">
@@ -637,18 +638,23 @@ function renderOggi(){const el=document.getElementById("pg-oggi");const di=viewI
         const pct=Math.min(100,Math.round(v/Math.max(1,goal)*100));
         const over=cap?(v>goal):(v>goal*1.1);
         return `<div><div class="v">${v}${unit}</div><div class="l">${lab}</div>
-          <div class="mbar" title="${v}${unit} di ${goal}${unit}"><i style="width:${pct}%;background:${over?"var(--rosso)":col}"></i></div>
+          <div class="mbar" title="${v}${unit} di ${goal}${unit}"><i style="width:${pct}%;background:${over?"var(--zaff)":col}"></i></div>
           <div class="s">${cap?"max":"obiettivo"} ${goal}${unit}</div></div>`;};
       const q=dayQuality(di);
       const ess=!densMin("full");   /* essenziale: quattro riquadri, non nove */
       return `<div class="mtx">
-      <div><div class="v" style="color:${def>=0?"var(--ok)":"var(--rosso)"}">${def>=0?"−":"+"}${Math.abs(def)}</div>
+      <div><div class="v" style="color:${def>=0?"var(--azione)":"var(--zaff)"}">${def>=0?"−":"+"}${Math.abs(def)}</div>
         <div class="l">${tr("kcal di")} ${def>=0?"deficit":"surplus"}</div>
         <div class="s" style="margin-top:8px">mangiate ${eat.k}<br>sport ${burn>=0?"+":"−"}${Math.abs(burn)}</div></div>
-      ${box(eat.k,"","kcal mangiate",plan||dayTargetK(),"var(--salvia)")}
-      ${box(eat.p," g","proteine",dayTargetP(),"var(--zaff)")}
-      ${ess?"":box(eat.c," g","carboidrati",dayTargetC(),"var(--mensa)")}
-      ${ess?"":box(eat.f," g","grassi",dayTargetF(),"#5B7FE0")}
+      <!-- IDENTITÀ (founder, 22/08): kcal e macro stanno TUTTI sul
+           turchese, con tre sole gradazioni. Prima c'erano corallo e
+           due blu: quattro famiglie di colore per quattro numeri
+           della stessa cosa. Le etichette scritte bastano a
+           distinguerli, il colore non deve fare quel lavoro. -->
+      ${box(eat.k,"","kcal mangiate",plan||dayTargetK(),"var(--bosco)")}
+      ${box(eat.p," g","proteine",dayTargetP(),"var(--azione)")}
+      ${ess?"":box(eat.c," g","carboidrati",dayTargetC(),"var(--salvia)")}
+      ${ess?"":box(eat.f," g","grassi",dayTargetF(),"var(--azione)")}
       ${ess?"":box(eat.fib," g","fibre",dayTargetFib(),"#00AFA3")}
       ${ess?"":box(eat.z," g","zuccheri",dayTargetZ(),"#FF7F50",true)}
       <div><div class="v"> ${S.streak.count}</div><div class="l">${tr("giorni in target")}</div>

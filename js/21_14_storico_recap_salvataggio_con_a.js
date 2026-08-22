@@ -2027,7 +2027,7 @@ window.genPlanAI=async()=>{
     /* «Obiettivi» sta nella scheda Corpo: mandare qui senza aprire la
        scheda giusta significava atterrare su una pagina vuota con un
        messaggio che parlava di un campo invisibile. */
-    try{schedaVai("io","corpo");}catch(e){show("io");}
+    try{schedaVai("io","dati");}catch(e){show("io");}
     return toast(tr("Aggiorna il peso desiderato in Obiettivi, poi rigenera il piano"));}
   const p=S.profile,D=S.diet,t=tdee();
   const goal=p.goal||"dimagrimento graduale";
@@ -2406,7 +2406,7 @@ function extendedRecapHTML(){
       <td class="n">${n?avg("eat"):"–"}</td>
       <td class="n">${n?avg("prot")+"g":"–"}</td>
       <td class="n">${n?avg("burn"):"–"}</td>
-      <td class="n" style="color:${avg("def")>=0?"var(--salvia)":"var(--rosso)"}">${n?((avg("def")>=0?"−":"+")+Math.abs(avg("def"))):"–"}</td></tr>`;});
+      <td class="n" style="color:${avg("def")>=0?"var(--salvia)":"var(--zaff)"}">${n?((avg("def")>=0?"−":"+")+Math.abs(avg("def"))):"–"}</td></tr>`;});
   return `<div class="card"><h2>${tr("Riepilogo esteso")}</h2>
   Il quadro completo del periodo scelto: medie, totali e scostamenti rispetto al piano.
   <div class="mtools">${["settimana","mese"].map(m=>`<button class="chipbtn" style="${RECAP.mode===m?"border-color:var(--salvia);color:var(--salvia);font-weight:700":""}" onclick="setRecapMode('${m}')">${m==="settimana"?"Settimanale":"Mensile"}</button>`).join("")}</div>
@@ -2457,7 +2457,7 @@ function weightsCardHTML(){const p=S.profile,W=(p.weights||[]);
       const dt=giornoDa(x.d);
       const gg=String(dt.getDate()).padStart(2,"0")+"/"+String(dt.getMonth()+1).padStart(2,"0")+"/"+String(dt.getFullYear()).slice(2);
       h+=`<tr><td>${gg}</td><td class="n"><b>${x.w}</b></td>
-        <td class="n" style="color:${d==null?"var(--grigio)":(d<=0?"var(--salvia)":"var(--rosso)")}">${d==null?"–":(d>0?"+":"")+d}</td>
+        <td class="n" style="color:${d==null?"var(--grigio)":(d<=0?"var(--salvia)":"var(--zaff)")}">${d==null?"–":(d>0?"+":"")+d}</td>
         <td class="n">${x.fat!=null&&x.fat!==""?x.fat:"–"}</td>
         <td class="n">${x.mus!=null&&x.mus!==""?x.mus:"–"}</td>
         <td class="n">${x.pa||"–"}</td>
@@ -2640,6 +2640,8 @@ function renderTools(){
   <div class="mtools"><button class="btn ${bankOn()?"warn":"ghost"} small" onclick="bankToggle()">${bankOn()?"Disattiva":"Attiva"}</button></div></div>`;
   el.innerHTML=h;predFillMeals();}
 function renderStorico(){const el=document.getElementById("pg-storico");
+  /* I TRAGUARDI stanno qui dal 22/08: lo Storico È la pagina dei
+     progressi, e i traguardi sono progressi — non «Tu». */
   const w=weekSummary();
   /* Recap v5.1: scostamenti dagli OBIETTIVI del giorno (Δ mangiate vs
      PIANIFICATO del giorno, Δ proteine vs piano), faccine, Sport = solo kcal
@@ -2650,6 +2652,8 @@ function renderStorico(){const el=document.getElementById("pg-storico");
   const SK="storico";
   h+=schedeBarra(SK,[["settimana",tr("Settimana")],["analisi",tr("Analisi")],
                      ["peso",tr("Peso")],["archivio",tr("Archivio")]]);
+  h+=`<!--SCHEDA:peso-->`;
+  h+=(function(){try{return traguardiHTML();}catch(e){return "";}})();
   h+=`<!--SCHEDA:settimana-->`;
   {
     let rowsH="";
@@ -2674,7 +2678,7 @@ function renderStorico(){const el=document.getElementById("pg-storico");
             <span class="wk">${d.eat?d.eat+" / "+pk+" kcal":tr("niente segnato")}</span>
             <span class="wdef ${d.def>=0?"ok":"no"}">${d.eat?((d.def>=0?"−":"+")+Math.abs(d.def)):""}</span>
           </div>
-          <div class="wbar"><i style="width:${pct}%;background:${dEat<=0?"var(--bosco)":"var(--rosso)"}"></i></div>
+          <div class="wbar"><i style="width:${pct}%;background:${dEat<=0?"var(--bosco)":"var(--zaff)"}"></i></div>
           ${note.length?`<div class="wnote">${note.join(" · ")}</div>`:""}
         </div>
         <div class="wq">${d.eat?arcoMiniHTML(d.eat,pk,tr("{v} su {q} kcal",{v:d.eat,q:pk})):qDot(q,12)}</div>
@@ -2775,7 +2779,7 @@ function renderStorico(){const el=document.getElementById("pg-storico");
      mkeys.forEach(k=>{const arr=mb[k];const n=arr.length;const avg=f=>Math.round(arr.reduce((a,d)=>a+(d[f]||0),0)/n);
        h+=`<tr><td>${new Date(k+"-01T12:00:00").toLocaleDateString(dataLoc(),{month:"long",year:"numeric"})} <small style="color:var(--grigio)">(${n}g)</small></td>
        <td class="n">${avg("eat")}</td><td class="n">${avg("prot")}g</td><td class="n">${avg("burn")}</td>
-       <td class="n" style="color:${avg("def")>=0?"var(--salvia)":"var(--rosso)"}">${avg("def")>=0?"−":"+"}${Math.abs(avg("def"))}</td></tr>`;});
+       <td class="n" style="color:${avg("def")>=0?"var(--salvia)":"var(--zaff)"}">${avg("def")>=0?"−":"+"}${Math.abs(avg("def"))}</td></tr>`;});
      h+=`</table>Medie giornaliere dei mesi conclusi (solo giorni tracciati).</div>`;}}
   h+=`<div class="card"><h2>${tr("Settimane passate")}</h2>`;
   if(!S.history.length)h+=vuotoDi("storico");
@@ -2998,10 +3002,15 @@ function drawAnalysis(){
   const mEl=document.getElementById("chAnMacro");
   if(mEl&&rows.length)ANCH.macro=new Chart(mEl,{type:"line",
     data:{labels:rows.map(r=>r.label),datasets:[
-      {label:"Proteine (g)",data:rows.map(r=>r.prot),tension:.3,borderColor:"#00AFA3",pointRadius:2},
-      {label:"Carboidrati (g)",data:rows.map(r=>r.c),tension:.3,borderColor:"#E4632F",pointRadius:2},
-      {label:"Grassi (g)",data:rows.map(r=>r.f),tension:.3,borderColor:"#0A4E49",pointRadius:2},
-      {label:"Fibre (g)",data:rows.map(r=>r.fib),tension:.3,borderColor:"#5B7FE0",pointRadius:2}]},
+      /* I MACRO SONO TUTTI UGUALI (founder, 22/08): quattro linee, un
+         colore solo con le sue tre gradazioni. La quarta non prende
+         un colore nuovo — prende il TRATTEGGIO. Distinguere resta
+         possibile, l'identità resta una. */
+      {label:"Proteine (g)",data:rows.map(r=>r.prot),tension:.3,borderColor:"#0A4E49",pointRadius:2},
+      {label:"Carboidrati (g)",data:rows.map(r=>r.c),tension:.3,borderColor:"#0C7C74",pointRadius:2},
+      {label:"Grassi (g)",data:rows.map(r=>r.f),tension:.3,borderColor:"#00AFA3",pointRadius:2},
+      {label:"Fibre (g)",data:rows.map(r=>r.fib),tension:.3,borderColor:"#0C7C74",
+       borderDash:[5,4],pointRadius:2}]},
     options:{plugins:{legend:{labels:{boxWidth:11,font:{size:10}}}},scales:{x:{ticks:{font:{size:9}}}}}});}
 window.drawAnalysis=drawAnalysis;
 /*  Grafico proiezione: curva ideale non lineare (dalla prima pesata reale)

@@ -1523,22 +1523,21 @@ function renderIo(){const el=document.getElementById("pg-io");const p=S.profile;
   /* Quattro schede, stesso metodo della pagina Numeri: marcatori
      filtrati alla fine, nessuna graffa toccata. */
   const SKio="io";
-  h+=schedeBarra(SKio,[["tu",tr("Tu")],["corpo",tr("Corpo")],
-                       ["studio",tr("Studio")],["altro",tr("Altro")]]);
-  h+=`<!--SCHEDA:tu-->`;
-  h+=traguardiHTML();
-  /* Il conto sta qui e non in Regole: riguarda la persona, non la
-     configurazione. E chi entra per la prima volta lo trova senza
-     doverlo cercare fra le impostazioni avanzate. */
-  h+=`<!--SCHEDA:studio-->`;
-  h+=contoHTML();
+  /* RIDISEGNO del 22/08, dal founder: quattro schede coi nomi
+     sbagliati («Tu» conteneva i traguardi, «Corpo» l'anagrafica,
+     «Studio» l'abbonamento) sono diventate DUE che dicono il vero:
+     - I tuoi dati: chi sei, gli obiettivi, le situazioni del corpo
+     - Permessi: cosa vede lo studio, prescrizione, statistiche
+     L'ABBONAMENTO è una voce propria del menu (pagina «conto»), i
+     TRAGUARDI vivono nello Storico coi progressi, e i progressi li
+     propone una card sul Punto ogni due settimane (cadenza che la
+     persona può cambiare lì). */
+  h+=schedeBarra(SKio,[["dati",tr("I tuoi dati")],["permessi",tr("Permessi")]]);
+  h+=`<!--SCHEDA:permessi-->`;
   h+=prescrizioneHTML();
   h+=cobrandNotaHTML();
-  /* Cosa vede lo studio: subito sotto il conto, perché è l'altra metà
-     della stessa domanda («chi sono e chi mi guarda»). Se non c'è uno
-     studio collegato, non compare nulla. */
   h+=consensiHTML();
-  h+=`<!--SCHEDA:corpo-->`;
+  h+=`<!--SCHEDA:dati-->`;
   h+=`<div class="gsec">${tr("Chi sei")}</div>`;
   h+=`<div class="card pesata"><h2>Nuova pesata</h2>
   <div class="hint">${trh("I valori che cambiano nel tempo. Ogni salvataggio {b} allo storico, con la data di oggi: è così che nascono i grafici e le proiezioni.",{b:"<b>"+tr("aggiunge una riga")+"</b>"})}</div>
@@ -1624,7 +1623,6 @@ function renderIo(){const el=document.getElementById("pg-io");const p=S.profile;
     <div><label class="ru">dalle ore</label><input type="number" id="nfAlle" min="18" max="24" value="${notifCfg().alle}" onchange="notifOre()"></div>
     <div><label class="ru">alle ore</label><input type="number" id="nfDalle" min="4" max="11" value="${notifCfg().dalle}" onchange="notifOre()"></div>
   </div></div>`;
-  h+=`<!--SCHEDA:altro-->`;
   h+=`<div class="gsec">Situazioni</div>`;
   h+=periodsCardHTML(true);
   h+=`<div class="card"><h2>${tr("Rifai il percorso guidato")}</h2>
@@ -1634,21 +1632,27 @@ function renderIo(){const el=document.getElementById("pg-io");const p=S.profile;
      Succede a chi è appena arrivato (la scheda «Tu» vive di storico) o
      a chi non ha uno studio collegato. Meglio la mascotte con una cosa
      da fare che il bianco. */
-  const att=schedaAttiva(SKio,"tu");
+  const att=schedaAttiva(SKio,"dati");
   let corpo=schedeFiltra(h,att);
   if(!/<div class="card|<div class="gsec/.test(corpo.split('<div class="schede"')[1]||"")){
-    corpo+=IO_VUOTI[att]||IO_VUOTI.tu;}
+    corpo+=IO_VUOTI[att]||IO_VUOTI.dati;}
   el.innerHTML=corpo;}
+
+/* ── LA PAGINA ABBONAMENTO ──────────────────────────────────────
+   Voce propria del menu (22/08, dal founder): l'abbonamento non è né
+   configurazione né «studio» — è un rapporto fra la persona e noi.
+   Stessa funzione contoHTML() di prima: nessuna copia. */
+function renderConto(){const el=document.getElementById("pg-conto");
+  if(!el)return;
+  el.innerHTML=`<div class="gsec">${tr("Abbonamento")}</div>`+contoHTML();}
+try{if(typeof RENDER_PAGINE!=="undefined")RENDER_PAGINE.conto=renderConto;}catch(e){}
 
 /* Le frasi degli stati vuoti stanno qui, tutte insieme: è la regola
    del catalogo VUOTI, e serve anche perché il controllo delle
    traduzioni le veda. */
 const IO_VUOTI={
-  tu:  ()=>vuoto("cerca","Qui compare il tuo percorso: peso, traguardi, come stai andando. Comincia con una pesata.","schedaVai('io','corpo')","Vai a Corpo"),
-  corpo:()=>vuoto("pensa","Ancora nessuna misura registrata. La prima pesata fa nascere grafici e proiezioni.","schedaVai('io','corpo')","Registra la prima"),
-  studio:()=>vuoto("saluta","Nessuno studio collegato. Quando un professionista ti segue, qui vedi cosa condivide e cosa no.","show('regole')","Vai alle Regole"),
-  altro:()=>vuoto("dorme","Qui stanno le situazioni particolari e il percorso guidato. Per ora non serve niente.","show('punto')","Torna al Punto")};
-/* le funzioni si chiamano nel punto d'uso: {chiave: ()=>html} */
+  dati: ()=>vuoto("pensa","Ancora nessuna misura registrata. La prima pesata fa nascere grafici e proiezioni.","show('storico')","Vai ai Progressi"),
+  permessi:()=>vuoto("saluta","Nessuno studio collegato. Quando un professionista ti segue, qui decidi cosa vede e cosa no.","show('regole')","Vai alle Regole")};
 Object.keys(IO_VUOTI).forEach(k=>{const f=IO_VUOTI[k];
   Object.defineProperty(IO_VUOTI,k,{get:f,configurable:true});});
 /* ═══ PAGINA SISTEMA ═════════════════════════════════════════════════
@@ -1846,7 +1850,10 @@ function _v(id){const e=document.getElementById(id);return e?String(e.value).tri
 window.saveAnagrafica=()=>{const p=S.profile;
   p.name=_v("pName");p.gender=_v("pGen")||"m";p.dob=_v("pDob");
   p.h=+_v("pH")||p.h||"";
-  save();render("io");toast(tr("Anagrafica salvata ✓"));};
+  /* Cambiando il nome cambia anche la prima voce della barra: senza
+     questo, la barra restava col nome vecchio fino al ricaricamento. */
+  save();try{if(typeof rifaiTabs==="function")rifaiTabs();}catch(e){}
+  render("io");toast(tr("Anagrafica salvata ✓"));};
 window.saveObiettivi=async()=>{const p=S.profile;
   const raw=String(_v("pGoal")||"").trim(),g=parseFloat(raw.replace(",","."));
   const prev=goalWeightSet();

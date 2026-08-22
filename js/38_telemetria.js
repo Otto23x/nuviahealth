@@ -81,7 +81,7 @@ window.tlmAccendi=tlmAccendi;
       /* Appesa in coda, questa card finiva FUORI dal filtro delle
          schede e compariva in tutte e quattro — anche su «Tu», dove
          non c'entra niente. Ora compare solo dentro «Altro». */
-      if(typeof inScheda==="function"&&!inScheda("io","altro","tu"))return;
+      if(typeof inScheda==="function"&&!inScheda("io","permessi","dati"))return;
       const on=tlmAccesa();
       const box=document.createElement("div");
       box.className="card";box.id="tlm-scheda";

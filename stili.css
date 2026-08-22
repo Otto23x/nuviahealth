@@ -611,6 +611,25 @@ body.onb .fab{display:none}
 /* La freccia del ritorno: stessa misura del ⋯, a sinistra di esso.
    Compare solo fuori dalle quattro pagine della barra. */
 .hback{font-size:20px;padding:8px 16px;font-weight:700}
+/* ── La costellazione ────────────────────────────────────────────
+   Tre gruppi sparsi, MAI un cerchio a raggiera: la forma circolare
+   a ventiquattro raggi somiglia a un simbolo estremista noto, e il
+   problema era il contenitore, non i segni. */
+.costmed{text-align:center;padding:20px 16px;border-radius:20px;background:var(--menta);margin:16px 0}
+.costmed.on{background:linear-gradient(160deg,var(--menta),#fff)}
+.costmedn{font-size:40px;font-weight:800;color:var(--bosco);line-height:1}
+.costmedn span{font-size:20px;color:var(--grigio);font-weight:600}
+.costmedt{font-size:14px;color:var(--grigio);margin:8px 0 12px;line-height:1.4}
+.costgrid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:8px 0 16px}
+.costseg{border:1px solid var(--linea);border-radius:16px;padding:12px;background:var(--card);opacity:.55}
+.costseg.on{opacity:1;border-color:var(--azione);background:var(--menta)}
+.costseg i{font-size:24px;font-style:normal;display:block;line-height:1.2;color:var(--grigio)}
+.costseg.on i{color:var(--azione)}
+.costseg b{display:block;font-size:14px;margin-top:4px;color:var(--ink)}
+/* il significato e l'obiettivo sono SEMPRE scritti: un segno da solo
+   è un simbolo, un segno con la sua didascalia è un alfabeto */
+.costsig{display:block;font-size:12px;color:var(--grigio);font-style:italic}
+.costob{display:block;font-size:12.5px;color:var(--grigio);margin-top:4px;line-height:1.35}
 .hback[hidden]{display:none}
 /* ── Guida ad accordion: sei sezioni chiuse, si apre quella che serve ── */
 .gdet>summary{list-style:none;cursor:pointer;display:flex;align-items:center;gap:12px;-webkit-tap-highlight-color:transparent}
@@ -1334,6 +1353,44 @@ body.onb{padding-bottom:0}
 .o2genl li.ora{color:var(--ink);font-weight:600}
 .o2genl li.ora:before{content:"›";font-weight:700}
 .o2genl li.attesa:before{content:"·"}
+
+/* ── LA RUOTA (v13.47) ───────────────────────────────────────────
+   Nessun raggio verso il centro, segni dritti e distanziati, due
+   soli stati. La forma è deliberata: vedi il commento in 65_ruota. */
+.ruotaCard{text-align:center}
+.ruotaSvg{width:100%;max-width:320px;height:auto;margin:0 auto;display:block}
+.ruotaSvg .rgiro{fill:none;stroke:var(--linea);stroke-width:1.5;stroke-dasharray:4 8}
+.ruotaSvg .rn circle{fill:#fff;stroke:var(--linea);stroke-width:1.5;transition:all .3s var(--ease)}
+.ruotaSvg .rn text{font-size:17px;fill:#B7BFC7;font-weight:600}
+/* I DUE COLORI DI NUVIA, alternati: dispari corallo, pari turchese.
+   Non è una gerarchia (non esistono livelli): è il marchio che si
+   accende un segno alla volta. */
+.ruotaSvg .rn.on circle{stroke-width:2}
+.ruotaSvg .rn.onT circle{fill:var(--menta);stroke:var(--azione)}
+.ruotaSvg .rn.onT text{fill:var(--azione)}
+.ruotaSvg .rn.onC circle{fill:var(--zaffbg);stroke:var(--zaff)}
+.ruotaSvg .rn.onC text{fill:var(--zafft)}
+.ruotaRiga{margin-top:16px;font-size:15px;color:var(--grigio);line-height:1.5}
+/* l'elenco: ogni segno col suo nome e il suo obiettivo, sempre */
+.rlist{list-style:none;margin:16px 0 0;padding:0;display:grid;gap:8px}
+.rlist li{display:flex;gap:12px;align-items:flex-start;padding:8px 0;border-top:1px solid var(--linea)}
+.rlist li i{flex:0 0 28px;font-size:20px;font-style:normal;text-align:center;color:#B7BFC7;line-height:1.2}
+.rlist li.on i{color:var(--azione)}
+.rlist li.on.c i{color:var(--zaff)}
+.rlist li.on.c em{color:var(--zafft)}
+.rlist li span{flex:1;font-size:14px;color:var(--grigio);line-height:1.4}
+.rlist li span b{display:block;color:var(--ink);font-size:14px}
+.rlist li em{font-style:normal;font-size:12px;color:var(--azione);white-space:nowrap}
+/* Il significato antico: sta fra il nome e l'obiettivo, in corsivo e
+   senza sottolineatura — è una didascalia, non un collegamento. */
+.rlist li span u{display:block;text-decoration:none;font-style:italic;
+  font-size:13px;color:var(--grigio);opacity:.85;margin:4px 0}
+/* La spiegazione dell'alfabeto: paragrafi leggibili, non un muro. */
+.card .hint p{margin:0 0 8px}
+.card .hint p:last-child{margin-bottom:0}
+.zenCard{border:2px solid var(--azione)}
+/* Modalità Zen: i numeri vanno via, i colori restano. */
+body.zen .kcalNum,body.zen .macroNum{opacity:0;pointer-events:none}
 /* Primo avvio: le azioni stanno in riga, non incolonnate. */
 .primo-az{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-top:12px}
 .primo-az .btn{flex:1 1 auto;min-height:44px}

@@ -838,7 +838,7 @@ window.syncShopFromPlan=()=>{
   if(!added.length&&!removed.length)inner+=`<div class="hint" style="margin-top:8px">${tr("Nessuna differenza: la lista è già allineata al piano ✓")}</div>`;
   if(added.length){inner+=`<div class="shopcat" style="color:var(--bosco)">Da aggiungere (${added.length})</div><div class="shopitems">`;
     added.forEach(x=>inner+=`<div class="shopitem"><span class="st">${esc(prodottoPrima(x))}</span></div>`);inner+=`</div>`;}
-  if(removed.length){inner+=`<div class="shopcat" style="color:var(--rosso)">${trh("Non più nel piano ({v1})",{v1:removed.length})}</div><div class="shopitems">`;
+  if(removed.length){inner+=`<div class="shopcat" style="color:var(--zafft)">${trh("Non più nel piano ({v1})",{v1:removed.length})}</div><div class="shopitems">`;
     removed.forEach(x=>inner+=`<div class="shopitem"><span class="st">${esc(prodottoPrima(x))}</span></div>`);inner+=`</div>`;}
   inner+=`<div class="hint" style="margin-top:8px">${trh("La lista completa risultante avrà {v1} voci in {v2} categorie.",{v1:next.reduce((a,c)=>a+c[1].length,0),v2:next.length})}</div>
     <div class="mtools" style="margin-top:12px">

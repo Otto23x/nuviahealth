@@ -1,7 +1,7 @@
 /* ═══════════════════════════════════════════════════════════════
    7. NAVIGAZIONE
    ═══════════════════════════════════════════════════════════════ */
-const pages=["punto","oggi","piano","spesa","sport","comestai","storico","mia","insieme","io","sistema","regole","tools","guida","nuvia","setup","benvenuto","onb2","piani"];let cur="oggi";
+const pages=["punto","oggi","piano","spesa","sport","comestai","storico","mia","insieme","io","ruota","conto","costellazione","sistema","regole","tools","guida","nuvia","setup","benvenuto","onb2","piani"];let cur="oggi";
 /* L'intestazione è sticky: sta sempre in cima e copre i primi ~90 px.
    scrollIntoView non lo sa e infila il titolo della card sotto la barra.
    Qui si calcola l'altezza VERA dell'intestazione e si scorre di conseguenza,
@@ -86,7 +86,7 @@ const TABS=[["punto","Punto"],
    per ciascuna, così la lista si legge in un colpo d'occhio. */
 const ALTRE=[["piano","Piano","piano"],["comestai","Come stai","heart"],["storico","Numeri","progressi"],
              ["tools","Strumenti","tools"],["regole","Regole","regole"],
-             ["mia","La mia","star"],["insieme","Insieme","persone"],["io","Profilo","io"],["sistema","Sistema","gear"],["guida","Guida","guida"],["nuvia","Nuvia","nuvia"]];
+             ["mia","La mia","star"],["insieme","Insieme","persone"],["io","Utente","io"],["ruota","Il tuo percorso","star"],["conto","Abbonamento","star"],["costellazione","Costellazione","star"],["sistema","Sistema","gear"],["guida","Guida","guida"],["nuvia","Nuvia","nuvia"]];
 /* ═══ L'ASSISTENTE ══════════════════════════════════════════════════
    Diciassette strumenti non si cercano: si chiedono. Qui la domanda viene
    riconosciuta e porta dove serve. Quando la domanda non è una richiesta
@@ -636,7 +636,7 @@ window.moreOpen=()=>{
   const w=document.getElementById("moreSheet"),l=document.getElementById("moreList");
   if(!w||!l)return;
   l.innerHTML='<div class="sheethd">Altre sezioni</div>'+
-    ALTRE.map(([p,lab,icn])=>`<button title="${tr("Apri")}" class="sheetrow" onclick="moreGo('${p}')">${ic(icn,20)}<span>${lab}</span><em>›</em></button>`).join("");
+    ALTRE.map(([p,lab,icn])=>`<button title="${tr("Apri")}" class="sheetrow" onclick="moreGo('${p}')">${ic(icn,20)}<span>${tr(lab)}</span><em>›</em></button>`).join("");
   w.hidden=false;requestAnimationFrame(()=>w.classList.add("on"));};
 window.moreClose=()=>{
   const w=document.getElementById("moreSheet");if(!w)return;
@@ -672,11 +672,20 @@ function sheetShow(title,html){
     if(gr)gr.classList.add("sheet-maniglia");
     foglioTrascinabile(box,()=>sheetClose());}}catch(e){}
   return w;}
-(function buildTabs(){
+/* La prima voce porta il NOME della persona: è il suo punto della
+   situazione, non «Punto». Se il nome non c'è (o è troppo lungo per
+   stare nella barra) resta l'etichetta di sempre. */
+function etichettaTab(p,l){
+  if(p!=="punto")return l;
+  const n=((S.profile&&S.profile.name)||"").trim().split(/\s+/)[0]||"";
+  return (n&&n.length<=10)?n:l;}
+window.rifaiTabs=function buildTabs(){
   const n=document.getElementById("tabs");if(!n)return;
-  n.innerHTML=TABS.map(([p,l])=>`<button data-p="${p}" aria-label="${l}">${ic(p,21)}<span>${l}</span></button>`).join("");
+  n.innerHTML=TABS.map(([p,l])=>{const e=etichettaTab(p,l);
+    return `<button data-p="${p}" aria-label="${e}">${ic(p,21)}<span>${e}</span></button>`;}).join("");
   n.querySelectorAll("button").forEach(b=>b.onclick=()=>show(b.dataset.p));
-})();
+  document.querySelectorAll(".tabs button").forEach(b=>b.classList.toggle("on",b.dataset.p===cur));};
+rifaiTabs();
 /* Il riquadro promemoria («Come va») non esiste più: vive come riga del
    saluto in cima al Punto, e con lui se n'è andato lo swipe dedicato. */
 /* Scorrimento laterale per cambiare giorno. Vale sul Punto e su Oggi:

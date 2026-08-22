@@ -147,6 +147,13 @@ function traguardiControlla(){
   }
   return null;}
 window.traguardiControlla=traguardiControlla;
+/* La costellazione si controlla dove si controllano i traguardi: un
+   giro solo, e non c'è modo di dimenticarne uno dei due. */
+const _trgOrig=traguardiControlla;
+window.traguardiControlla=function(){
+  const r=_trgOrig.apply(this,arguments);
+  try{if(typeof costControlla==="function")costControlla();}catch(e){}
+  return r;};
 
 function traguardiHTML(){
   const presi=traguardiRaggiunti();

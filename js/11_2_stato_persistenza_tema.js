@@ -305,6 +305,11 @@ function save(){S.meta.updated=new Date().toISOString();
     if(prima){UNDO={prima:prima,at:Date.now(),testo:""};}
     localStorage.setItem(KEY,JSON.stringify(S));
     if(saveFailed){saveFailed=false;const b=document.getElementById("saveWarn");if(b)b.remove();}
+    /* La Ruota si accende da sola: ogni salvataggio è la fine di un
+       gesto vero, quindi è il momento giusto per guardare se una runa
+       ha appena raggiunto la sua condizione. Costo: un giro su 24
+       controlli, nessuna azione chiesta alla persona. */
+    try{if(typeof ruotaDopoSalvataggio==="function")ruotaDopoSalvataggio();}catch(e){}
   }catch(e){
     /* Spazio esaurito: è la situazione più pericolosa (si continuerebbe a usare
        l'app senza che nulla venga registrato). Prima liberiamo le copie di

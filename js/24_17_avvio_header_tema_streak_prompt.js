@@ -233,8 +233,11 @@ window.i18nDinamiche=function(){
   try{CUCINE.forEach(c=>agg(c[1]));}catch(e){}
   /* gli stati vuoti della pagina Io: le frasi arrivano a tr() da
      vuoto(), cioè da variabili — senza questo risulterebbero orfane */
-  try{["tu","corpo","studio","altro"].forEach(k=>{
+  try{["dati","permessi"].forEach(k=>{
     const html=IO_VUOTI[k];void html;});}catch(e){}
+  /* le voci del menu ⋯: etichette in variabile, tradotte nel punto
+     d'uso — senza registro risulterebbero orfane */
+  try{ALTRE.forEach(v=>agg(v[1]));}catch(e){}
   /* giorni e fasce: arrivano a tr() da giorno()/fascia(), cioè da una
      variabile — una ricerca nel codice li darebbe per orfani */
   ["Lunedì","Martedì","Mercoledì","Giovedì","Venerdì","Sabato","Domenica",
@@ -279,7 +282,7 @@ function render(p){
   const NOMI={punto:"renderPunto",oggi:"renderOggi",piano:"renderPiano",
     spesa:"renderSpesa",sport:"renderSport",comestai:"renderComeStai",
     storico:"renderStorico",mia:"renderMia",insieme:"renderInsieme",
-    io:"renderIo",sistema:"renderSistema",regole:"renderRegole",
+    io:"renderIo",ruota:"renderRuota",conto:"renderConto",costellazione:"renderCostellazione",sistema:"renderSistema",regole:"renderRegole",
     tools:"renderTools",benvenuto:"renderBenvenuto",onb2:"renderOnb2",
     piani:"renderPiani",guida:"renderGuida",nuvia:"renderNuvia",
     setup:"renderSetup"};
@@ -555,6 +558,11 @@ window.addEventListener("error",function(ev){
   try{applyTheme();}catch(e){}
   try{bumpStreak();}catch(e){}
   try{traguardiControlla();}catch(e){}
+  /* La Ruota si accende DA SOLA: qui all'avvio e, sotto, dopo ogni
+     salvataggio. Regola del founder (22/08): nessun gesto in più —
+     se una runa richiedesse un tocco per accendersi, sarebbe una
+     missione da accettare, cioè esattamente ciò che non facciamo. */
+  try{ruotaControlla();}catch(e){}
   try{setTimeout(()=>{try{contoAggiorna().then(()=>{try{prescrizioneApplica();render(cur);}catch(e){}});}catch(e){}},1500);}catch(e){}
   try{setTimeout(()=>{try{pianiCarica();}catch(e){}},2500);}catch(e){}
   try{cobrandApplica();}catch(e){}

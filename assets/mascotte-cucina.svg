@@ -52,7 +52,7 @@
     <path d="M 150,140 C 170,70 220,70 220,120 C 220,150 170,160 150,140" fill="url(#coralGrad-cucina)"/>
     <path d="M 70,230 C 70,140 110,130 150,130 C 190,130 230,140 230,230 C 230,280 190,280 150,280 C 110,280 70,280 70,230" fill="url(#tealGrad-cucina)"/>
     <g class="occhi-cucina"><circle cx="120" cy="185" r="8" fill="#1A4D40"/><circle cx="180" cy="185" r="8" fill="#1A4D40"/></g>
-    <path class="tongue-cucina" d="M 148,216 L 148,225 A 6,6 0 0,0 160,225 L 160,212 Z" fill="#FF7F50"/>
+    
     <path d="M 135,210 Q 150,225 165,210" fill="none" stroke="#1A4D40" stroke-width="6" stroke-linecap="round"/>
       <g class="sopracciglia-cucina" opacity=".85"><path d="M 111 159 q 9 -5 18 0" stroke="#1A4D40" stroke-width="4" stroke-linecap="round" fill="none"/><path d="M 171 159 q 9 -5 18 0" stroke="#1A4D40" stroke-width="4" stroke-linecap="round" fill="none"/></g>
     <path class="bocca-cucina" d="M 138 223 q 12 10 24 0" stroke="#1A4D40" stroke-width="4.5" stroke-linecap="round" fill="none"/>
