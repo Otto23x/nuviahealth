@@ -617,38 +617,84 @@ function refWeightWhy(){
   const gw=goalWeightSet();
   if(gw&&gw<p.w)return trh("il peso obiettivo che hai impostato tu ({v1} kg)",{v1:gw});
   if(fat>0)return trh("massa magra stimata dal {v1}% di grasso, +15% di margine",{v1:fat});
-  const tw=parseFloat((S.diet||{}).obiettivoPeso);
-  if(tw>0&&tw<p.w)return trh("il tuo peso obiettivo ({v1} kg)",{v1:tw});
   const h=+p.h||0;
   if(h>0){const ideal=(p.gender==="f"?21.5:22.5)*Math.pow(h/100,2);
     if(p.w>ideal)return trh("peso corretto: ideale per l'altezza ({v1} kg) più un quarto dell'eccesso",{v1:Math.round(ideal)});}
   return tr("il tuo peso attuale");}
-/* Unico punto di scrittura dell'obiettivo di peso: i due campi storici
-   restano allineati, e nessuna funzione lo cambia di nascosto. */
-function setGoalWeight(v){
+/* ═══ L'OBIETTIVO DI PESO: UNA VARIABILE, UN PORTONE ══════════════
+   IL DIFETTO, ricostruito col founder il 23/08: «l'utente scriveva un
+   peso e l'app non lo registrava, e non lo faceva nemmeno vedere».
+   Erano due cose insieme.
+   1. DUE VARIABILI. Il numero viveva in `S.profile.goalW` e in
+      `S.diet.obiettivoPeso`. Chi leggeva ne guardava ora una ora
+      l'altra, e chi scriveva ne aggiornava a volte una sola. Da oggi
+      la variabile è UNA: `S.profile.goalW`. `S.diet.obiettivoPeso`
+      viene travasato all'avvio per i profili già salvati e poi
+      cancellato — non esiste più un secondo posto dove guardare.
+   2. IL RIFIUTO SILENZIOSO. Questa funzione aveva TRE uscite che
+      restituivano il valore VECCHIO come se fosse quello nuovo:
+      numero assurdo, campo bloccato dallo studio, guardrail. Solo la
+      terza diceva qualcosa. Chi salvava gli Obiettivi con un numero
+      rifiutato non vedeva niente: il campo tornava com'era, e sembrava
+      che l'app avesse perso il dato.
+      Da oggi si restituisce un ESITO — cosa è successo e perché — e
+      non si finge mai che sia andata bene.
+   Chi vuole scrivere l'obiettivo NON chiama questa: chiama
+   `goalWeightApplica()`, che dice sempre alla persona com'è finita. */
+function setGoalWeight(v,opts){
+  opts=opts||{};
+  const attuale=goalWeightSet()||null;
+  const esito=(motivo,messaggio)=>({ok:false,valore:attuale,motivo,messaggio:messaggio||""});
   const n=parseFloat(String(v==null?"":v).replace(",","."));
-  if(!(n>20&&n<350))return goalWeightSet()||null;   /* vuoto o assurdo: NON tocca nulla */
+
+  if(String(v==null?"":v).trim()==="")return esito("vuoto");
+  if(!Number.isFinite(n))return esito("assurdo",tr("Non è un numero."));
+  if(!(n>20&&n<350))return esito("assurdo",tr("Quel peso non sembra plausibile."));
 
   /* Lo studio comanda: se l'obiettivo è stato fissato da un
      professionista, qui non si scrive. Non è un dispetto — è il motivo
-     per cui la persona si è rivolta a lui. */
-  try{if(typeof bloccato==="function"&&bloccato("obiettivoPeso"))
-    return goalWeightSet()||null;}catch(e){}
+     per cui la persona si è rivolta a lui. Ma ora glielo si DICE.
+     L'unico che scavalca è lo studio stesso (`da:"studio"`). */
+  if(opts.da!=="studio"){
+    try{if(typeof bloccato==="function"&&bloccato("obiettivoPeso"))
+      return esito("studio",tr("Il peso obiettivo l'ha fissato il tuo studio: da qui non si cambia."));
+    }catch(e){}}
 
   /* Il guardrail di chi decide da solo: sotto il muro non si passa.
      Chi si imposta i numeri da sé non ha nessuno che lo guardi, e un
      obiettivo che porta a un indice di massa corporea di 16 non è una
      preferenza da rispettare: è il momento in cui l'app deve dire no. */
+  let avviso="";
   try{
-    if(typeof verifica==="function"){
+    if(typeof verifica==="function"&&opts.da!=="studio"){
       const r=verifica("obiettivoPeso",n,livelloGuardrail(),{altezza:+S.profile.h||0});
-      if(r.esito==="vietato"){guardrailAvvisa(r);return goalWeightSet()||null;}
-      if(r.esito==="avviso")guardrailAvvisa(r);}
+      if(r.esito==="vietato")return esito("guardrail",r.messaggio);
+      if(r.esito==="avviso")avviso=r.messaggio||"";}
   }catch(e){}
 
   const ok=Math.round(n*10)/10;
-  S.profile.goalW=ok;S.diet.obiettivoPeso=ok;
-  return ok;}
+  S.profile.goalW=ok;
+  return {ok:true,valore:ok,motivo:null,messaggio:avviso};}
+
+/* IL PORTONE. Scrive e poi DICE com'è andata: una schermata sola
+   decide le parole, così le due pagine che toccano l'obiettivo non
+   possono più dire cose diverse (o non dire niente).
+   Restituisce true se il valore è entrato. */
+window.goalWeightApplica=(v,opts)=>{
+  const r=setGoalWeight(v,opts);
+  if(r.ok){
+    save();
+    if(r.messaggio)toast(r.messaggio);              /* avviso: passa, ma si dice */
+    else if(!(opts&&opts.zitto))toast(tr("Obiettivo impostato: {n} kg ✓",{n:r.valore}));
+    return true;}
+  if(r.motivo==="vuoto")return false;               /* niente scritto, niente da dire */
+  /* Un rifiuto si dice sempre, e si dice PERCHÉ. Il vecchio valore
+     resta, e la persona deve sapere che è rimasto quello. */
+  const coda=r.valore
+    ? "\n\n"+tr("L'obiettivo resta {n} kg.",{n:r.valore})
+    : "\n\n"+tr("L'obiettivo resta vuoto.");
+  dlgAlert((r.messaggio||tr("Quel peso non sembra plausibile."))+coda,tr("Non posso impostarlo"));
+  return false;};
 
 /* Chi è seguito da uno studio non usa il livello «studio»: quel livello
    è per CHI PRESCRIVE, non per chi riceve. Un paziente che si scrivesse
@@ -669,11 +715,13 @@ function guardrailAvvisa(r){
   }catch(e){}}
 window.guardrailAvvisa=guardrailAvvisa;
 /* L'unico modo per togliere l'obiettivo è chiederlo esplicitamente */
-function clearGoalWeight(){S.profile.goalW=null;S.diet.obiettivoPeso="";}
+function clearGoalWeight(){S.profile.goalW=null;}
 function goalWeightSet(){
-  /* letto da entrambi i campi: quello degli Obiettivi e quello dell'onboarding */
-  const a=parseFloat(S.profile.goalW),b=parseFloat((S.diet||{}).obiettivoPeso);
-  const v=(a>0?a:(b>0?b:0));
+  /* UNA variabile sola (23/08). Prima si leggeva da due campi, e la
+     scelta di quale vincesse era scritta qui: ogni altro punto del
+     codice che leggesse direttamente uno dei due poteva vedere un
+     numero diverso da questo. */
+  const v=parseFloat(S.profile.goalW);
   return v>20&&v<350?v:0;}
 function refWeight(){
   const p=S.profile,fat=parseFloat(p.fatp);
@@ -682,8 +730,6 @@ function refWeight(){
   const gw=goalWeightSet();
   if(gw&&gw<p.w)return Math.round(gw);
   if(fat>0)return Math.round(p.w*(1-fat/100)*1.15);   // magra + margine
-  const tw=parseFloat((S.diet||{}).obiettivoPeso);
-  if(tw>0&&tw<p.w)return Math.round(tw);
   const h=+p.h||0;                                     // peso corretto: ideale + 25% dell'eccesso
   if(h>0){const ideal=(p.gender==="f"?21.5:22.5)*Math.pow(h/100,2);
     if(p.w>ideal)return Math.round(ideal+(p.w-ideal)*0.25);}
@@ -1861,9 +1907,12 @@ window.saveObiettivi=async()=>{const p=S.profile;
     /* campo vuoto: l'obiettivo NON si cancella da solo, si chiede */
     if(prev&&!await dlgConfirm(tr("Il campo «Obiettivo peso» è vuoto ma hai un obiettivo impostato ({n} kg).",{n:prev})+"\n\nLo tolgo o lo lascio com'è?",
       {ok:tr("Lascia {n} kg",{n:prev}),ko:tr("Togli l'obiettivo")}))clearGoalWeight();
-  }else if(g>0){
-    if(g<=20||g>=350){await dlgAlert(prev?tr("Quel peso non sembra plausibile: l'obiettivo resta {n} kg.",{n:prev}):tr("Quel peso non sembra plausibile: l'obiettivo resta vuoto."));}
-    else setGoalWeight(g);
+  }else{
+    /* La validazione NON si riscrive qui: la fa il portone, che è lo
+       stesso per gli Obiettivi, per le Regole e per il percorso
+       guidato. Prima questa pagina ricontrollava 20/350 per conto suo
+       e le altre no: tre porte, tre metri diversi. */
+    goalWeightApplica(raw,{zitto:true});
   }
   const w=parseFloat(_v("pWater"));p.waterGoalL=w>0?w:null;
   save();render("io");toast(tr("Obiettivi salvati ✓"));};
@@ -1880,6 +1929,27 @@ function planWeightDrift(){
   const base=+S.planW||0,now=+S.profile.w||0;
   if(!base||!now)return 0;
   return Math.round((base-now)*10)/10;}
+/* ── COME IL PIANO LEGGE I PROGRESSI ──────────────────────────────
+   La stessa variazione di peso significa cose opposte a seconda
+   dell'obiettivo: due chili in più sono una deriva per chi voleva
+   perdere e il risultato atteso per chi voleva crescere.
+   Prima la frase era una sola e parlava sempre di «deficit»: a chi
+   mette massa l'app diceva «il deficit è aumentato più del
+   previsto», cioè segnalava come uno scostamento una cosa andata
+   esattamente come doveva.
+   `giu` significa che il peso è SCESO. Scendendo il fabbisogno cala,
+   quindi con lo stesso piano il deficit si assottiglia e il surplus
+   si allarga; salendo accade il contrario.                        */
+function derivaFrase(giu){
+  const g=(S.profile.goal||"").toLowerCase();
+  if(/mantenimento/.test(g))
+    return giu?tr("Con il piano di prima mangeresti sopra il fabbisogno di adesso.")
+              :tr("Con il piano di prima mangeresti sotto il fabbisogno di adesso.");
+  if(/massa|aument/.test(g))
+    return giu?tr("Con il piano di prima il surplus è aumentato.")
+              :tr("Con il piano di prima il surplus si è ridotto e la crescita rallenta.");
+  return giu?tr("Con il piano di prima il deficit si è ridotto e il calo rallenta.")
+            :tr("Con il piano di prima il deficit è aumentato.");}
 window.checkPlanAge=async()=>{
   const d=planWeightDrift();
   if(Math.abs(d)<PLANW_TRIGGER)return;
@@ -1892,7 +1962,7 @@ window.checkPlanAge=async()=>{
   const giu=d>0;
   const msg=" "+(giu?tr("Hai perso {d} kg da quando è stato costruito questo piano ({a} kg → {b} kg).",{d:d,a:S.planW,b:S.profile.w})
          :tr("Sei salito di {d} kg da quando è stato costruito questo piano ({a} kg → {b} kg).",{d:Math.abs(d),a:S.planW,b:S.profile.w}))+
-    "\n\n"+tr("Il fabbisogno cambia con il peso: adesso è di ~{n} kcal al giorno invece di ~{o} ({d} kcal). Con il piano di prima il deficit {v}.",{n:newT,o:oldT,d:(diff>0?"−":"+")+Math.abs(diff),v:(giu?tr("si è ridotto e il calo rallenta"):tr("è aumentato più del previsto"))})+
+    "\n\n"+tr("Il fabbisogno cambia con il peso: adesso è di ~{n} kcal al giorno invece di ~{o} ({d} kcal).",{n:newT,o:oldT,d:(diff>0?"−":"+")+Math.abs(diff)})+" "+derivaFrase(giu)+
     "\n\n"+tr("Il target aggiornato sarebbe ~{k} kcal al giorno.",{k:dayTargetK()})+
     "\n\nPosso ritarare le grammature del piano attuale sui nuovi numeri, tenendo gli stessi piatti. Oppure lasci tutto com'è: i calcoli del diario usano comunque il peso di oggi.";
   if(!await dlgConfirm(msg,{ok:tr("Ritara il piano"),ko:tr("Lascia com'è")}))return;

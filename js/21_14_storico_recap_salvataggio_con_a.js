@@ -761,9 +761,10 @@ window.askGoalWeight=async()=>{
   const r=healthyRange();
   const v=await dlgPrompt((r?tr("Peso obiettivo in kg (fascia sana per {h} cm: {min}–{max} kg):",{h:S.profile.h,min:numLoc(r.min),max:numLoc(r.max)}):tr("Peso obiettivo in kg:"))+"\n\n"+tr("Entra nel calcolo delle proteine, nella proiezione e nei grafici."),String(goalWeightSet()||""));
   if(v===null)return;
-  const n=setGoalWeight(v);
-  if(!n)return dlgAlert(tr("Valore non valido: l'obiettivo resta come era."));
-  save();render(cur);toast(tr("Obiettivo impostato: {n} kg ✓",{n:n}));};
+  /* Il portone dice già com'è andata, e dice PERCHÉ: qui non si
+     riscrive un messaggio generico che confondeva un numero fuori
+     scala con un campo bloccato dallo studio. */
+  if(goalWeightApplica(v))render(cur);};
 window.restartOnboarding=async()=>{
   if(!await dlgConfirm(tr("Rifaccio il percorso guidato?\n\nTrovi tutti i campi già compilati con i tuoi dati attuali: cambia solo quello che serve e vai avanti. Niente viene azzerato, e il piano resta quello che hai adesso.")))return;
   /* Chi rifà il percorso vuole rivedere anche le spiegazioni: le bolle
@@ -845,7 +846,11 @@ function onbSave(silent){
     if(!p.weights||!p.weights.length)p.weights=[{d:iso(new Date()),w:p.w,fat:p.fatp||null}];
   }
   if(st===4){p.goal=v("obGoal");
-    setGoalWeight(v("obTargetW"));              /* unico punto di scrittura */
+    /* IL DIFETTO DEL 23/08 ERA QUI: si scriveva e non si guardava
+       l'esito. Un peso rifiutato dal guardrail, o un campo fissato
+       dallo studio, sparivano senza una parola — il campo tornava al
+       valore vecchio e sembrava che l'app avesse perso il dato. */
+    goalWeightApplica(v("obTargetW"),{zitto:true});
     {const cv=v("obCyc"),pr=CYC_PRESETS.find(x=>x[0]===cv);
      if(cv==="cost")p.cycPhases=false;
      else if(cv==="pers"){
@@ -2432,7 +2437,7 @@ function drawWeightsChart(){
     if(PESCH){PESCH.destroy();PESCH=null;}
     const ws=(S.profile.weights||[]).slice().sort((a,b)=>a.d<b.d?-1:1);
     if(ws.length<2)return;
-    const goal=parseFloat((S.diet||{}).obiettivoPeso)||S.profile.goalW||null;
+    const goal=goalWeightSet()||null;
     PESCH=new Chart(cv,{type:"line",
       data:{labels:ws.map(x=>giornoDa(x.d).toLocaleDateString(dataLoc(),{day:"numeric",month:"short"})),
         datasets:[{label:tr("Peso (kg)"),data:ws.map(x=>x.w),tension:.3,borderColor:"#00AFA3",pointRadius:2},

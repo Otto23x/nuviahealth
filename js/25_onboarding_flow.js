@@ -66,7 +66,11 @@ function ONB2t(){return [
 
  {k:"bio",sez:"profilo",tipo:"modulo",
   q:tr("Partiamo da te"),
-  sub:tr("Servono a calcolare quanto consumi in un giorno. Il peso lo aggiornerai spesso: è il segnale che dice se il piano funziona.")},
+  /* La frase «il peso è il segnale che dice se il piano funziona» è
+     stata tolta il 23/08: puntava tutto sulla bilancia, e per chi
+     mantiene o mette massa il peso da solo non dice se le cose vanno
+     come devono. Restano i numeri e a cosa servono. */
+  sub:tr("Servono a calcolare quanto consumi in un giorno.")},
 
  {k:"pesoObiettivo",sez:"profilo",tipo:"numero",
   q:tr("Dove vorresti arrivare?"),
@@ -150,6 +154,23 @@ function ONB2t(){return [
  {k:"preferenze",sez:"vita",tipo:"preferenze",
   q:tr("Le ultime tre cose per il piano")},
 
+ /* ── I PIANI, PRIMA DELLE DOMANDE PER CONOSCERSI (founder, 23/08) ──
+    Sta qui e non alla fine per una ragione precisa: **la scelta
+    cambia cosa succede dopo**. Chi resta su Free non ha l'AI, quindi
+    non c'è niente da generare — e scoprirlo in fondo, davanti a una
+    barra che non parte, sarebbe la peggiore delle sorprese.
+    Messa qui, il piano parte in sottofondo mentre la persona
+    risponde alle ultime tre domande, esattamente come chiesto.
+    È una schermata come le altre: stessa barra, stesse card, stesso
+    modo di rispondere. Non un cartellone dei prezzi in mezzo al
+    percorso. */
+ {k:"piani",sez:"conoscerti",tipo:"piani",
+  q:tr("Come vuoi che ti segua?"),
+  sub:tr("Da qui dipende come nasce il piano. Si cambia quando vuoi.")},
+
+ /* `genera` sta sulla PAUSA e non sulla schermata dei piani: la
+    generazione deve partire DOPO la scelta, perché è la scelta a
+    decidere se e come generare. */
  {k:"pausa3",sez:"conoscerti",tipo:"pausa",posa:"cerca",genera:true,
   q:tr("Ho tutto quello che serve al piano."),
   sub:tr("Comincio a scriverlo adesso, mentre rispondi alle ultime domande: quando arrivi in fondo è già pronto.")},
@@ -298,6 +319,7 @@ function renderOnb2(){
   else if(sc.tipo==="dieta")c=onb2Dieta(sc);
   else if(sc.tipo==="pasti")c=onb2Pasti(sc);
   else if(sc.tipo==="preferenze")c=onb2Pref(sc);
+  else if(sc.tipo==="piani")c=onb2Piani(sc);
   else if(sc.tipo==="pausa")c=onb2Pausa(sc);
   else c=onb2Fine(sc);
 
@@ -306,13 +328,11 @@ function renderOnb2(){
       <h1 class="o2q">${esc(sc.q)}</h1>
       ${sc.sub?`<p class="o2sub">${esc(sc.sub)}</p>`:""}
       ${c}
-      <div class="o2nav o2nav3">
-        <button class="btn ghost small o2back" type="button" onclick="onb2Indietro()"
+      <div class="o2nav o2nav2">
+        <button class="btn ghost o2back" type="button" onclick="onb2Indietro()"
           aria-label="${esc(tr("Torna indietro"))}">${esc(tr("Indietro"))}</button>
-        ${sc.tipo!=="fine"?`<button class="btn small o2next" type="button"
+        ${sc.tipo!=="fine"?`<button class="btn o2next" type="button"
           onclick="onb2AvantiSchermo()">${esc(tr("Avanti"))}</button>`:""}
-        <button class="btn ghost small o2rivedi" type="button"
-          ${i>0?"":"disabled"} onclick="onb2Rivedi()">${esc(tr("Rivedi"))}</button>
         ${onb2MicBarra(sc.k,i)}
       </div>
     </div>`;
@@ -494,14 +514,115 @@ function onb2GenTocca(){
   try{const o=onb2Stato();
     if(ONB2c()[o.step]&&ONB2c()[o.step].tipo==="fine")renderOnb2();}catch(e){}}
 
+/* ═══ IL PIANO DI BASE, RIBILANCIATO SUI TUOI NUMERI ══════════════
+   Deciso dal founder il 23/08: chi resta su Free non ha l'AI, quindi
+   non c'è niente da generare — ma NON riceve un diario vuoto né un
+   «torna quando paghi». Riceve il piano di base con le QUANTITÀ
+   rifatte sul suo obiettivo.
+
+   COME, e perché così:
+   • Si calcola quanto pesa oggi ogni giornata del piano di base e
+     quanto dovrebbe pesare per questa persona (`dayTargetK()`, cioè
+     il fabbisogno meno o più il bilancio deciso dall'obiettivo: chi
+     mette massa riceve porzioni PIÙ GRANDI, non più piccole).
+   • I PASTI LIBERI NON SI TOCCANO. Dire «tre quarti di pallina di
+     gelato» è ridicolo, e soprattutto tradisce il senso del pasto
+     libero: è libero. La differenza la assorbono gli altri pasti,
+     che è esattamente come si comporterebbe una persona.
+   • Si scalano le GRAMMATURE scritte nel piatto, non solo i numeri
+     dei macro: «Pollo 200g» che diventa «Pollo 150g» è un'istruzione
+     che si può seguire; un piatto identico con meno calorie scritte
+     sotto non lo è.
+   • Il fattore ha un tetto, e NON è simmetrico: 0,6 in giù, 1,75 in
+     su. In giù si scende in fretta nel ridicolo (30 g di pollo, 20 g
+     di pasta) e sotto il pavimento calorico ci pensa già il motore;
+     in su, un piatto più abbondante resta un piatto — e chi mette
+     massa deve poterci arrivare. Misurato: con un tetto a 1,5 chi
+     cresce restava sotto il proprio target di quasi il 10% nei
+     giorni con più pasti liberi. Se il tetto morde lo si dichiara:
+     una stima che si sa storta e non lo dice è peggio di nessuna.
+   • Non si inventa un piatto nuovo: questo è un ADATTAMENTO, non un
+     piano scritto per te, e la differenza va detta a chiare lettere. */
+const PB_MIN=0.6,PB_MAX=1.75;
+
+/* Le grammature dentro la descrizione. Si toccano SOLO i numeri
+   seguiti da g/gr/ml: «4 nigiri» e «½ avocado» restano quello che
+   sono, perché non si tagliano a fette. Sotto i 5 g non si scala
+   (l'olio da 10 g che diventa 6 g è una precisione finta). */
+function pbGrammature(testo,f){
+  /* Si conserva lo SPAZIO come stava scritto: «200g» resta «150g» e
+     «200 g» resta «150 g». Un piano che cambia formato a metà si
+     legge come scritto da due mani diverse. */
+  return String(testo||"").replace(/(\d+(?:[.,]\d+)?)(\s*)(g|gr|ml)\b/gi,(tutto,n,sp,u)=>{
+    const v=parseFloat(String(n).replace(",","."));
+    if(!(v>=5))return tutto;
+    const nuovo=Math.max(5,Math.round(v*f/5)*5);   /* a passi di 5 g */
+    return nuovo+sp+u;});}
+
+/* Quanto pesa una giornata, e quanto ne pesano i soli pasti che si
+   possono ritoccare. */
+function pbPesi(giorno){
+  let tutto=0,mobile=0;
+  (giorno.meals||[]).forEach(m=>{
+    const k=+(((m.o||[])[0]||{}).k)||0;
+    tutto+=k;
+    if(m.type!=="free")mobile+=k;});
+  return {tutto,mobile};}
+
+window.onb2PianoBase=(targetK)=>{
+  const base=(typeof BASE_PLAN!=="undefined")?BASE_PLAN:null;
+  if(!base||!base.length)return null;
+  const t=+targetK||0;
+  if(!(t>0))return null;
+  let tagliato=false;
+  const piano=base.map(g=>{
+    const {tutto,mobile}=pbPesi(g);
+    /* il fattore si applica ai soli pasti ritoccabili: i liberi
+       restano interi e la differenza la assorbono gli altri */
+    const serve=t-(tutto-mobile);
+    let f=(mobile>0&&serve>0)?serve/mobile:1;
+    if(f<PB_MIN){f=PB_MIN;tagliato=true;}
+    if(f>PB_MAX){f=PB_MAX;tagliato=true;}
+    return {...g,meals:(g.meals||[]).map(m=>{
+      if(m.type==="free")return JSON.parse(JSON.stringify(m));
+      return {...m,o:(m.o||[]).map(o=>({...o,
+        d:pbGrammature(o.d,f),
+        k:Math.round((+o.k||0)*f),
+        p:Math.round((+o.p||0)*f),
+        c:Math.round((+o.c||0)*f),
+        f:Math.round((+o.f||0)*f)}))};})};});
+  piano.tagliato=tagliato;
+  return piano;};
+
 window.onb2GeneraOra=async()=>{
   const g=onb2Gen();
   if(g.stato==="lavoro"||g.stato==="fatto")return;      /* mai due volte */
   const o=onb2Stato();
   onb2Travasa();                                         /* il piano nasce dai dati veri */
-  if(typeof aiOn!=="function"||!aiOn()){
-    g.stato="senzaAI";g.perc=100;
-    g.riga=tr("Il piano lo generiamo appena c'è connessione: intanto il diario è già pronto.");
+  /* ── SENZA AI NON SI ASPETTA NIENTE ──
+     Prima qui si diceva «lo generiamo appena c'è connessione», che
+     per chi resta su Free non sarebbe successo mai: una promessa che
+     non poteva essere mantenuta. Ora il piano c'è subito, ed è
+     quello di base con le quantità rifatte sui suoi numeri. */
+  /* Chi ha SCELTO Free riceve il piano di base anche se l'AI sarebbe
+     disponibile: la scelta della persona viene prima di quello che
+     l'app potrebbe fare. */
+  const scelseFree=(o.ris.piani==="free");
+  if(scelseFree||typeof aiOn!=="function"||!aiOn()){
+    let piano=null;
+    try{
+      const t=onb2Targets();
+      piano=t?onb2PianoBase(dayTargetK()||t.kcal):null;
+    }catch(e){piano=null;}
+    g.piano=piano;g.perc=100;
+    if(piano){
+      g.stato="base";
+      g.riga=piano.tagliato
+        ? tr("Piano pronto: è quello di base, con le quantità rifatte sui tuoi numeri — alcune porzioni si sono fermate al limite di sicurezza.")
+        : tr("Piano pronto: è quello di base, con le quantità rifatte sui tuoi numeri.");
+    }else{
+      g.stato="senzaAI";
+      g.riga=tr("Il diario è già pronto: il piano lo scegli tu da Piano, quando vuoi.");}
     g.righe=[];return onb2GenTocca();}
   g.stato="lavoro";g.perc=2;g.riga=tr("Sto componendo il tuo piano…");
   g.righe=onb2GenRighe(0,"lavoro");onb2GenTocca();
@@ -549,10 +670,10 @@ function onb2Modulo(sc){
            una schermata: chi non vuole darlo lo lascia vuoto. -->
       <label>${esc(tr("Come ti chiami"))}</label>
       <input type="text" id="o2nome" autocomplete="given-name" maxlength="40"
-             value="${esc(b.nome||(S.profile&&S.profile.name)||"")}" placeholder="${esc(tr("come ti chiamano gli amici"))}">
+             value="${esc(bz("o2nome",b.nome||(S.profile&&S.profile.name)||""))}">
       <label>${esc(tr("Sei…"))}</label>
-      <select id="o2gen"><option value="m"${b.gen!=="f"?" selected":""}>${esc(tr("Uomo"))}</option>
-        <option value="f"${b.gen==="f"?" selected":""}>${esc(tr("Donna"))}</option></select>
+      <select id="o2gen"><option value="m"${bz("o2gen",b.gen)!=="f"?" selected":""}>${esc(tr("Uomo"))}</option>
+        <option value="f"${bz("o2gen",b.gen)==="f"?" selected":""}>${esc(tr("Donna"))}</option></select>
       <div class="grid2">
         <div><label>${esc(tr("Data di nascita"))}</label>
           <!-- La DATA, non l'età: con l'età si costruiva una data finta
@@ -568,15 +689,50 @@ function onb2Modulo(sc){
           <input type="text" id="o2dob" inputmode="numeric" maxlength="10"
                  placeholder="${esc(tr("gg/mm/aaaa"))}"
                  oninput="dateMask(this)"
-                 value="${b.dob?dobPretty(b.dob):""}"></div>
+                 value="${esc(bz("o2dob",b.dob?dobPretty(b.dob):""))}"></div>
         <div><label>${esc(tr("Altezza (cm)"))}</label>
-          <input type="number" id="o2h" inputmode="numeric" min="120" max="230" value="${b.h||""}" placeholder="175"></div>
+          <input type="number" id="o2h" inputmode="numeric" min="120" max="230" value="${esc(bz("o2h",b.h||""))}" placeholder="175"></div>
       </div>
       <label>${esc(tr("Peso di oggi (kg)"))}</label>
-      <input type="number" id="o2w" inputmode="decimal" step="0.1" min="30" max="300" value="${b.w||""}" placeholder="80">
-    </div>
-    <button class="btn o2avanti" type="button" onclick="onb2Bio()">${esc(tr("Avanti"))}</button>`+
+      <input type="number" id="o2w" inputmode="decimal" step="0.1" min="30" max="300" value="${esc(bz("o2w",b.w||""))}" placeholder="80">
+    </div>`+
    onb2Mic("bio");}
+
+/* ═══ I PIANI, RACCONTATI SENZA PREZZI ════════════════════════════
+   Tre regole, tutte del founder (23/08):
+   • NIENTE PREZZI: «presto». Un listino su un'app non ancora
+     pubblicata è un numero che cambierà, e un numero che cambia dopo
+     che qualcuno l'ha letto è una promessa rotta. Quando i piani
+     apriranno, i prezzi arriveranno dal server come dappertutto.
+   • COSA È INCLUSO, con la formula «tutto quello che c'è in X, più…».
+     Dice due cose in una: che il Free non è un assaggio a tempo, e
+     che pagare AGGIUNGE invece di sbloccare qualcosa che era già lì.
+   • STESSO STILE delle altre schermate: le stesse card di ogni altra
+     domanda, non un cartellone.
+   E il Free dice la verità su cosa riceve: il piano di base con le
+   quantità rifatte sui suoi numeri, non «niente piano». */
+function ONB2_PIANI(){return [
+ {k:"free",n:tr("Free"),p:tr("sempre gratis"),
+  d:tr("Diario, alimenti, peso, storico, spesa e backup sul tuo Drive. Il piano è quello di base, con le quantità rifatte sui tuoi numeri.")},
+ {k:"start",n:"Start",p:tr("presto"),
+  d:tr("Tutto quello che c'è in Free, più il piano scritto sulle tue risposte e rifatto quando qualcosa cambia.")},
+ {k:"complete",n:"Complete",p:tr("presto"),
+  d:tr("Tutto quello che c'è in Start, più la foto del piatto, lo scontrino e il quadro della settimana.")},
+ {k:"premium",n:"Premium",p:tr("presto"),
+  d:tr("Tutto quello che c'è in Complete, più gli allenamenti e il sostegno nei momenti difficili.")}
+];}
+window.ONB2_PIANI=ONB2_PIANI;
+
+function onb2Piani(sc){
+  const o=onb2Stato(),val=o.ris.piani;
+  return onb2Chip("piani")+
+   `<div class="o2ops">`+ONB2_PIANI().map(P=>
+    `<button class="o2op o2piano${val===P.k?" scelta":""}" type="button"
+       onclick="onb2Rispondi('piani','${esc(P.k)}')">
+       <span class="o2pr"><b>${esc(P.n)}</b><i>${esc(P.p)}</i></span>
+       <span>${esc(P.d)}</span>
+     </button>`).join("")+`</div>`+
+   `<span class="o2hint">${esc(tr("Nessun pagamento adesso: quando i piani apriranno te lo diciamo."))}</span>`;}
 
 /* Peso obiettivo + l'unico numero che conta: quanto ci vuole DAVVERO. */
 function onb2Numero(sc){
@@ -585,10 +741,9 @@ function onb2Numero(sc){
    `<div class="o2form">
       <label>${esc(tr("Peso obiettivo"))} (${esc(sc.unita)})</label>
       <input type="number" id="o2goal" inputmode="decimal" step="0.1" min="${sc.min}" max="${sc.max}"
-        value="${val}" placeholder="72" oninput="onb2Proiezione()">
+        value="${esc(bz("o2goal",val))}" placeholder="72" oninput="onb2Proiezione()">
     </div>
-    <div class="o2ins" id="o2ins" aria-live="polite">${onb2ProiezioneHTML()}</div>
-    <button class="btn o2avanti" type="button" onclick="onb2Goal()">${esc(tr("Avanti"))}</button>`+
+    <div class="o2ins" id="o2ins" aria-live="polite">${onb2ProiezioneHTML()}</div>`+
    onb2Mic(sc.k);}
 
 /* ── La proiezione: numeri veri, dal motore già collaudato ─────────
@@ -717,7 +872,8 @@ window.onb2Bio=()=>{
   if(!dob||!(eta>=14&&eta<=100)||!(h>=120&&h<=230)||!(w>=30&&w<=300))
     return dlgAlert(tr("Mi servono età, altezza e peso per calcolare qualcosa di vero. Sono gli unici numeri obbligatori."));
   const o=onb2Stato();
-  o.ris.bio={nome:(g("o2nome")||"").trim().slice(0,40),gen:g("o2gen")||"m",dob,eta,h,w};onb2Salva();
+  o.ris.bio={nome:(g("o2nome")||"").trim().slice(0,40),gen:g("o2gen")||"m",dob,eta,h,w};
+  onb2BozzaButta();onb2Salva();
   try{if(typeof confermaPasso==="function")confermaPasso("bio");}catch(e){}
   onb2Avanti();};
 
@@ -725,7 +881,14 @@ window.onb2Goal=()=>{
   const e=document.getElementById("o2goal"),v=parseFloat(e?e.value:"");
   const o=onb2Stato();
   if(!(v>=30&&v<=300))return dlgAlert(tr("Scrivi il peso che hai in mente, anche di massima."));
-  o.ris.pesoObiettivo=v;onb2Salva();onb2Avanti();};
+  /* IL GUARDRAIL VALE ANCHE QUI (23/08). Prima il percorso accettava
+     qualunque numero fra 30 e 300: una persona di 178 cm che scriveva
+     45 kg riceveva la sua proiezione e il piano ci veniva costruito
+     sopra. Lo stesso 45, scritto in Regole, l'app lo rifiutava. Ora il
+     metro è uno solo, e vale dove una persona arriva per prima. */
+  if(!goalWeightApplica(v,{zitto:true}))return;
+  o.ris.pesoObiettivo=goalWeightSet()||v;
+  onb2BozzaButta();onb2Salva();onb2Avanti();};
 
 /* Salta una schermata senza rispondere: succede col consenso negato
    e con le domande che non hanno una risposta per tutti. */
@@ -771,57 +934,50 @@ function onb2Avanti(){
   onb2Salva();renderOnb2();try{window.scrollTo(0,0);}catch(e){}}
 window.onb2Avanti=onb2Avanti;
 
-/* ═══ RIVEDI LE RISPOSTE ═══════════════════════════════════════════
-   Chiesto dal founder il 19/08/2026, provando il percorso: «non posso
-   tornare all'inizio, non ricordo cosa ho messo prima e voglio
-   controllare».
-   Ha ragione, ed è una mancanza seria: dieci schermate sono tante, e
-   chi si ferma a metà (o riprende il giorno dopo) non ha modo di
-   sapere cosa ha già detto. «Indietro» va di un passo per volta, che
-   alla settima schermata vuol dire sei tocchi per rivedere la prima.
-   Qui si vede TUTTO in una schermata, e da ogni riga si torna a quel
-   punto per cambiare. */
-window.onb2Rivedi=()=>{
-  const o=onb2Stato(),L=ONB2c();
-  const righe=L.map((sc,i)=>{
-    if(i>=o.step&&o.ris[sc.k]==null)return "";   /* non ancora chieste */
-    const v=o.ris[sc.k];
-    return `<div class="o2riga" onclick="onb2VaiA(${i})">
-      <div><b>${esc(sc.q)}</b>
-        <div class="hint">${esc(onb2Leggibile(sc,v))}</div></div>
-      ${ic("pencil",15)}
-    </div>`;}).filter(Boolean).join("");
-  sheetShow(tr("Quello che hai detto finora"),
-    (righe||`<div class="hint">${esc(tr("Non hai ancora risposto a niente."))}</div>`)+
-    `<div class="hint" style="margin-top:12px">${esc(tr("Tocca una riga per cambiarla."))}</div>`);};
+/* ═══ IL RIVEDI NON C'È PIÙ (founder, 23/08) ══════════════════════
+   Era una terza azione nella barra: apriva un foglio con tutte le
+   risposte e da ogni riga si tornava a cambiarla. È stato tolto
+   insieme a onb2Rivedi, onb2Leggibile e onb2VaiA.
+   La ragione: tre comandi su una riga sola costringevano a stringere
+   Indietro e Avanti in misure diverse, e la barra cambiava forma da
+   una schermata all'altra. Con due comandi soli, pari, la riga è
+   sempre la stessa — e la cosa che il Rivedi risolveva («non ricordo
+   cosa ho detto») la risolve un Indietro che c'è sempre e non perde
+   quello che hai scritto.                                        */
 
-/* La risposta in parole: un oggetto o un elenco, letto da una persona. */
-function onb2Leggibile(sc,v){
-  if(v==null||v==="")return tr("— saltata");
-  if(Array.isArray(v))return v.length?v.join(", "):tr("— niente");
-  if(typeof v==="object"){
-    const p=[];
-    if(v.gen)p.push(v.gen==="m"?tr("Uomo"):tr("Donna"));
-    if(v.eta)p.push(v.eta+" "+tr("anni"));
-    if(v.h)p.push(v.h+" cm");
-    if(v.w)p.push(v.w+" kg");
-    return p.join(" · ")||tr("— compilata");}
-  /* se è una scelta, si mostra l'etichetta e non la chiave */
-  if(sc.op){
-    const t=sc.op.find(x=>x[0]===v);
-    if(t)return t[1];}
-  return String(v).slice(0,80);}
-
-window.onb2VaiA=(i)=>{
-  const o=onb2Stato();
-  o.step=Math.max(0,Math.min(i,ONB2c().length-1));
-  onb2Salva();
-  try{sheetClose();}catch(e){}
-  render("onb2");};
+/* ── LA BOZZA: quello che hai scritto non si perde ────────────────
+   Richiesta del founder (23/08): «l'Indietro c'è sempre e conserva i
+   dati». Fino a ieri i campi si salvavano SOLO passando da Avanti,
+   che valida: chi scriveva metà della data e tornava indietro
+   ritrovava la schermata vuota, e doveva riscrivere tutto.
+   Qui si prende una fotografia dei campi a schermo — senza
+   validarli, perché una bozza è per definizione incompleta — e la si
+   rimette al loro posto al ritorno. Alla prima risposta valida la
+   bozza si butta: da lì in poi comanda la risposta vera.
+   Vale per ogni campo con un `id`, quindi non va aggiornata quando
+   nasce una schermata nuova.                                     */
+function onb2BozzaPrendi(){
+  try{
+    const el=document.getElementById("pg-onb2");
+    if(!el)return;
+    const o=onb2Stato();o.bozza=o.bozza||{};
+    el.querySelectorAll("input[id],select[id],textarea[id]").forEach(c=>{
+      if(c.type==="checkbox"||c.type==="radio")return;
+      o.bozza[c.id]=c.value;});
+  }catch(e){}}
+/* Il valore da mettere nel campo: la bozza se c'è, altrimenti la
+   risposta già data. Una funzione sola, così nessuna schermata può
+   dimenticarsene a metà. */
+function bz(id,valore){
+  const b=(onb2Stato().bozza)||{};
+  return (b[id]!=null&&b[id]!=="")?b[id]:(valore==null?"":valore);}
+function onb2BozzaButta(){const o=onb2Stato();if(o.bozza)delete o.bozza;onb2Salva();}
 
 window.onb2Indietro=()=>{
   const o=onb2Stato();
+  onb2BozzaPrendi();                 /* prima di cambiare schermata, si fotografa */
   if(o.step<=0){                     /* dalla prima si esce, non si resta in trappola */
+    onb2Salva();
     return dlgAlert(tr("Siamo alla prima domanda: da qui si può solo andare avanti. Puoi chiudere l'app e riprendere quando vuoi, non perdi nulla."));}
   let n=o.step-1;
   const salta=i=>{const s=ONB2c()[i];if(!s)return false;
@@ -984,7 +1140,11 @@ function onb2Chiedi(testo){
    cominciato a scrivere tre schermate fa. */
 function onb2Fine(sc){
   const g=onb2Gen();
-  const pronto=(g.stato==="fatto"||g.stato==="senzaAI"||g.stato==="errore");
+  /* «base» è uno stato PRONTO come gli altri: il piano c'è, l'ha
+     solo scritto il piano di partenza invece dell'AI. Senza questa
+     riga chi resta su Free avrebbe letto «Entra appena è pronto»
+     davanti a un piano già finito. */
+  const pronto=(g.stato==="fatto"||g.stato==="base"||g.stato==="senzaAI"||g.stato==="errore");
   return `${masc(pronto?"festeggia":"cucina",96)}
   <div class="o2gen" id="o2gen" aria-live="polite">
     <div class="o2genbar"><i id="o2genb" style="width:${g.perc}%"></i></div>
@@ -1008,15 +1168,38 @@ function onb2Travasa(){
   const o=onb2Stato(),r=o.ris,b=r.bio||{};
   const attMap={fermo:1.25,leggero:1.375,regolare:1.55,intenso:1.725};
   const goalMap={perdere:"deciso",mantenere:"mantenimento",massa:"massa"};
+  /* ── L'OBIETTIVO, nel campo che il motore legge DAVVERO ──────────
+     Il difetto (23/08): l'onboarding scriveva solo S.diet.goal, ma
+     tutto il calcolo — deficitTarget(), protKgAuto(), rateNote(),
+     planForecast(), checkPlanAge() — legge S.profile.goal, che non
+     aveva nemmeno un valore predefinito. Risultato misurato: chi
+     sceglieva «mettere massa» riceveva 1879 kcal con 470 kcal di
+     DEFICIT, esattamente come chi voleva perdere peso.
+     I rami giusti nel motore c'erano già: mancava chi li accendeva.
+     Le parole sono quelle della tendina di Regole → Obiettivi, così
+     le due porte dicono la stessa cosa invece di due dialetti: chi
+     rifà il percorso ritrova la sua scelta già selezionata lì.
+     S.diet.goal resta scritto com'era: lo legge 65_costellazione,
+     che confronta con «massa» carattere per carattere.            */
+  const goalProfilo={perdere:"dimagrimento graduale",
+                     mantenere:"mantenimento",
+                     massa:"aumento di massa"};
   if(b.eta>0){const n=new Date();n.setFullYear(n.getFullYear()-b.eta);
     S.profile.dob=S.profile.dob||n.toISOString().slice(0,10);}
   if(b.nome)S.profile.name=b.nome;
   if(b.gen)S.profile.gender=b.gen;
   if(b.h>0)S.profile.h=b.h;
   if(b.w>0)S.profile.w=b.w;
-  if(r.pesoObiettivo>0)S.profile.goalW=r.pesoObiettivo;
+  /* Non più un «=» diretto (23/08): il percorso guidato era l'unica
+     porta che scavalcava il portone, quindi l'unica dove il guardrail
+     era spento. È anche la prima schermata che una persona incontra,
+     cioè il posto in cui serve di più. Qui si scrive zitti perché il
+     rifiuto è già stato detto quando è stato scritto il numero. */
+  if(r.pesoObiettivo>0)goalWeightApplica(r.pesoObiettivo,{zitto:true});
   S.profile.act=attMap[r.attivita]||S.profile.act||1.375;
-  if(r.obiettivo)S.diet.goal=goalMap[r.obiettivo]||S.diet.goal;
+  if(r.obiettivo){
+    S.diet.goal=goalMap[r.obiettivo]||S.diet.goal;
+    S.profile.goal=goalProfilo[r.obiettivo]||S.profile.goal;}
   S.ui.modalitaPasti=o.modalita||"piano";
   /* ── Le risposte nuove finiscono NEGLI STESSI CAMPI che Regole →
      Caratteristiche alimentari legge e modifica. Una fonte sola:

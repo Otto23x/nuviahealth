@@ -76,7 +76,18 @@ S.week.days.forEach((d,di)=>{
   while((d.meals||[]).length<need)d.meals.push({done:false,skip:false,opt:0,movedTo:-1,movedAs:"",custom:null});
 });
 S.permMeals=S.permMeals||{};S.streak=S.streak||{count:0,last:""};S.hardDays=S.hardDays||{};S.dayEvents=S.dayEvents||{};
-if(!S.profile.goalW&&S.diet&&S.diet.obiettivoPeso)setGoalWeight(S.diet.obiettivoPeso);  /* allineamento dei vecchi profili */
+/* UNA VARIABILE SOLA (23/08). `S.diet.obiettivoPeso` non è più una
+   fonte: qui si travasa quello che c'era nei profili già salvati e poi
+   si cancella, così non resta un secondo posto dove guardare. Il
+   travaso scrive DIRETTO perché è una migrazione, non una scelta della
+   persona: un numero già accettato ieri non si rimette in discussione
+   oggi (e il guardrail, con lo studio di mezzo, lo rifiuterebbe). */
+try{
+  const vecchio=parseFloat((S.diet||{}).obiettivoPeso);
+  if(!(parseFloat(S.profile.goalW)>0)&&vecchio>20&&vecchio<350)
+    S.profile.goalW=Math.round(vecchio*10)/10;
+  if(S.diet&&"obiettivoPeso" in S.diet)delete S.diet.obiettivoPeso;
+}catch(e){}
 if(S.planW===undefined)S.planW=(planIsEmpty&&typeof planIsEmpty==="function"&&!planIsEmpty())?S.profile.w:null;
 if(!S.ui)S.ui={};
 /* Riparazione pesate: il wizard salvava la data come timestamp UTC completo
@@ -149,7 +160,6 @@ S.diet=Object.assign({intol:"",
   religiose:"",              // vincoli religiosi o etici
   integratori:"",
   patologie:"",              // condizioni da tenere presenti (informativo)
-  obiettivoPeso:"",          // peso desiderato
   ritmo:"0.5"                // kg a settimana desiderati
 },S.diet||{});
 if(S.profile&&S.profile.lbm&&!S.profile.fatp&&S.profile.w>0){ // migrazione: da magra kg a % grasso

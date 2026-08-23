@@ -35,7 +35,7 @@
   --bosco:#0A4E49; --azione:#0C7C74; --salvia:#00AFA3; --menta:#E4F7F4; --crema:#F5F5F5; --card:#FFFFFF;
   --ink:#0D2422; --grigio:#5A7571; --linea:#E3EAE8;
   --zaff:#E4632F; --zafft:#BF4E1D; --zaffbg:#FFF0E9; --mensa:#5B7FE0; --mensabg:#EEF2FD;
-  --rosso:#DC4444; --rossobg:#FDECEC; --ok:#16A34A; --okbg:#E9F9EE;
+  --rosso:#DC4444; --rossobg:#FDECEC; --rossoink:#B02418; --ok:#16A34A; --okbg:#E9F9EE;
   --grad:#0C7C74;
   --gradz:#FF7F50;
     --glass:rgba(255,255,255,.72);
@@ -65,7 +65,7 @@ html[data-theme="dark"]{
   --bosco:#7FE0D6; --salvia:#2FC9BC; --menta:#0E2C29; --crema:#0A1211; --card:#11201E;
   --ink:#E6F4F2; --grigio:#8FA8A3; --linea:#20332F;
   --zaff:#FF9B72; --zafft:#FF9B72; --zaffbg:#2C1A10; --mensa:#7FA9F2; --mensabg:#131E31;
-  --rosso:#EF8B8B; --rossobg:#2F1717; --ok:#3ECF6E; --okbg:#0E2C29;
+  --rosso:#EF8B8B; --rossobg:#2F1717; --rossoink:#EF8B8B; --ok:#3ECF6E; --okbg:#0E2C29;
   --glass:rgba(19,30,21,.72);
   --shadow:0 1px 2px rgba(0,0,0,.5),0 10px 28px -6px rgba(0,0,0,.45);
   --shadow-lift:0 2px 4px rgba(0,0,0,.5),0 20px 48px -10px rgba(0,0,0,.6);
@@ -110,6 +110,16 @@ header h1{font-size:18px;font-weight:700;letter-spacing:.2px}
 .logo-badge{display:inline-flex;align-items:center;gap:8px;color:var(--bosco);font-weight:800;font-size:19px;letter-spacing:-.03em;line-height:1.15;transition:transform .25s var(--ease)}
 .logo-badge:hover{transform:rotate(-2deg) scale(1.05)}
 .nvlogo{flex:0 0 auto}
+/* IL NOME ACCANTO AL MARCHIO (founder, 23/08): «il marchio con la
+   scritta Nuvia in alto — oggi non si vede né all'ingresso né durante
+   il percorso guidato». Era vero: in alto c'era il solo disegno, e un
+   disegno senza nome non si impara. Il nome sta nel serif del marchio,
+   perché è la firma e non un'etichetta; a schermo stretto sparisce lui
+   e resta il simbolo, mai il contrario. Brand book: si scrive sempre
+   «Nuvia», mai NUVIA. */
+.nvnome{font-family:'Fraunces',Georgia,serif;font-size:20px;font-weight:600;
+  color:var(--bosco);letter-spacing:-.01em;line-height:1}
+@media (max-width:360px){.nvnome{display:none}}
 /* ── Pagina Nuvia (brand) ── */
 .nvhero{text-align:center;padding:24px 16px 20px;background:var(--card);border-radius:var(--r-lg)}
 .nvhero h1{margin:12px 0 4px;font-size:30px;color:var(--bosco);letter-spacing:-.02em}
@@ -744,11 +754,17 @@ body.onb .fab{display:none}
 .daytotal span{color:var(--salvia)}
 /* ══ FORM ══ */
 textarea,input[type=text],input[type=number],input[type=date],input[type=password],select{
-  width:100%;border:1px solid var(--linea);border-radius:12px;padding:12px 16px;font-size:16px;
-  font-family:inherit;background:var(--crema);color:var(--ink);
+  width:100%;border:1px solid var(--linea);border-radius:12px;padding:16px;font-size:16px;
+  min-height:56px;font-family:inherit;background:var(--crema);color:var(--ink);
   transition:border-color .2s,background .2s,box-shadow .2s}
 /* 16px sugli input NON è estetica: sotto questa misura iOS ingrandisce
    automaticamente la pagina al tocco, e la lascia storta. */
+/* PIÙ RESPIRO, E UGUALE DAPPERTUTTO (founder, 23/08). Il riempimento
+   passa da 12/16 a 16 su tutti i lati e l'altezza minima a 56px: un
+   campo si tocca col pollice, e 44px è il minimo per non sbagliare
+   mira, non una misura comoda. La regola sta QUI e in nessun altro
+   posto, così un campo nel percorso guidato e uno in Regole hanno la
+   stessa faccia. */
 textarea:focus,input:focus,select:focus{border-color:var(--bosco);background:var(--card);box-shadow:0 0 0 3px color-mix(in srgb,var(--bosco) 12%,transparent);outline:none}
 textarea{min-height:54px;resize:vertical}
 label{font-size:11.5px;font-weight:700;letter-spacing:.09em;text-transform:uppercase;color:var(--grigio);display:block;margin:16px 0 8px}
@@ -759,23 +775,41 @@ label{font-size:11.5px;font-weight:700;letter-spacing:.09em;text-transform:upper
 .studio-logo{width:40px;height:40px;object-fit:contain;border-radius:8px;background:var(--card)}
 .studio-nome{font-weight:700;font-size:15px;color:var(--ink);line-height:1.2}
 .studio-con{font-size:12px;color:var(--grigio);letter-spacing:.02em}
-.btn{display:inline-block;border:0;background:var(--azione);color:#fff;border-radius:16px;
+/* ══ I PULSANTI SONO LEGGERI (founder, 23/08) ═══════════════════
+   Una conferma non è più un blocco pieno di colore: **bordo e
+   scritta colorati, interno chiaro**. Vale per tutti, rossi
+   compresi, e vale anche per la conferma dentro il dialogo.
+   PERCHÉ: un'app che accompagna e poi si fa da parte non può avere
+   la voce del pieno acceso su ogni schermata. Il colore serve a
+   dire DOVE si va, non a spingere.
+   LA GERARCHIA NON SPARISCE, cambia mezzo:
+   • primaria  → bordo `--azione`, scritta `--bosco`
+   • secondaria (.ghost) → bordo `--linea`, scritta `--ink`
+   • distruttiva (.warn) → bordo `--rosso`, scritta `--rossoink`
+   Restano tre livelli distinguibili senza guardarli due volte, e
+   t_cta continua a contarli dalla classe, non dal colore.
+   IL ROSSO DELLA SCRITTA NON È `--rosso`: #DC4444 su fondo chiaro
+   dà 4,24 e la soglia del testo è 4,5. Finché il rosso era un
+   fondo pieno con scritta bianca la cosa non si poneva; da oggi si
+   pone, quindi la scritta usa `--rossoink`, che sta a 6,19. */
+.btn{display:inline-block;background:var(--card);color:var(--bosco);
+  border:1.5px solid var(--azione);border-radius:16px;
   padding:12px 20px;font-size:14.5px;font-weight:700;letter-spacing:-.005em;cursor:pointer;margin-top:8px;
-  box-shadow:0 6px 16px -8px rgba(11,61,44,.55);
-  transition:transform .22s var(--ease),box-shadow .25s,filter .2s;position:relative;overflow:hidden}
-.btn::after{content:"";position:absolute;inset:0;background:rgba(255,255,255,.14);opacity:0;transform:translateX(-120%);transition:transform .6s var(--ease)}
-.btn:hover{transform:translateY(-2px);box-shadow:0 12px 26px -8px rgba(22,163,74,.65)}
-.btn:hover::after{transform:translateX(120%)}
+  box-shadow:none;
+  transition:transform .22s var(--ease),background .2s,border-color .2s;position:relative}
+.btn:hover{transform:translateY(-2px);background:var(--menta)}
 .btn:active{transform:scale(.96)}
-html[data-theme="dark"] .btn{color:#04211E}
-.btn.ghost{background:var(--card);color:var(--ink);border:1px solid var(--linea);box-shadow:none;font-weight:600}
+.btn.ghost{background:var(--card);color:var(--ink);border:1.5px solid var(--linea);box-shadow:none;font-weight:600}
 .btn.ghost:hover{background:var(--menta)}
-.btn.warn{background:var(--rosso);box-shadow:0 6px 16px -8px rgba(198,64,46,.5)}
-/* Azione delicata A CONTORNO: cancellare tutto o fare pulizia deve essere
-   trovabile, mai il bottone più forte della schermata. Il pieno rosso
-   resta per le conferme dentro il dialogo, dove la scelta è già stata
-   presa e l'unica cosa che conta è non sbagliare bottone. */
-.btn.ghost.warn{background:var(--card);color:var(--rosso);border:1px solid var(--rosso);box-shadow:none}
+/* Il rosso segue la stessa regola di tutti: cancellare tutto deve
+   essere trovabile, mai il pulsante più forte della schermata. Da
+   oggi non c'è più un pieno rosso da nessuna parte — nemmeno nel
+   dialogo di conferma, dove la scelta è già stata presa e a contare
+   è solo non sbagliare bottone: a distinguerli bastano il colore
+   del bordo e la parola scritta sopra. */
+.btn.warn,.btn.ghost.warn{background:var(--card);color:var(--rossoink);
+  border:1.5px solid var(--rosso);box-shadow:none}
+.btn.warn:hover,.btn.ghost.warn:hover{background:var(--rossobg)}
 .btn.small{padding:12px 16px;font-size:13px;border-radius:12px;margin-top:4px}
 .row2{display:flex;gap:12px}.row2>*{flex:1;min-width:0}
 .row3{display:flex;gap:12px}.row3>*{flex:1;min-width:0}
@@ -1275,9 +1309,18 @@ body.onb{padding-bottom:0}
 .o2op:hover{border-color:var(--salvia)}
 .o2op:active{transform:scale(.985)}
 .o2op.scelta{border-color:var(--azione);background:var(--menta)}
+/* ── I PIANI, dentro il percorso e non come un cartellone ──────
+   Sono le stesse card di ogni altra domanda: cambia solo che il
+   nome del piano e il «quando» stanno sulla stessa riga, a estremi
+   opposti. Il «presto» è in corallo perché è l'informazione che una
+   persona cerca per prima, e non deve sembrare un prezzo nascosto. */
+.o2piano .o2pr{display:flex;align-items:baseline;justify-content:space-between;gap:12px;margin-bottom:4px}
+.o2piano .o2pr b{font-size:16px;font-weight:700;margin:0}
+.o2piano .o2pr i{font-style:normal;font-size:var(--t-sm);font-weight:600;color:var(--zaff)}
 .o2form{margin-bottom:16px}
-.o2form label{display:block;font-size:var(--t-sm);font-weight:600;color:var(--grigio);margin:12px 0 4px}
-.o2avanti{width:100%;margin-bottom:12px}
+/* Le etichette del percorso NON hanno più uno stile loro: usano
+   quello di `label`, come ogni altro campo dell'app. Prima erano a
+   metà strada — la misura e il peso di qui, il maiuscoletto di là. */
 .o2mic{width:100%;justify-content:center}
 .o2stop{width:100%;margin-top:8px}
 .o2ins{background:var(--menta);border-radius:16px;padding:16px 16px;margin-bottom:16px;
@@ -1315,23 +1358,76 @@ body.onb{padding-bottom:0}
 .primo-perche{display:grid;gap:16px;margin:16px 0}
 .primo-perche .pp b{display:block;font-size:15px;color:var(--bosco);margin-bottom:4px}
 .primo-perche .pp span{font-size:14px;line-height:1.55;color:var(--ink)}
-.primo-avviso{display:flex;gap:12px;align-items:flex-start;background:var(--zaffbg);
-  border-radius:12px;padding:16px;margin:16px 0;font-size:14px;line-height:1.5}
-.primo-avviso svg{flex:0 0 auto;color:var(--zaff);margin-top:4px}
+/* Il riquadro d'avvertimento non c'è più (founder, 23/08): la frase
+   scomoda vive dentro il discorso, in grassetto, dove si legge nel
+   filo del ragionamento invece che come un allarme da scavalcare. */
+.primo-scomodo{display:block;margin-top:8px;color:var(--bosco);font-weight:700}
+/* ══ IL MODULO D'ACCESSO ══════════════════════════════════════
+   Impaginato come i login che la gente ha già visto mille volte
+   (Decathlon, per dirne uno che il founder ha messo a confronto):
+   etichetta sopra, campo a tutta larghezza, azione sotto a tutta
+   larghezza, e le altre vie in colonna sotto un «oppure».
+   Non è imitazione: è la forma che una persona riconosce senza
+   doverla studiare, e su una schermata d'ingresso è tutto. */
+.acc{margin-top:20px}
+.acc label{margin:0 0 8px}
+.acc-b{width:100%;margin-top:12px;display:flex;align-items:center;
+  justify-content:center;gap:12px}
+.acc-sep{display:flex;align-items:center;gap:12px;margin:20px 0 4px;
+  color:var(--grigio);font-size:var(--t-sm)}
+.acc-sep::before,.acc-sep::after{content:"";flex:1;height:1px;background:var(--linea)}
+.acc-gicona{flex:0 0 auto}
+/* «Più tardi» è una scelta legittima, non un ripiego: si vede, ma
+   non compete con le altre due. */
+.acc-dopo{border-color:transparent;color:var(--grigio);font-weight:600}
+.acc-dopo:hover{border-color:var(--linea);background:transparent}
+/* L'esito della prova delle chiavi: tre stati, e si distinguono
+   dalla PRIMA PAROLA della frase prima ancora che dal colore: chi
+   non distingue i colori legge «AI:» e «Drive:» come tutti. */
+.primo-esito{margin-top:12px;display:grid;gap:8px}
+.primo-esito .pe{font-size:14px;line-height:1.45;padding:12px;border-radius:12px;
+  border:1px solid var(--linea);background:var(--card)}
+.primo-esito .si{border-color:var(--azione)}
+.primo-esito .no{border-color:var(--rosso)}
+.primo-esito .forse{border-color:var(--zaff)}
+.primo-esito .att{color:var(--grigio)}
 .primo-ok{display:flex;gap:8px;align-items:center;color:var(--bosco);font-weight:600;margin-top:16px}
 .primo-tec{margin-top:24px;border:1px dashed var(--linea);border-radius:12px;padding:16px}
+/* ══ IL SALUTO: la pagina che dice a cosa serve Nuvia ══════════
+   Niente card, niente riquadri: è una pagina che si legge in
+   quindici secondi, non un modulo da compilare. Il marchio col nome
+   in cima è la prima volta che una persona lo vede scritto. */
+.saluto{padding:32px 0 40px}
+.saluto-marchio{display:flex;flex-direction:column;align-items:center;gap:8px;margin-bottom:20px}
+.saluto-nome{font-family:'Fraunces',Georgia,serif;font-size:32px;font-weight:600;
+  color:var(--bosco);letter-spacing:-.01em;line-height:1}
+.saluto .primo-t{font-size:24px;margin-bottom:32px}
+.saluto-p{margin:20px 0}
+.saluto-p b{display:block;font-size:16px;color:var(--bosco);margin-bottom:4px}
+.saluto-p span{display:block;font-size:15px;line-height:1.55;color:var(--ink)}
+/* La riga sul tono sta su fondo menta e non in grigio piccolo: è la
+   promessa che distingue Nuvia, non una nota a piè di pagina. */
+.saluto-tono{background:var(--menta);border-radius:16px;padding:16px;
+  font-size:14.5px;line-height:1.5;color:var(--bosco);margin:32px 0 0}
+.saluto-via{width:100%;margin-top:24px}
 .primo-tec summary{cursor:pointer;font-size:13.5px;color:var(--grigio)}
 .o2nav{display:flex;align-items:center;gap:8px;margin-top:16px;flex-wrap:nowrap}
 .o2nav .o2back{margin-right:auto}
 .o2nav .btn{min-height:44px;padding:12px 16px;font-size:14px;white-space:nowrap;flex:0 0 auto}
-/* Tre pulsanti, una riga sola, sempre nello stesso posto (22/08):
-   Indietro a sinistra, Avanti al centro come azione principale,
-   Rivedi a destra. Su schermi stretti si stringe il padding, ma
-   NESSUNO dei tre sparisce e nessuno va a capo. */
-.o2nav3{display:grid;grid-template-columns:auto 1fr auto;gap:8px;align-items:center}
-.o2nav3 .o2back{margin-right:0}
-.o2nav3 .o2next{width:100%;justify-content:center}
-.o2nav3 .o2rivedi[disabled]{opacity:.4;pointer-events:none}
+/* DUE pulsanti, pari (founder, 23/08). Prima erano tre — Indietro,
+   Avanti, Rivedi — su una riga sola: per farceli stare, Indietro e
+   Avanti finivano in due misure diverse, e la colonna centrale si
+   allargava o si stringeva a seconda di quanto era lungo «Rivedi»
+   nella lingua in uso. Tolto il terzo, i due restano identici:
+   stessa larghezza (1fr e 1fr), stessa forma, stesso peso. Una riga
+   che non cambia mai forma è una riga che non si deve ricercare. */
+/* v13.53, deciso col founder: dei due, Avanti prende il bordo
+   colorato e Indietro resta col bordo grigio. Restano una coppia —
+   stessa larghezza, stessa forma, stesso peso di carattere — ma si
+   capisce dov'è la strada senza doverlo leggere. */
+.o2nav2{display:grid;grid-template-columns:1fr 1fr;gap:12px;align-items:stretch}
+.o2nav2 .o2back{margin-right:0}
+.o2nav2 .btn{width:100%;margin-top:0;text-align:center;justify-content:center}
 @media (max-width:380px){
   .o2nav .btn{padding:12px 8px;font-size:13.5px}}
 /* Le multi-selezioni si riconoscono dal quadratino, non dal testo. */
@@ -1392,8 +1488,6 @@ body.onb{padding-bottom:0}
 /* Modalità Zen: i numeri vanno via, i colori restano. */
 body.zen .kcalNum,body.zen .macroNum{opacity:0;pointer-events:none}
 /* Primo avvio: le azioni stanno in riga, non incolonnate. */
-.primo-az{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-top:12px}
-.primo-az .btn{flex:1 1 auto;min-height:44px}
 .o2gen{margin-top:16px}
 .o2genbar{height:7px;background:var(--linea);border-radius:99px;overflow:hidden}
 .o2genbar i{display:block;height:100%;width:0;background:var(--azione);border-radius:99px;

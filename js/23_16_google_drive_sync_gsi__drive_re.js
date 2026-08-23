@@ -36,15 +36,28 @@ function driveSilentAuth(){
 function loadGSI(cb){if(window.google&&google.accounts)return cb();
   const s=document.createElement("script");s.src="https://accounts.google.com/gsi/client";
   s.onload=cb;s.onerror=()=>dlgAlert(tr("Impossibile caricare Google Identity (offline?)."));document.head.appendChild(s);}
-window.driveConnect=()=>{
-  S.drive.cid=document.getElementById("dCid").value.trim();save();
+/* IL DIFETTO DEL 23/08: questa funzione leggeva SEMPRE il campo
+   `dCid`, che esiste solo nella pagina Sistema. Chiamata dal primo
+   avvio — dove il campo si chiama `primoCid` — esplodeva sul null, e
+   il `try` di chi la chiamava trasformava l'errore in un generico
+   «il collegamento non è riuscito». Cioè: «Entra con Google» non ha
+   MAI funzionato dalla prima schermata, e non lo diceva.
+   Ora il campo si passa; se non c'è, vale quello già salvato. */
+window.driveConnect=(idCampo)=>{
+  S.drive=S.drive||{};
+  const campo=document.getElementById(idCampo||"dCid");
+  if(campo)S.drive.cid=String(campo.value||"").trim();
+  save();
   if(!S.drive.cid)return dlgAlert(tr("Inserisci il CLIENT_ID."));
   if(location.protocol==="file:")return dlgAlert(tr("L'OAuth Google non funziona da file:// — pubblica l'app su https (es. GitHub Pages) e registra l'origine nel progetto Google Cloud."));
   loadGSI(()=>{
     tokenClient=google.accounts.oauth2.initTokenClient({client_id:S.drive.cid,
       scope:"https://www.googleapis.com/auth/drive.appdata",
       callback:async t=>{driveSaveToken(t);S.drive.on=true;save();
-        document.getElementById("driveStatus").textContent=" Connesso. Sincronizzo…";
+        /* la riga di stato esiste solo in Sistema: dal primo avvio non
+           c'è, e cercarla faceva fallire il collegamento RIUSCITO */
+        const st=document.getElementById("driveStatus");
+        if(st)st.textContent=" "+tr("Connesso. Sincronizzo…");
         await driveSyncOnStart();render(cur);}});
     tokenClient.requestAccessToken();});};
 async function driveFind(){

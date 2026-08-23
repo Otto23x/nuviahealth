@@ -81,7 +81,13 @@ function prescrizioneApplica(){
     if(val===undefined||val===null)return;
     if(dove[chiave]!==val){dove[chiave]=val;cambiato=true;}};
 
-  metti(S.profile,"goalW",p.obiettivoPeso);
+  /* Anche lo studio passa dal portone, dichiarandosi: salta il blocco
+     (l'ha messo lui) e il guardrail della persona, ma non la
+     validazione. Un solo punto di scrittura vuol dire anche questo. */
+  if(p.obiettivoPeso!=null&&p.obiettivoPeso!==""){
+    const prima=S.profile.goalW;
+    try{setGoalWeight(p.obiettivoPeso,{da:"studio"});}catch(e){}
+    if(S.profile.goalW!==prima)cambiato=true;}
   metti(S.profile,"h",p.altezza);
   metti(S.profile,"act",p.attivita);
   if(p.kcal){S.diet=S.diet||{};metti(S.diet,"kcalImposte",p.kcal);}
