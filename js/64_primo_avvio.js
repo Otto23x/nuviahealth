@@ -119,6 +119,7 @@ window.primoHTML=()=>{
   if(!salutoFatto())return salutoHTML();
   const cid=(S.drive&&S.drive.cid)||"";
   const key=(S.ai&&S.ai.key)||"";
+  const pens=(S.ai&&S.ai.pensiero)||"medium";
   /* «collegato» vuol dire: c'è un gettone valido E il backup è acceso */
   let collegato=false;
   try{collegato=!!(typeof DTOKEN!=="undefined"&&DTOKEN&&S.drive&&S.drive.on);}catch(e){}
@@ -169,6 +170,23 @@ window.primoHTML=()=>{
       <input type="text" id="primoCid" value="${esc(cid)}" placeholder="…apps.googleusercontent.com">
       <label style="margin-top:12px">${esc(tr("Chiave AI"))}</label>
       <input type="password" id="primoKey" value="${esc(key)}" placeholder="${esc(tr("la tua chiave AI"))}">
+      <!-- QUANTO DEVE PENSARE, PER IL PIANO E SOLO PER IL PIANO
+           (founder, 24/08). Sta QUI e non nelle impostazioni normali
+           per due ragioni. La prima: «minimal / low / medium» non
+           significa niente per una persona che vuole mangiare meglio,
+           e non è una scelta da scaricarle addosso. La seconda: qui
+           non è un'impostazione, è uno strumento di misura — serve a
+           decidere con dati veri quale sia il valore definitivo, e
+           poi questo comando sparirà insieme al pannello.
+           Il tempo dell'ultima generazione sta accanto perché senza
+           quel numero si confrontano sensazioni, non versioni. -->
+      <label style="margin-top:12px">${esc(tr("Quanto ci pensa, per il piano"))}</label>
+      <select id="primoPens" onchange="pensieroSet(this.value)">
+        <option value="fast"${pens==="fast"?" selected":""}>${esc(tr("Fast — il più svelto"))}</option>
+        <option value="medium"${pens==="medium"?" selected":""}>${esc(tr("Medium — predefinito"))}</option>
+        <option value="slow"${pens==="slow"?" selected":""}>${esc(tr("Slow — ci ragiona di più"))}</option>
+      </select>
+      <div class="hint">${esc(tr("Tocca solo la generazione del piano: tutto il resto resta al minimo. Ultima generazione:"))} ${esc(pensieroUltima())}</div>
       <div class="mtools">
         <button class="btn ghost small" onclick="primoTecSalva()">${esc(tr("Salva le impostazioni"))}</button>
         <button class="btn ghost small" onclick="primoTecProva()">${esc(tr("Prova le chiavi"))}</button>
@@ -192,6 +210,24 @@ window.primoProsegui=()=>{
     return dlgAlert(tr("Quell'indirizzo non sembra completo. Controllalo, oppure vai avanti con «Più tardi»."));
   if(e){S.conto=S.conto||{};S.conto.email=e;save();}
   primoSalta();};
+
+/* Il tempo dell'ultima generazione, in secondi e col livello con cui è
+   stata fatta: senza il livello il numero non direbbe niente, perché
+   non si saprebbe cosa si sta confrontando. Finché non se n'è fatta
+   nemmeno una, si dice che non ce n'è — non si scrive uno zero, che
+   sembrerebbe un tempo. */
+function pensieroUltima(){
+  const a=S.ai||{};
+  if(!a.genMs)return tr("nessuna ancora");
+  const sec=Math.round(a.genMs/1000);
+  const liv={fast:"Fast",medium:"Medium",slow:"Slow"}[a.genPens||a.pensiero||"medium"]||"Medium";
+  return trh("{v1} s ({v2})",{v1:sec,v2:liv});}
+
+window.pensieroSet=(v)=>{
+  S.ai=S.ai||{};
+  S.ai.pensiero=(v==="fast"||v==="slow")?v:"medium";
+  save();
+  toast(trh("Piano: {v1}",{v1:{fast:"Fast",medium:"Medium",slow:"Slow"}[S.ai.pensiero]}));};
 
 window.primoTecSalva=()=>{
   const cid=(document.getElementById("primoCid")||{}).value||"";

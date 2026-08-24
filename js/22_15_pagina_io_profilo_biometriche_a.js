@@ -38,42 +38,65 @@ function wizTargets(){
   const prot=Math.round((lbm?2.0*lbm:1.8*d.w));
   const bmi=Math.round(d.w/((d.h/100)**2)*10)/10;
   return {bmr:bmrV,tdee:tdeeV,kcal,prot,bmi,lbm:lbm?Math.round(lbm*10)/10:null};}
-/* ── Il primo piano nasce dalla PIPELINE, non più da un colpo unico ──
-   Prima: 7 giorni in UNA chiamata (rischio troncamento, zero anti-
-   ripetizione, zero retry). Ora: un giorno alla volta col cuore
-   condiviso askDayAI/normDayAI — stessa qualità delle rigenerazioni.
+/* ── Il primo piano nasce da UNA chiamata sola ─────────────────────
+   La storia di questa funzione, per non rifare due volte lo stesso
+   giro: nasce come colpo unico, diventa una fila di sette chiamate per
+   avere anti-ripetizione e riprova, e dalla v13.59 torna a essere una
+   chiamata sola — ma non è un passo indietro, perché adesso sotto c'è
+   quello che allora mancava: un contratto verificato in JavaScript
+   (validaSettimana) e il rifacimento dei soli giorni che non passano.
+   Quello che si guadagna non è solo l'attesa. Vedendo i sette giorni
+   insieme il modello può distribuire le fonti proteiche e bilanciare
+   la settimana; sette chiamate cieche non potevano farlo, perché la
+   domenica non esisteva ancora quando si scriveva il lunedì.
+
    I dati restano quelli del wizard (WIZ.d): a questo punto del percorso
-   S non è ancora completo, quindi il prompt si costruisce da qui. */
-async function wizGenDays(d,t,onStep){
+   S non è ancora completo, quindi il prompt si costruisce da qui.
+   `onStep(i,nome)` resta per compatibilità con chi la chiamava; adesso
+   riceve anche `onFase`, che è il racconto vero. */
+async function wizGenDays(d,t,onStep,onFase){
   const DAYS=["Lunedì","Martedì","Mercoledì","Giovedì","Venerdì","Sabato","Domenica"];
   const persona=JSON.stringify({eta:wizAge(),genere:d.gen,altezza:d.h,peso:d.w,bmi:t.bmi,
     massa_grassa_pct:d.fat,stile_di_vita:d.vita,sport:d.sport,intolleranze:d.intol,
     cibi_vietati:d.no,cibi_amati:d.si,preferenza_semplice_pronto:d.pronto,
     pasti_al_giorno:d.nPasti,colazione:d.colaz,obiettivo:d.goal});
-  const plan=[],usati=[];let liberiMessi=0;
-  for(let i=0;i<7;i++){
-    const dayName=DAYS[i];
-    if(onStep)onStep(i,dayName);
-    const q='Costruisci UN SOLO GIORNO ('+dayName+') di un piano alimentare italiano, sano ed equilibrato. Persona: '+persona+
-      '. Target del giorno: circa '+t.kcal+' kcal (tolleranza ±5%) e almeno '+t.prot+' g di proteine, distribuiti sui pasti.'+
-      ' Rispetta intolleranze e cibi vietati; usa i cibi amati; piatti '+(d.pronto==="pronto"?"semplicissimi e in gran parte pronti":"semplici")+
-      ' con grammature sempre indicate e valori nutrizionali REALI; cucina italiana/mediterranea con componenti separate nel piatto;'+
-      ' NON inserire integratori; se lo stile di vita cita mensa o ufficio, il pranzo dei giorni feriali può essere type "mensa" (una riga generica su come comporre il piatto, senza grammature).'+
-      ((+d.liberi||0)>liberiMessi?' Nella settimana sono desiderati '+d.liberi+' pasti liberi in totale (finora collocati: '+liberiMessi+'): se questo giorno si presta (weekend, cena sociale), rendi UN pasto type "free".':' Nessun altro pasto libero: sono già stati collocati tutti.')+
-      (usati.length?' Piatti già usati nei giorni precedenti — NON riproporli né in variante simile: '+usati.slice(-24).join("; ")+'.':'')+
-      dayJSONContract(dayName);
-    let r=await askDayAI(q),day=r.day;
-    while(!day){
-      if(!await dlgConfirm(tr("Il giorno {g} non è arrivato{e}.",{g:dayName,e:(r.err?" ("+aiReason(r.err)+")":"")})+"\n\n"+tr("I {n} giorni già costruiti sono al sicuro: riprovo solo questo?",{n:i}),{ok:tr("Riprova {g}",{g:dayName}),ko:tr("Interrompi")}))return null;
-      await wait(1200);
-      r=await askDayAI(q);day=r.day;
-    }
-    const nd=normDayAI(dayName,day);
-    nd.meals.forEach(m=>{
-      if(m.type==="free")liberiMessi++;
-      if(m.type==="norm"&&m.o[0].d)usati.push(m.n+": "+String(m.o[0].d).slice(0,60));});
-    plan.push(nd);
-  }
+  const liberi=+d.liberi||0;
+  const comune=' Persona: '+persona+
+    '. Target di OGNI giorno: circa '+t.kcal+' kcal (tolleranza ±5%) e almeno '+t.prot+' g di proteine, distribuiti sui '+(+d.nPasti||5)+' pasti.'+
+    ' Rispetta intolleranze e cibi vietati; usa i cibi amati; piatti '+(d.pronto==="pronto"?"semplicissimi e in gran parte pronti":"semplici")+
+    ' con grammature sempre indicate e valori nutrizionali REALI; cucina italiana/mediterranea con componenti separate nel piatto;'+
+    ' NON inserire integratori; se lo stile di vita cita mensa o ufficio, il pranzo dei giorni feriali può essere type "mensa" (una riga generica su come comporre il piatto, senza grammature).'+
+    (liberi?' Nella settimana vanno collocati '+liberi+' pasti liberi in totale, nei giorni che si prestano (weekend, cena sociale): quei pasti hanno type "free".':' Nessun pasto libero.')+
+    ' Nessun piatto si ripete nella settimana, nemmeno in variante simile.';
+  const esito=await chiediSettimana({
+    prompt:'Costruisci un piano alimentare italiano SETTIMANALE, sano ed equilibrato: SETTE GIORNI INTERI, da Lunedì a Domenica, più la lista della spesa che ne deriva.'+comune+
+      ' Guarda la settimana come un insieme: distribuisci le fonti proteiche e non concentrare i piatti pesanti negli stessi giorni.',
+    promptGiorni:(guasti,usati)=>'Stai correggendo un piano alimentare settimanale italiano già scritto. Rifai SOLO questi giorni, lasciando stare gli altri.'+comune+
+      ' Ecco cosa NON andava, giorno per giorno — correggi esattamente questo: '+
+      guasti.map(x=>x.giorno+" → "+x.motivi.join("; ")).join(" · ")+'.'+
+      (usati.length?' Questi piatti sono già negli altri giorni della settimana e non vanno riproposti: '+usati.slice(-24).join("; ")+'.':''),
+    regole:{giorni:DAYS,kcal:t.kcal,prot:t.prot,tollPct:5,nPasti:+d.nPasti||5,
+      vietati:(d.vietatiLista&&d.vietatiLista.length)?d.vietatiLista:vietatiElenco(d.no,d.intol),
+      ripetizioni:"nessuna"},
+    spesa:true,
+    onFase:(f,dati)=>{
+      /* i sette giorni nascono insieme: il vecchio «i di 7» non
+         descrive più niente, e chi chiama riceve la fase vera */
+      if(onFase)onFase(f,dati);
+      if(onStep&&f==="fatto")onStep(7,DAYS[6]);
+      else if(onStep&&f==="settimana")onStep(0,DAYS[0]);}});
+  if(!esito.plan){
+    await dlgAlert(tr("Il piano non è arrivato{e}.",{e:(esito.err?" ("+aiReason(esito.err)+")":"")})+
+      "\n\n"+tr("Le tue risposte sono al sicuro: si riprova dal Piano, quando vuoi."));
+    return null;}
+  /* La SICUREZZA non si consegna comunque: se dopo il rifacimento è
+     rimasto un alimento escluso, chi ha chiamato deve poterlo sapere e
+     non attivare niente. Kcal e ripetizioni invece si dichiarano. */
+  const insicuri=(esito.problemi||[]).filter(x=>!x.sicuro);
+  const plan=esito.plan;
+  plan.spesa=esito.spesa||null;
+  plan.problemi=esito.problemi||[];
+  plan.insicuro=insicuri.length?insicuri:null;
   return plan;}
 async function wizGenerate(){
   S.ui.pianoProprio=0;
@@ -81,12 +104,24 @@ async function wizGenerate(){
   if(!aiOn())return aiFail(new Error("nokey"));
   const t=wizTargets(),d=WIZ.d;
   const box=document.getElementById("wzOut");box.style.display="block";
-  const fatti=[];
   try{
-    const plan=await wizGenDays(d,t,(i,nome)=>{
-      box.textContent=trh("Costruisco la settimana ({v1} di 7): ",{v1:(i+1)})+(fatti.length?fatti.join(" · ")+" · ":"")+nome+"…";
-      if(i>0)fatti.push("✓");});
+    /* Il racconto segue le fasi vere: la settimana si scrive tutta
+       insieme, poi la controllo io, poi — solo se serve — rifaccio i
+       giorni che non passano. Il vecchio «3 di 7» descriveva sette
+       chiamate che non ci sono più. */
+    const plan=await wizGenDays(d,t,null,(f,dati)=>{
+      box.textContent=
+        f==="settimana"? tr("Scrivo la settimana intera…")
+      : f==="controllo"? tr("Controllo i conti e quello che hai escluso…")
+      : f==="ritocco"  ? trh("Rifaccio i giorni che non tornano: {v1}…",{v1:(dati||[]).join(", ")})
+      :                  tr("Fatto.");});
     if(!plan){box.textContent="";return;}
+    if(plan.insicuro){
+      box.textContent="";
+      return dlgAlert(tr("Il piano non è utilizzabile così: in alcuni giorni è rimasto un alimento che avevi escluso.")+"\n\n"+
+        plan.insicuro.map(x=>x.giorno+": "+x.motivi.join("; ")).join("\n")+
+        "\n\n"+tr("Non lo attivo: su intolleranze e cibi vietati non esiste un «va bene lo stesso». Riprova, oppure togli il vincolo se l'avevi scritto per sbaglio."));}
+    box.textContent="";
     WIZ.plan=plan;WIZ.step=4;renderSetup();
   }catch(e){box.textContent="";aiFail(e);}}
 /* Riga unica con TUTTI i macro stimati del piatto */

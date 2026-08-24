@@ -7,6 +7,19 @@
    l'elenco vero viene chiesto a Google e i modelli scoperti hanno la
    precedenza. Per questo l'app funziona con modelli usciti dopo. */
 const GEM_CHAIN=["gemini-3.7-flash","gemini-3.6-flash","gemini-3.5-flash"];  /* ultimo meno due, SOLO flash: i lite sono fuori per scelta */
+/* ═══ IL TETTO DEI TOKEN IN USCITA ═══════════════════════════════
+   Era 8192, e bastava per UN giorno di piano. Dalla v13.59 una sola
+   chiamata produce sette giorni più la lista della spesa: misurati sul
+   piano di base, 5.806 caratteri per i sette giorni (~1.600 token) più
+   1.050 per la spesa (~290), cioè ~1.900 token con descrizioni asciutte
+   e ~2.500 con quelle che scrive il modello.
+   Il tetto sta a 32K per due ragioni, non una: il margine, e il fatto
+   che i token del RAGIONAMENTO si contano dentro questo stesso tetto —
+   è il motivo per cui la diagnosi, qui sotto, deve spegnere il pensiero
+   per stare in 512. Un tetto è un limite, non una prenotazione: alzarlo
+   non costa niente a chi risponde corto, e un troncamento su una
+   chiamata unica costa l'intero piano. */
+const AI_TETTO_TOKEN=32768;
 /* L'elenco del selettore. Prima conteneva solo «auto»: i modelli noti
    restavano invisibili finché la ricerca automatica non andava a buon
    fine, ed è per questo che Flash 3.6 non si poteva scegliere. */
@@ -14,6 +27,57 @@ const GEM_ALL=["auto"].concat(GEM_CHAIN);   /* la tendina rispecchia la catena: 
 /* I modelli nuovi non richiedono un aggiornamento dell'app: l'elenco vero
    viene chiesto a Google e i più recenti finiscono in cima alla catena.
    Il controllo si fa da solo una volta a settimana, e si può forzare da Io. */
+/* ═══ QUANTO DEVE PENSARE, E PERCHÉ NON LASCIARLO DECIDERE A LUI ═══
+   I modelli della serie 3 ragionano internamente prima di rispondere,
+   e **se non glielo dici usano il loro livello predefinito, che è
+   alto**. Era il caso nostro: nessun livello impostato, quindi ogni
+   giorno del piano bruciava ragionamento invisibile prima di scrivere
+   una riga di JSON. Sette giorni in fila, sette volte quel costo.
+   È lì che se ne andava l'attesa — non nel modello.
+
+   UN SOLO PARAMETRO (24/08, v13.59): `thinkingLevel`. Il ramo
+   `thinkingBudget` della serie 2.5 non c'è più — usiamo SOLO flash
+   della serie 3, e un ramo che non si percorre mai è un ramo che
+   nessuno rilegge e che un giorno parte per sbaglio. Perché togliere
+   quel ramo sia sicuro e non solo pulito, la scoperta dei modelli
+   adesso si ferma alla 3.x (gemRefreshModels, sotto): prima ammetteva
+   `gemVer >= 2.5`, quindi su un account senza modelli 3.x poteva
+   entrare in catena un 2.5 — e a un 2.5 il `thinkingLevel` è un
+   errore 400, cioè nessun piano, mai.
+
+   ── IL DIFETTO CHE QUESTA FUNZIONE AVEVA ──────────────────────
+   Il livello si INDOVINAVA dalla lunghezza del prompt (>1800
+   caratteri → «low»). Misurato il 24/08 sul percorso guidato: i sette
+   prompt di wizGenDays stavano fra 1367 e 1960 caratteri, quindi SEI
+   GIORNI SU SETTE partivano a «minimal». La decisione «il piano va a
+   low» esisteva sulla carta e non nel piano che la persona riceve il
+   primo giorno. Niente si rompeva: arrivava un piano, solo non era
+   quello che credevamo di aver chiesto.
+   Adesso il livello si DICHIARA: chi chiama dice a cosa serve la
+   risposta (`pilastro`), e quel dato viaggiava già fino al proxy —
+   era solo buttato via prima di arrivare qui.
+
+   QUANTO, PER NOI:
+   • il PIANO → «low». Molti vincoli insieme, e la rete che li
+     ricontrolla (validaSettimana) trova gli errori ma costa una
+     seconda chiamata ogni volta che ne trova uno.
+   • le FOTO → «low». Vanno guardate prima di essere descritte.
+   • tutto il resto → «minimal». Una frase, un alimento riconosciuto,
+     una stima: non c'è niente su cui ragionare.
+   Non si sale mai a «medium» o «high» da soli: sarebbe scegliere per
+   la persona di farla aspettare. Il selettore delle «Impostazioni di
+   prova» è l'unica cosa che può alzarlo, tocca SOLO il piano, e serve
+   a decidere con dati veri quale sia il valore definitivo. */
+const PENSIERO_LIV={fast:"minimal",medium:"low",slow:"medium"};
+const PENSIERO_DEF="medium";                      /* Medium = low, la decisione presa */
+function pensieroPiano(){
+  const v=(S.ai&&S.ai.pensiero)||PENSIERO_DEF;
+  return PENSIERO_LIV[v]||PENSIERO_LIV[PENSIERO_DEF];}
+function gemPensiero(modello,prompt,imgs,pilastro){
+  const foto=!!(imgs&&imgs.length);
+  const serve=(pilastro==="piano")?pensieroPiano():(foto?"low":"minimal");
+  return {thinkingConfig:{thinkingLevel:serve}};}
+
 function gemDiscovered(){const d=(S.ai&&S.ai.models)||null;
   return (d&&Array.isArray(d.list)&&d.list.length)?d.list:null;}
 function gemVer(n){const m=String(n).match(/gemini-(\d+)(?:\.(\d+))?/);
@@ -43,7 +107,12 @@ async function gemRefreshModels(silent){
         &&!/embedding|aqa|image|tts|audio|native|vision/.test(n)
         &&!/preview|exp|experimental|customtools|thinking|latest|\d{3,}/.test(n)
         &&!/understanding|eap|coder|robotics|live|realtime|dialog/.test(n)
-        &&gemVer(n)>=2.5
+        /* SOLO serie 3 (24/08). Prima era >=2.5, e su un account che non
+           espone modelli 3.x la scoperta poteva mettere in catena un 2.5:
+           a un 2.5 il `thinkingLevel` è un errore 400 e il piano non
+           arriva affatto. Il pavimento a 3 è ciò che rende sicuro aver
+           tolto il ramo `thinkingBudget` da gemPensiero. */
+        &&gemVer(n)>=3
       &&/flash/.test(n)&&!/-lite\b/.test(n))    /* solo flash pieni: MAI i lite */
       .sort((a,b)=>gemScore(b)-gemScore(a));
     if(!list.length)throw new Error("nessun modello disponibile");
@@ -196,10 +265,18 @@ function vibra(ms){try{if(navigator.vibrate)navigator.vibrate(ms);}catch(e){}}
 /* Il tempo di risposta cresce con la lunghezza del prompt e con le immagini:
    un limite fisso di 25 s faceva fallire la generazione del piano (prompt
    lunghi, un giorno alla volta) con un errore che sembrava di rete. */
-function aiTimeoutFor(prompt,imgs){
+function aiTimeoutFor(prompt,imgs,pilastro){
   const n=(imgs||[]).length,len=String(prompt||"").length;
+  /* IL PIANO IN UNA CHIAMATA SOLA HA BISOGNO DEL SUO TEMPO (24/08).
+     Sette giorni più la spesa sono ~2.500 token in uscita, e i token
+     del ragionamento si spendono PRIMA che arrivi il primo carattere.
+     Con i 90 secondi di prima la chiamata unica sarebbe scaduta quasi
+     sempre — e scadere non costa 90 secondi: costa 3 tentativi per
+     modello su 3 modelli, cioè un'attesa PEGGIORE di quella che
+     stiamo togliendo. */
+  if(pilastro==="piano")return 180000;
   if(n>0)return 120000;                  /* foto: analisi più lenta */
-  if(len>1800)return 90000;              /* piano, ribilanci, report */
+  if(len>1800)return 90000;              /* ribilanci, report */
   return 45000;}
 /* ── Il proxy ────────────────────────────────────────────────────
    Col conto, la chiave non passa mai di qui: si manda il prompt al
@@ -255,14 +332,22 @@ async function geminiCall(prompt,imgs,pilastro){
       let timedOut=false;
       try{
         const ctrl=new AbortController();
-        const to=setTimeout(()=>{timedOut=true;ctrl.abort();},aiTimeoutFor(prompt,imgs));
+        const to=setTimeout(()=>{timedOut=true;ctrl.abort();},aiTimeoutFor(prompt,imgs,pilastro));
         let r;
         /* Se la richiesta prevede una risposta JSON, la si impone al modello:
            senza, capita che risponda con testo attorno o che tronchi la
            risposta a metà — e il piano non arriva mai. Il tetto di token
            alto serve proprio a non far troncare un giorno intero. */
         const vuoleJSON=/Rispondi SOLO/i.test(prompt)||/\bJSON\b/.test(prompt);
-        const cfg={temperature:0.7,maxOutputTokens:8192};
+        const cfg={maxOutputTokens:AI_TETTO_TOKEN};
+        /* ── NIENTE «temperature» (24/08) ──────────────────────────
+           `temperature`, `top_p` e `top_k` sono stati dichiarati
+           deprecati da Google. Oggi vengono ignorati in silenzio, che
+           è il modo peggiore in cui una cosa può smettere di
+           funzionare: il piano continua ad arrivare, solo non è più
+           quello che credevi di aver chiesto. Tolto prima che diventi
+           un errore vero su un'app pubblicata. */
+        Object.assign(cfg,gemPensiero(m,prompt,imgs,pilastro));
         if(vuoleJSON&&!(imgs&&imgs.length))cfg.responseMimeType="application/json";
         try{r=await fetch("https://generativelanguage.googleapis.com/v1beta/models/"+m+":generateContent?key="+encodeURIComponent(key),{
           method:"POST",headers:{"Content-Type":"application/json"},

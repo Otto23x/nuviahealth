@@ -44,7 +44,14 @@ if(!S)S=defaultState();
 // retro-compatibilità morbida su tutti i rami
 S.ui=Object.assign({theme:"auto",vacanza:false,lastOpen:"",lastMorning:""},S.ui||{});
 S.drive=Object.assign({cid:"",on:false},S.drive||{});
-S.ai=Object.assign({key:"",model:"auto"},S.ai||{});
+/* `pensiero` è il livello di ragionamento del PIANO — e solo di quello:
+   fast/medium/slow, cioè minimal/low/medium. Vive qui e non nelle
+   impostazioni normali perché è uno strumento di misura per la fase di
+   prova, non una scelta da scaricare addosso a chi vuole mangiare
+   meglio. `genMs` e `genAt` sono quanto è durata l'ultima generazione e
+   quando: senza quel numero il confronto fra i livelli sarebbe un
+   confronto fra sensazioni. */
+S.ai=Object.assign({key:"",model:"auto",pensiero:"medium",genMs:0,genAt:""},S.ai||{});
 S.usage=Object.assign({day:"",calls:0,tokens:0,errors:0,last:""},S.usage||{});
 /* Rete di compatibilità: qualunque stato salvato — anche di versioni vecchie,
    parziale o riparato a mano — viene completato con le chiavi mancanti prima

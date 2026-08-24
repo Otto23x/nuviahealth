@@ -1962,7 +1962,13 @@ function genBoxMostra(el){
    si allunga a sorpresa fa sembrare l'attesa più lunga di quanto sia. */
 const GEN_GIORNI=["Lunedì","Martedì","Mercoledì","Giovedì","Venerdì","Sabato","Domenica"];
 const GEN_PASSI=[tr("Lista della spesa"),"Controllo di uniformità"];
-function genPassi(box,fatti,extra){
+/* `insieme`: i sette giorni nascono nella stessa risposta, quindi sono
+   TUTTI in corso insieme. Fingere che si accendano uno alla volta
+   sarebbe raccontare una cosa che non succede — e questo elenco esiste
+   per dire la verità su quanto manca, non per far scorrere qualcosa.
+   `ritocco`: i giorni che il controllo ha rimandato indietro. Vederli
+   per nome spiega perché l'attesa si è allungata. */
+function genPassi(box,fatti,extra,insieme,ritocco){
   if(!box)return;
   /* I nomi si tengono qui: «DAYS» vive dentro la funzione di generazione
      e da fuori non esiste — chiamare genPassi altrove andava in errore. */
@@ -1970,10 +1976,13 @@ function genPassi(box,fatti,extra){
   const n=(extra===undefined)?fatti:(GEN_GIORNI.length+extra);
   box.style.display="block";genBoxMostra(box);
   box.innerHTML=tutti.map((nome,k)=>
-      k<n  ? `<div class="gday ok">✓ ${esc(nome)}</div>`
+      (insieme&&k<GEN_GIORNI.length)
+           ? `<div class="gday now">◍ ${esc(nome)}</div>`
+    : k<n  ? `<div class="gday ok">✓ ${esc(nome)}</div>`
     : k===n? `<div class="gday now">◍ ${esc(nome)} — ci sto lavorando…</div>`
     :        `<div class="gday">○ ${esc(nome)}</div>`).join("")+
-    `${hint2(tr("Un passo alla volta, per rispettare tutte le tue richieste."),tr("Può volerci qualche minuto: puoi anche mettere via il telefono, il lavoro continua."))}`;}
+    ((ritocco&&ritocco.length)?`<div class="gday now">◍ ${esc(trh("Rifaccio: {v1}",{v1:ritocco.join(", ")}))}</div>`:"")+
+    `${hint2(tr("La settimana si scrive tutta insieme, così i giorni si tengono."),tr("Può volerci qualche minuto: puoi anche mettere via il telefono, il lavoro continua."))}`;}
 function genBox(){
   /* L'avanzamento sta DENTRO la scheda da cui è partito il lavoro, non
      in una finestra che copre la pagina: chi ha premuto «Genera il
@@ -2019,6 +2028,294 @@ function normDayAI(dayName,d){
     n:m.n,t:m.t||"",type:(m.type==="libero"?"free":(m.type||"norm")),
     o:[{d:m.d,k:Math.round(m.k)||0,p:Math.round(m.p)||0,c:Math.round(m.c)||0,f:Math.round(m.f)||0,
       fib:Math.round(m.fib)||estFiberOf(m.d),z:Math.round(m.z)||estSugarOf(m.d)}]}))};}
+
+/* ╔══════════════════════════════════════════════════════════════════╗
+   ║  LA SETTIMANA IN UNA CHIAMATA SOLA, E LA RETE CHE LA CONTROLLA   ║
+   ╚══════════════════════════════════════════════════════════════════╝
+   Chiesto dal founder il 24/08/2026.
+
+   ── PERCHÉ UNA CHIAMATA SOLA ──────────────────────────────────────
+   Sette giorni in sette chiamate in fila erano il collo di bottiglia
+   dell'attesa. Ma la velocità è il motivo minore: generando i sette
+   giorni INSIEME il modello vede la settimana intera mentre la scrive.
+   Prima «non ripetere i piatti» gli arrivava come una lista di stringhe
+   dei giorni già fatti, e lui ci ragionava alla cieca — non poteva
+   distribuire le fonti proteiche, né bilanciare una domenica pesante
+   con un lunedì leggero, perché la domenica non esisteva ancora.
+
+   ── PERCHÉ LA VALIDAZIONE È LA PARTE CHE CONTA ────────────────────
+   Chiedere al modello di ricontrollarsi nel prompt aiuta e non basta:
+   se sbaglia le kcal, sbaglia anche a verificarle — è lo stesso
+   ragionamento che ha prodotto l'errore. Quindi qui sotto il controllo
+   è in JavaScript, deterministico, e non fa domande a nessuno.
+
+   ── DUE PESI DIVERSI, ED È VOLUTO ─────────────────────────────────
+   • QUALITÀ (kcal fuori tolleranza, proteine basse, piatti ripetuti,
+     contratto incompleto): si rifà, e se dopo il rifacimento non torna
+     ancora, SI DICHIARA. Una stima che si sa storta e non lo dice è
+     peggio di nessuna stima.
+   • SICUREZZA (un alimento vietato o un'intolleranza dentro la
+     descrizione): si rifà, e se non torna NON si attiva. Qui non c'è
+     un «va bene lo stesso» da offrire.                                */
+
+/* ── Le parole che il codice deve poter confrontare ────────────────
+   INTOL_ESPANDI (più su) dice al MODELLO cosa evitare, e lo dice in
+   prosa: giusto per un prompt, inservibile per un controllo. Qui la
+   stessa sostanza in forma di elenco.
+   Le due liste devono dire la stessa cosa: se un giorno divergono, la
+   persona riceve un divieto nel prompt che nessuno verifica, oppure un
+   rifiuto su un alimento che le avevamo detto ammesso. È il collaudo a
+   tenerle allineate.
+   COSA NON C'È, e non per dimenticanza: il parmigiano e i formaggi
+   stagionati NON sono fra i vietati del lattosio, perché INTOL_ESPANDI
+   li dichiara ammessi («stagionati oltre 24 mesi»). Un controllo più
+   severo del divieto che abbiamo dato rifiuterebbe risposte corrette. */
+const VIETATI_DA_INTOL={
+ "lattosio":["latte","latticini","formaggio","formaggi","mozzarella","yogurt","ricotta","burro","panna","besciamella","mascarpone","stracchino","crescenza","robiola","scamorza","provola","caciotta","gelato","kefir","fiocchi di latte","feta","brie","cheddar"],
+ "glutine":["pane","pasta","farro","orzo","seitan","couscous","cous cous","bulgur","semola","cracker","fette biscottate","grissini","piadina","pizza","panino","panini","crostini","pangrattato","biscotti","brioche","gnocchi","tortellini","ravioli","lasagne","birra"],
+ "nichel":["pomodoro","pomodorini","passata","pelati","legumi","fagioli","ceci","lenticchie","cacao","cioccolato","noci","nocciole","mandorle","avena","mais","spinaci","asparagi","cipolla","pere","kiwi"],
+ "istamina":["formaggi stagionati","salumi","prosciutto","salame","speck","bresaola","mortadella","tonno in scatola","acciughe","sgombro","crostacei","gamberi","gamberetti","pomodoro","spinaci","melanzane","fragole","cioccolato","crauti","vino","birra"],
+ "glutammato":["dado","estratto di lievito","salsa di soia"],
+ "fruttosio":["miele","sciroppo di glucosio","sciroppo d'agave","succo di frutta"],
+ "uova":["uovo","uova","frittata","omelette","maionese","albume","tuorlo"],
+ "frutta secca":["noci","nocciole","mandorle","pistacchi","anacardi","arachidi","pinoli"],
+ "arachidi":["arachidi","burro di arachidi"],
+ "soia":["soia","tofu","tempeh","edamame","salsa di soia"],
+ "pesce":["pesce","salmone","tonno","branzino","orata","merluzzo","sgombro","alici","acciughe","platessa"],
+ "crostacei":["gamberi","gamberetti","scampi","astice","granchio","mazzancolle"],
+ "molluschi":["cozze","vongole","calamari","seppie","polpo","totani","capesante"]};
+
+/* Un'esenzione dichiarata NON è una violazione: «pane senza glutine» e
+   «yogurt delattosato» sono la risposta giusta, non l'errore. Senza
+   queste righe il controllo rifiuterebbe proprio i piatti costruiti
+   bene per quella persona, e lo farebbe due volte di fila.
+   Si CANCELLA la forma ammessa dal testo prima di cercare, invece di
+   esentare tutta la descrizione: in «latte di mandorla + burro» il
+   latte vegetale va perdonato e il burro no.
+   Il taglio si ferma a DUE parole prima di «senza…»: quanto basta per
+   «fette biscottate senza glutine», non tanto da nascondere un altro
+   alimento che stesse lì accanto. */
+const VIETATI_ESENTI=[
+  /(\S+\s+){0,2}senza (glutine|lattosio|uova|frutta secca)/g,
+  /(\S+\s+){0,2}(gluten ?free|delattosat\w*|deglutinat\w*|senza glutine)/g,
+  /privo di (glutine|lattosio)/g,
+  /latte (di |d')(mandorl\w*|soia|riso|avena|cocco|nocciol\w*)/g,
+  /bevanda (vegetale|di soia|di mandorla|di riso|di avena)/g];
+
+/* minuscole, niente accenti: «pomodorì», «Pomodori» e «POMODORO» sono
+   la stessa parola quando si cerca un divieto. */
+function cibNorm(x){return String(x||"").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g,"");}
+
+/* L'elenco delle parole vietate per QUESTA persona: quelle che ha
+   scritto lei, più quelle che discendono dalle intolleranze dichiarate.
+   Le voci troppo corte si buttano: una parola di due lettere comparirà
+   dentro qualunque descrizione e bloccherebbe ogni piano per sempre. */
+const VIETATI_RUMORE=["tenere","conto","nessuna","nessuno","niente","alcuni","altri","varie","cibi","cibo","alimenti","evitare","assolutamente","poco","molto","sono","anche","tutto","tutti","della","delle","degli","come"];
+function vietatiElenco(testoNo,testoIntol){
+  const out=new Set();
+  const pezzi=cibNorm(testoNo).split(/[,;\n]|\bassolutamente\b/);
+  pezzi.forEach(p=>{
+    const s=p.trim().replace(/^(e|o|di|il|la|le|i|gli|lo|un|una)\s+/,"");
+    if(s.length<4)return;
+    if(VIETATI_RUMORE.indexOf(s)>-1)return;
+    /* un alimento non ha mai i due punti dentro: se ci sono, quella
+       voce è una frase («tenere conto di: reflusso») e cercarla dentro
+       un piatto non troverebbe mai niente — o peggio, troverebbe */
+    if(s.indexOf(":")>-1)return;
+    /* una voce di più di quattro parole non è un alimento: è una frase,
+       e cercarla dentro un piatto non troverebbe mai niente */
+    if(s.split(/\s+/).length>4)return;
+    out.add(s);});
+  const ti=cibNorm(testoIntol);
+  Object.keys(VIETATI_DA_INTOL).forEach(k=>{
+    if(ti.indexOf(cibNorm(k))>-1)VIETATI_DA_INTOL[k].forEach(v=>out.add(cibNorm(v)));});
+  return [...out];}
+
+/* Confronto a parole intere: «pane» non deve trovarsi dentro
+   «panettone» né «uva» dentro «uvetta» per caso. */
+function vietatoDentro(desc,vietati){
+  let t=cibNorm(desc);
+  VIETATI_ESENTI.forEach(re=>{t=t.replace(re," ");});
+  for(const v of vietati){
+    const re=new RegExp("(^|[^a-z])"+v.replace(/[.*+?^${}()|[\]\\]/g,"\\$&")+"([^a-z]|$)");
+    if(re.test(t))return v;}
+  return null;}
+
+/* Un numero è un numero. `Math.round("circa 400")` è NaN, e il `||0`
+   della normalizzazione lo trasforma in ZERO senza dire niente: il
+   totale del giorno cala e nessuno lo sa. Questa funzione è il punto
+   in cui quel silenzio finisce. */
+function numPulito(x){
+  if(typeof x==="number")return isFinite(x)?x:null;
+  const s=String(x==null?"":x).trim().replace(",",".");
+  if(!/^-?\d+(\.\d+)?$/.test(s))return null;
+  const n=parseFloat(s);
+  return isFinite(n)?n:null;}
+
+/* La firma di un piatto: le parole che lo identificano, senza
+   grammature e senza ordine. «Pollo 200g + patate» e «Patate + pollo
+   220g» sono lo stesso piatto, ed è giusto che il controllo lo veda. */
+function piattoFirma(d){
+  const t=cibNorm(d).replace(/\d+([.,]\d+)?\s*(g|gr|kg|ml|cl|l|pz)?/g," ");
+  const w=t.split(/[^a-z]+/).filter(x=>x.length>=4);
+  return [...new Set(w)].sort().join(" ");}
+
+/* ═══ IL CONTRATTO DELLA SETTIMANA ═══════════════════════════════
+   La passata di verifica finale è chiesta DENTRO il prompt — non
+   sostituisce il controllo in JavaScript, gli fa risparmiare un
+   rifacimento quando il modello si accorge da solo. */
+function weekJSONContract(giorni,conSpesa){
+  return ' PRIMA DI RISPONDERE, RILEGGI QUELLO CHE HAI SCRITTO e correggilo dove serve:'+
+    ' rifai la somma delle calorie e delle proteine di ogni giorno e verifica che stiano nel target dichiarato;'+
+    ' verifica che nessun alimento vietato o incompatibile con le intolleranze sia finito in una descrizione;'+
+    ' verifica che nessun piatto si ripeta; verifica che ogni giorno abbia tutti i pasti richiesti.'+
+    ' Rispondi SOLO con un oggetto JSON, senza alcun testo intorno: {"days":[{"day":"'+giorni[0]+'","ctx":"contesto breve del giorno","meals":[{"n":"Colazione","t":"08:00","type":"norm","d":"descrizione con grammature","k":numero,"p":numero,"c":numero,"f":numero,"fib":numero,"z":numero}]}]'+
+    (conSpesa?',"spesa":[["Categoria",["prodotto con la quantità totale della settimana"]]]':'')+
+    '} dove "days" contiene ESATTAMENTE sette oggetti, in quest\'ordine: '+giorni.join(", ")+
+    '; type vale "norm", "mensa" oppure "free"; e ogni valore numerico è un NUMERO, senza unità di misura e senza parole intorno.'+
+    (conSpesa?' "spesa" è la lista della spesa ricavata da questi sette giorni, raggruppata in queste categorie, nell\'ordine dato e saltando quelle vuote: '+JSON.stringify(SHOP_CATS)+'. Ogni voce porta il nome del prodotto e la quantità totale della settimana, senza formati commerciali e senza numero di confezioni. I pasti di tipo "mensa" e "free" NON entrano nella spesa.':'');}
+
+/* ═══ LA DOMANDA ═════════════════════════════════════════════════
+   Stesso doppio tentativo di askDayAI: un JSON storto al primo colpo
+   è un incidente, non un guasto. Si accetta anche un array nudo — se
+   il modello dimentica l'involucro, il piano c'è lo stesso. */
+async function askWeekAI(q){
+  let w=null,lastE=null;
+  for(let att=0;att<2&&!w;att++){
+    try{const t=await aiAsk(q,"piano");const o=parseAIJSON(t);
+      const obj=Array.isArray(o)?{days:o}:o;
+      if(obj&&Array.isArray(obj.days)&&obj.days.length)w=obj;
+    }catch(e){lastE=e;}}
+  aiHealth("piano",!!w);
+  return {week:w,err:lastE};}
+
+/* ═══ LA VALIDAZIONE ═════════════════════════════════════════════
+   Lavora sui dati GREZZI, prima della normalizzazione: è lì che un
+   «circa 400» è ancora riconoscibile per quello che è.
+   Torna un elenco di giorni con quello che non va, in italiano: la
+   stessa frase serve a chi legge e alla seconda chiamata. */
+function validaSettimana(days,r){
+  r=r||{};
+  const G=r.giorni||["Lunedì","Martedì","Mercoledì","Giovedì","Venerdì","Sabato","Domenica"];
+  const toll=(r.tollPct==null?5:r.tollPct)/100;
+  const vietati=r.vietati||[];
+  const problemi=[],firme={};
+  const arr=Array.isArray(days)?days:[];
+  /* Il contratto prima di tutto: se mancano dei giorni, i giorni che
+     mancano sono il problema, e vanno chiesti per nome. */
+  for(let i=0;i<G.length;i++){
+    const d=arr[i],motivi=[],sicurezza=[];
+    if(!d||!Array.isArray(d.meals)||!d.meals.length){
+      problemi.push({i:i,giorno:G[i],motivi:[tr("il giorno non è arrivato")],sicuro:true});
+      continue;}
+    /* i pasti attesi */
+    if(r.slots&&r.slots.length){
+      const nomi=d.meals.map(m=>cibNorm(m.n));
+      const mancanti=r.slots.filter(s=>nomi.indexOf(cibNorm(s))<0);
+      if(mancanti.length)motivi.push(trh("mancano questi pasti: {v1}",{v1:mancanti.join(", ")}));
+    }else if(r.nPasti&&d.meals.length!==+r.nPasti){
+      motivi.push(trh("i pasti sono {v1} invece di {v2}",{v1:d.meals.length,v2:r.nPasti}));}
+    /* i numeri, e la somma */
+    let k=0,p=0,storti=0;
+    d.meals.forEach(m=>{
+      const mk=numPulito(m.k),mp=numPulito(m.p);
+      if(mk==null||mp==null)storti++;
+      k+=mk||0;p+=mp||0;});
+    if(storti)motivi.push(trh("{v1} pasti hanno calorie o proteine che non sono numeri",{v1:storti}));
+    if(r.kcal>0&&Math.abs(k-r.kcal)>r.kcal*toll)
+      motivi.push(trh("il totale è {v1} kcal invece di circa {v2}",{v1:Math.round(k),v2:r.kcal}));
+    if(r.prot>0&&p<r.prot)
+      motivi.push(trh("le proteine sono {v1} g, sotto il minimo di {v2} g",{v1:Math.round(p),v2:r.prot}));
+    /* la sicurezza: un divieto dentro una descrizione */
+    if(vietati.length)d.meals.forEach(m=>{
+      const v=vietatoDentro(m.d,vietati);
+      if(v)sicurezza.push(trh("«{v1}» in «{v2}»",{v1:v,v2:String(m.d||"").slice(0,40)}));});
+    /* le ripetizioni, secondo la regola che il prompt ha DAVVERO
+       chiesto a questa persona: chi ha scelto varietà bassa ha chiesto
+       piatti che tornano, e rifiutarglieli sarebbe rifiutare la sua
+       impostazione. */
+    if(r.ripetizioni!=="libera")d.meals.forEach(m=>{
+      if((m.type||"norm")!=="norm")return;                 /* mensa e liberi si ripetono per natura */
+      const f=piattoFirma(m.d);if(!f)return;
+      const pre=firme[f];
+      if(pre!=null){
+        const vicino=(i-pre)===1;
+        if(r.ripetizioni==="nessuna"||vicino)
+          motivi.push(trh("il piatto «{v1}» è già in {v2}",{v1:String(m.d||"").slice(0,34),v2:G[pre]}));}
+      firme[f]=i;});
+    if(sicurezza.length)motivi.push(trh("alimenti vietati o non tollerati: {v1}",{v1:sicurezza.join("; ")}));
+    if(motivi.length)problemi.push({i:i,giorno:G[i],motivi:motivi,sicuro:!sicurezza.length});
+  }
+  const extra=arr.length>G.length?arr.length-G.length:0;
+  return {ok:!problemi.length,problemi:problemi,extra:extra};}
+
+/* ═══ LA LISTA DELLA SPESA CHE ARRIVA INSIEME AL PIANO ═══════════
+   Se torna storta NON si rifà il piano: il piano è buono, e la spesa
+   sa ricostruirsi da sola dagli ingredienti (buildShopFromPlan). Rifare
+   sette giorni per una lista è il genere di spreco che poi si paga in
+   attesa. */
+function normSpesaAI(arr){
+  if(!Array.isArray(arr))return null;
+  const pulita=arr.filter(x=>Array.isArray(x)&&x.length>=2&&Array.isArray(x[1])&&x[1].length)
+    .map(x=>[cap(String(x[0])),x[1].map(y=>(typeof prodottoPrima==="function"?prodottoPrima(String(y)):String(y)))]);
+  return pulita.length?pulita:null;}
+
+/* ═══ L'ORCHESTRATORE ════════════════════════════════════════════
+   Una chiamata, un controllo, e — solo se serve — una seconda chiamata
+   che rifà SOLO i giorni che non passano. Non tutto il piano da capo:
+   con la chiamata unica si perderebbe la cosa migliore che il vecchio
+   ciclo aveva, cioè che il lavoro buono non si butta.
+   `onFase` racconta a che punto siamo: 'settimana' → 'controllo' →
+   ('ritocco') → 'fatto'. */
+async function chiediSettimana(cfg){
+  const G=(cfg.regole&&cfg.regole.giorni)||["Lunedì","Martedì","Mercoledì","Giovedì","Venerdì","Sabato","Domenica"];
+  const conSpesa=cfg.spesa!==false;
+  const fase=cfg.onFase||function(){};
+  const t0=Date.now();
+  const chiudi=(out)=>{
+    /* il tempo si registra SEMPRE, anche quando è andata male: un
+       fallimento lento è un dato, e serve a confrontare i livelli */
+    try{S.ai=S.ai||{};S.ai.genMs=Date.now()-t0;S.ai.genAt=new Date().toISOString();
+      /* si registra anche CON QUALE livello: un tempo senza il livello
+         che l'ha prodotto non si può confrontare con niente */
+      S.ai.genPens=S.ai.pensiero||"medium";save();}catch(e){}
+    return Object.assign({ms:Date.now()-t0},out);};
+
+  fase("settimana");
+  const r=await askWeekAI(cfg.prompt+weekJSONContract(G,conSpesa));
+  if(!r.week)return chiudi({plan:null,spesa:null,problemi:[],err:r.err});
+  let grezzi=(r.week.days||[]).slice(0,G.length);
+  const spesa=conSpesa?normSpesaAI(r.week.spesa):null;
+
+  fase("controllo");
+  let esito=validaSettimana(grezzi,cfg.regole);
+
+  /* ── LA SECONDA CHIAMATA, MIRATA ──────────────────────────────── */
+  if(esito.problemi.length&&cfg.promptGiorni){
+    fase("ritocco",esito.problemi.map(p=>p.giorno));
+    const guasti=esito.problemi.slice();
+    const buoni=grezzi.filter((d,i)=>!guasti.some(p=>p.i===i));
+    const usati=[];
+    buoni.forEach(d=>(d.meals||[]).forEach(m=>{
+      if((m.type||"norm")==="norm"&&m.d)usati.push(String(m.d).slice(0,60));}));
+    const q=cfg.promptGiorni(guasti,usati)+weekJSONContract(guasti.map(p=>p.giorno),false)
+      .replace('ESATTAMENTE sette oggetti','ESATTAMENTE '+guasti.length+(guasti.length===1?' oggetto':' oggetti'));
+    const r2=await askWeekAI(q);
+    if(r2.week&&Array.isArray(r2.week.days)){
+      /* si rimettono al loro posto per NOME, non per posizione: se il
+         modello ne restituisce tre in ordine sparso, metterli in fila
+         significherebbe scambiare il mercoledì col sabato */
+      r2.week.days.forEach(d=>{
+        const nome=cibNorm(d&&d.day);
+        let p=guasti.find(x=>cibNorm(x.giorno)===nome);
+        if(!p&&r2.week.days.length===guasti.length)p=guasti[r2.week.days.indexOf(d)];
+        if(p&&d&&Array.isArray(d.meals)&&d.meals.length)grezzi[p.i]=d;});
+      esito=validaSettimana(grezzi,cfg.regole);
+    }
+  }
+  const plan=G.map((nome,i)=>normDayAI(nome,grezzi[i]||{meals:[]}));
+  fase("fatto");
+  return chiudi({plan:plan,spesa:spesa,problemi:esito.problemi,err:null});}
 window.genPlanAI=async()=>{
   S.ui.pianoProprio=0;   /* rigenerare da capo = il piano nuovo non è più «il suo di prima» */
   aiLungoOn();   /* l'indicatore resta acceso fino alla fine */
@@ -2042,109 +2339,121 @@ window.genPlanAI=async()=>{
   const mensa=parseMensa(D.mensaGiorni);
   const defTxt=(defMode()==="ritmo")?(trh("dal ritmo di {v1} kg a settimana",{v1:ratePerWeek()})):"dalla percentuale impostata nelle Regole";
   const capTxt=rateCapped()?("\n•  "+rateNote()):"";
-  if(!await dlgConfirm(tr("Genero un piano settimanale completo, un giorno alla volta (7 passaggi, ~1 minuto):")+"\n\n"+tr("• {a} anni, {w} kg, obiettivo: {g}",{a:age(),w:p.w,g:goal})+
+  if(!await dlgConfirm(tr("Genero un piano settimanale completo: sette giorni e la lista della spesa, in una volta sola.")+"\n\n"+tr("• {a} anni, {w} kg, obiettivo: {g}",{a:age(),w:p.w,g:goal})+
     "\n"+tr("• fabbisogno {t} kcal → target ~{x} kcal al giorno ({d})",{t:t,x:target,d:defTxt})+capTxt+
     (wkN?"\n"+tr("• allenamenti previsti: {n} a settimana (~{k} kcal al giorno già contate)",{n:wkN,k:wkKcal}):"")+
     "\n"+tr("• impostazione: {t}",{t:(D.tipo||"mediterranea")})+
     "\n"+tr("• pasti: {p}",{p:slots.join(", ")})+
     (Object.keys(mensa).length?"\n"+tr("• mensa: {g}",{g:D.mensaGiorni}):"")+
-    "\n\n⏳ Ci vuole un po' di tempo, in genere qualche minuto: l'AI costruisce un giorno alla volta e fa del suo meglio per rispettare TUTTE le tue richieste (intolleranze, gusti, mensa, target). Abbi un po' di pazienza e non chiudere l'app."+
+    "\n\n⏳ Ci vuole qualche minuto: l'AI scrive la settimana intera in una volta — così i giorni si tengono fra loro — e poi io ricontrollo in casa che i conti tornino e che non sia comparso niente che hai escluso. Se qualche giorno non torna, rifaccio solo quello. Non chiudere l'app."+
     "\n\n È una proposta generata automaticamente, non una prescrizione: falla validare da un medico o da un nutrizionista prima di seguirla a lungo. Sostituirà il piano attuale (le settimane già salvate restano intatte)."))return;
   const box=genBox();
   const DAYS=[["Lunedì","lun"],["Martedì","mar"],["Mercoledì","mer"],["Giovedì","gio"],["Venerdì","ven"],["Sabato","sab"],["Domenica","dom"]];
-  const plan=[],usati=[];
+  const G=DAYS.map(x=>x[0]);
+  let plan=null,esito=null;
   try{
-    for(let i=0;i<7;i++){
-      const dayName=DAYS[i][0],mensaOggi=mensa[DAYS[i][1]];
-      /* Un elenco che si riempie: senza, sette minuti di attesa sembrano
-         un blocco. Vedere «Lunedì fatto» dice che si sta andando avanti. */
-      if(box)genPassi(box,i);
-      const q='Costruisci UN SOLO GIORNO ('+dayName+') di un piano alimentare italiano, sano ed equilibrato. Persona: '+age()+' anni, '+(p.gender==="m"?"uomo":"donna")+', '+p.h+' cm, '+p.w+' kg, obiettivo: '+goal+'. Target del giorno: circa '+target+' kcal (tolleranza ±5%) e almeno '+protG+' g di proteine, distribuiti sui pasti. '+rulesForPlan()+
-        ' Pasti da prevedere, in questo ordine esatto: '+slots.join(", ")+'.'+
-        (mensaOggi?(outTypeIsPorto()
-          ? ' Oggi il pasto "'+(mensaOggi==="cena"?"Cena":"Pranzo")+'" lo prepara la persona e se lo porta da casa: scrivilo ESATTAMENTE come gli altri pasti — stessa struttura, stesse grammature, stesso livello di dettaglio — con l\'unico vincolo che sia trasportabile in un contenitore e buono anche freddo o riscaldato. Niente indicazioni speciali, niente ricette elaborate. Usa type "norm" perché gli ingredienti vanno comprati.'
-          : ' Oggi il pasto "'+(mensaOggi==="cena"?"Cena":"Pranzo")+'" è FUORI CASA (mensa, bar o ristorante): NON scegliere un piatto preciso e non dare grammature precise, perché non si sa cosa ci sarà. Scrivi UNA RIGA generica su come comporre il piatto, per esempio "una fonte proteica + verdura abbondante + una porzione di pane o pasta". Per quel pasto usa type "mensa".'):'')+
-        (D.patologie?' Le condizioni di salute dichiarate sopra sono VINCOLANTI nella scelta degli alimenti di ogni pasto.':'')+
-        ' Regole: il piano si basa ESCLUSIVAMENTE su alimenti veri; NON inserire integratori (proteine in polvere, vitamine, barrette o pasti sostitutivi) a meno che i target siano davvero impossibili da coprire con il cibo: solo in quel caso indicali e scrivi nel campo ctx che l\'integrazione va concordata con un nutrizionista; porzioni in grammi sempre indicate; valori nutrizionali REALI per le quantità scritte; ingredienti reperibili in un supermercato italiano; stagione attuale: '+seasonNow()+', proponi piatti adatti alla stagione (niente piatti tipicamente invernali in estate e viceversa), restando generico su "verdura di stagione" e "frutta di stagione" dove sensato; rispetta il tempo di cucina dichiarato; nell\'arco della settimana devono alternarsi con equilibrio fonti proteiche compatibili con l\'impostazione dichiarata (per esempio carne bianca, pesce, uova, legumi, latticini SOLO se ammessi) più cereali integrali e abbondante verdura.'+
-        (function(){const vv=(D.varieta||"media");
-          if(vv==="bassa")return ' VARIETÀ BASSA richiesta: usa in tutta la settimana al massimo 3 fonti proteiche, 3 fonti di carboidrati e 4-5 verdure IN TOTALE, facendole tornare più volte cambiando solo la preparazione e gli abbinamenti. La spesa deve restare corta e i piatti semplici e veloci. Puoi ripetere lo stesso piatto anche 2-3 volte nella settimana.'+
-            (usati.length?' Piatti già usati (riproporli va bene, purché non due giorni di fila): '+usati.slice(-10).join("; ")+'.':'');
-          if(vv==="alta")return ' VARIETÀ ALTA richiesta: ogni giorno piatti diversi.'+
-            (usati.length?' Piatti GIÀ USATI nei giorni precedenti — NON riproporli né in variante simile: '+usati.slice(-24).join("; ")+'.':'');
-          return ' VARIETÀ MEDIA: alterna senza esagerare, riusa gli stessi ingredienti base in preparazioni diverse così la spesa resta gestibile; al massimo 5 fonti proteiche in tutta la settimana.'+
-            (usati.length?' Piatti già usati, evita di ripeterli identici a distanza ravvicinata: '+usati.slice(-14).join("; ")+'.':'');})()+
-        dayJSONContract(dayName);
-      let r=await askDayAI(q),d=r.day,lastE=r.err;
-      while(!d){
-        /* Niente lavoro buttato: si riprova SOLO il giorno mancante, e
-           l'elenco dei passaggi resta a schermo. Prima veniva svuotato e
-           sostituito da una riga di testo: sembrava che tutto il lavoro
-           fatto fosse andato perso, e chi guardava non capiva più a che
-           punto era. */
-        const msg=tr("Il giorno {g} non è arrivato{e}.",{g:dayName,e:(lastE?" ("+aiReason(lastE)+")":"")})+
-          "\n\n"+tr("I {n} giorni già costruiti sono al sicuro: riprovo solo questo?",{n:i});
-        if(!await dlgConfirm(msg,{ok:tr("Riprova ")+dayName,ko:tr("Interrompi tutto")}))
-          {if(box)box.textContent="";genBoxVia();return;}
-        genPassi(box,i);   /* si riprende dall'elenco, dove era rimasto */
-        await wait(1200);
-        r=await askDayAI(q);d=r.day;lastE=r.err;
-      }
-      const day=normDayAI(dayName,d);
-      /* la mensa la conosce l'app: non ci si affida al tipo scelto dall'AI,
-         altrimenti quel pasto finisce nella lista della spesa */
-      if(mensaOggi&&!outTypeIsPorto()){
-        const slotM=(mensaOggi==="cena")?"Cena":"Pranzo";
-        day.meals.forEach(m=>{if(String(m.n||"").toLowerCase()===slotM.toLowerCase())m.type="mensa";});
-      }
-      day.meals.forEach(m=>{if(m.type==="norm"&&m.o[0].d)usati.push(m.n+": "+String(m.o[0].d).slice(0,60));});
-      plan.push(day);
-    }
-    genPassi(box,7);   /* i sette ✓ restano a schermo sotto la conferma */
-    /* ═══ CONTROLLO FINALE ═══════════════════════════════════════
-       Passata di verifica su ciò che è stato costruito, fatta in casa e
-       non dall'AI: nessuna chiamata in più da poter fallire. Segnala i
-       giorni fuori target e le proteine sotto la soglia, così si sa
-       subito se conviene ritarare invece di scoprirlo fra tre giorni. */
+    /* ── I FUORI CASA, DETTI TUTTI INSIEME ────────────────────────
+       Prima ogni giorno riceveva la sua riga sulla mensa perché ogni
+       giorno era una chiamata a sé. Con una chiamata sola vanno
+       nominati insieme: se non gli si dice QUALI giorni, li mette dove
+       capita — o non li mette affatto. */
+    const fuoriCasa=DAYS.filter(x=>mensa[x[1]]).map(x=>x[0]+" → "+(mensa[x[1]]==="cena"?"Cena":"Pranzo"));
+    const rigaFuori=!fuoriCasa.length?"":(outTypeIsPorto()
+      ? ' Questi pasti la persona se li prepara e se li porta da casa ('+fuoriCasa.join("; ")+'): scrivili ESATTAMENTE come gli altri — stessa struttura, stesse grammature, stesso livello di dettaglio — con l\'unico vincolo che siano trasportabili in un contenitore e buoni anche freddi o riscaldati. Niente indicazioni speciali, niente ricette elaborate. Per quei pasti usa type "norm", perché gli ingredienti vanno comprati.'
+      : ' Questi pasti sono FUORI CASA, mensa, bar o ristorante ('+fuoriCasa.join("; ")+'): NON scegliere un piatto preciso e non dare grammature, perché non si sa cosa ci sarà. Scrivi UNA RIGA generica su come comporre il piatto, per esempio "una fonte proteica + verdura abbondante + una porzione di pane o pasta". Per quei pasti usa type "mensa".');
+    const rigaVarieta=(function(){const vv=(D.varieta||"media");
+      if(vv==="bassa")return ' VARIETÀ BASSA richiesta: usa in tutta la settimana al massimo 3 fonti proteiche, 3 fonti di carboidrati e 4-5 verdure IN TOTALE, facendole tornare più volte cambiando solo la preparazione e gli abbinamenti. La spesa deve restare corta e i piatti semplici e veloci. Puoi ripetere lo stesso piatto anche 2-3 volte nella settimana, ma MAI due giorni di fila.';
+      if(vv==="alta")return ' VARIETÀ ALTA richiesta: ogni giorno piatti diversi, e nessun piatto si ripete nella settimana, nemmeno in variante simile.';
+      return ' VARIETÀ MEDIA: alterna senza esagerare, riusa gli stessi ingredienti base in preparazioni diverse così la spesa resta gestibile; al massimo 5 fonti proteiche in tutta la settimana; lo stesso piatto non torna mai due giorni di fila.';})();
+    /* Il corpo della richiesta, uguale per la settimana intera e per il
+       rifacimento dei giorni storti: due testi diversi sarebbero due
+       piani diversi, e il rifacimento smetterebbe di somigliare al
+       piano che sta riparando. */
+    const comune=' Persona: '+age()+' anni, '+(p.gender==="m"?"uomo":"donna")+', '+p.h+' cm, '+p.w+' kg, obiettivo: '+goal+'. Target di OGNI giorno: circa '+target+' kcal (tolleranza ±5%) e almeno '+protG+' g di proteine, distribuiti sui pasti. '+rulesForPlan()+
+      ' Pasti da prevedere ogni giorno, in questo ordine esatto: '+slots.join(", ")+'.'+rigaFuori+
+      (D.patologie?' Le condizioni di salute dichiarate sopra sono VINCOLANTI nella scelta degli alimenti di ogni pasto.':'')+
+      ' Regole: il piano si basa ESCLUSIVAMENTE su alimenti veri; NON inserire integratori (proteine in polvere, vitamine, barrette o pasti sostitutivi) a meno che i target siano davvero impossibili da coprire con il cibo: solo in quel caso indicali e scrivi nel campo ctx che l\'integrazione va concordata con un nutrizionista; porzioni in grammi sempre indicate; valori nutrizionali REALI per le quantità scritte; ingredienti reperibili in un supermercato italiano; stagione attuale: '+seasonNow()+', proponi piatti adatti alla stagione (niente piatti tipicamente invernali in estate e viceversa), restando generico su "verdura di stagione" e "frutta di stagione" dove sensato; rispetta il tempo di cucina dichiarato; nell\'arco della settimana devono alternarsi con equilibrio fonti proteiche compatibili con l\'impostazione dichiarata (per esempio carne bianca, pesce, uova, legumi, latticini SOLO se ammessi) più cereali integrali e abbondante verdura.'+rigaVarieta;
+    const regole={giorni:G,kcal:target,prot:protG,tollPct:5,slots:slots,nPasti:slots.length,
+      vietati:vietatiElenco(D.no,D.intol),
+      /* la regola sulle ripetizioni è quella che il prompt ha CHIESTO a
+         questa persona, non una regola nostra imposta sopra la sua */
+      ripetizioni:((D.varieta||"media")==="alta")?"nessuna":"vicine"};
+    esito=await chiediSettimana({
+      prompt:'Costruisci un piano alimentare italiano SETTIMANALE, sano ed equilibrato: SETTE GIORNI INTERI, da Lunedì a Domenica, più la lista della spesa che ne deriva.'+comune+
+        ' Guarda la settimana come un insieme: distribuisci le fonti proteiche, non concentrare i piatti pesanti negli stessi giorni, e tieni conto dei giorni fuori casa quando bilanci gli altri.',
+      promptGiorni:(guasti,usati)=>'Stai correggendo un piano alimentare settimanale italiano già scritto. Rifai SOLO questi giorni, lasciando stare gli altri.'+comune+
+        ' Ecco cosa NON andava, giorno per giorno — correggi esattamente questo: '+
+        guasti.map(x=>x.giorno+" → "+x.motivi.join("; ")).join(" · ")+'.'+
+        (usati.length?' Questi piatti sono già negli altri giorni della settimana e non vanno riproposti: '+usati.slice(-24).join("; ")+'.':''),
+      regole:regole,spesa:true,
+      onFase:(f,dati)=>{
+        if(!box)return;
+        /* Con una chiamata sola non esiste «Lunedì fatto, Martedì in
+           corso»: i sette giorni nascono insieme. Fingere un
+           avanzamento a scalini sarebbe raccontare una cosa che non
+           succede — e questo elenco esiste proprio per dire la verità
+           su quanto manca. */
+        if(f==="settimana")genPassi(box,0,undefined,true);
+        else if(f==="controllo")genPassi(box,7,1);
+        else if(f==="ritocco")genPassi(box,7,1,false,dati);
+        else if(f==="fatto")genPassi(box,7,2);}});
+    if(!esito.plan){
+      if(box)box.textContent="";genBoxVia();
+      return aiFail(esito.err||new Error("errore"));}
+    plan=esito.plan;
+    /* la mensa la conosce l'app: non ci si affida al tipo scelto dall'AI,
+       altrimenti quel pasto finisce nella lista della spesa */
+    if(!outTypeIsPorto())DAYS.forEach((dd,i)=>{
+      const mensaOggi=mensa[dd[1]];if(!mensaOggi)return;
+      const slotM=(mensaOggi==="cena")?"Cena":"Pranzo";
+      (plan[i].meals||[]).forEach(m=>{if(String(m.n||"").toLowerCase()===slotM.toLowerCase())m.type="mensa";});});
+    genPassi(box,7,2);
+    /* ═══ QUELLO CHE IL CONTROLLO HA TROVATO ═════════════════════
+       Non è più una passata cortese fatta alla fine: è l'esito della
+       validazione che ha già provato a riparare da sé. Quello che si
+       legge qui è ciò che NON è stato possibile sistemare. */
     const tot=plan.map(d=>(d.meals||[]).reduce((a,m)=>a+(+m.o[0].k||0),0));
     const pro=plan.map(d=>(d.meals||[]).reduce((a,m)=>a+(+m.o[0].p||0),0));
     const media=Math.round(tot.reduce((a,b)=>a+b,0)/7);
-    const fuori=[],magri=[];
-    plan.forEach((d,i)=>{
-      if(Math.abs(tot[i]-target)>target*0.12)fuori.push(d.day+" "+tot[i]);
-      if(pro[i]<protG*0.85)magri.push(d.day+" "+pro[i]+" g");});
-    const avvisi=[];
-    if(fuori.length)avvisi.push(" Giorni lontani dal target: "+fuori.join(", "));
-    if(magri.length)avvisi.push(" Proteine sotto la soglia: "+magri.join(", "));
-    if(avvisi.length)avvisi.push("Puoi attivarlo lo stesso e poi premere «Ricalibra», che sistema le grammature senza cambiare i piatti.");
-    /* La conferma dice CHIARAMENTE che il lavoro non è finito: dopo l'OK
-       restano lista della spesa e controllo. Prima annunciava «Piano
-       pronto» a metà strada, e poi toccava aspettare ancora. */
+    const insicuri=(esito.problemi||[]).filter(x=>!x.sicuro);
+    /* ── LA SICUREZZA NON HA UN «VA BENE LO STESSO» ──
+       Kcal storte si ricalibrano; un alimento che a questa persona fa
+       male, no. Se dopo il rifacimento è ancora lì, il piano non si
+       attiva: si dice quale giorno e quale parola, e si sceglie se
+       ritentare. */
+    if(insicuri.length){
+      if(box)box.textContent="";genBoxVia();
+      const rifai=await dlgConfirm(tr("Il piano non è utilizzabile così: in alcuni giorni è rimasto un alimento che avevi escluso.")+"\n\n"+
+        insicuri.map(x=>x.giorno+": "+x.motivi.join("; ")).join("\n")+
+        "\n\n"+tr("Non lo attivo: su intolleranze e cibi vietati non esiste un «va bene lo stesso». Il piano di prima è ancora al suo posto."),
+        {ok:tr("Riprova da capo"),ko:trBtn("Annulla")});
+      if(rifai)return genPlanAI();
+      return;}
+    const avvisi=(esito.problemi||[]).map(x=>" "+x.giorno+": "+x.motivi.join("; "));
+    if(avvisi.length)avvisi.push(tr("Puoi attivarlo lo stesso e poi premere «Ricalibra», che sistema le grammature senza cambiare i piatti."));
+    /* La conferma dice cosa manca ancora: dopo l'OK resta la lista
+       della spesa da mettere a posto, e ci vuole un momento. */
     if(!await dlgConfirm(tr("I sette giorni sono pronti.")+"\n\n"+
       plan.map((d,i)=>d.day+": ~"+tot[i]+" kcal · "+pro[i]+" g proteine").join("\n")+
       "\n\nMedia: ~"+media+" kcal (target "+target+") · proteine obiettivo "+protG+" g"+
-      (avvisi.length?("\n\n"+avvisi.join("\n")):"\n\n✓ Tutti i giorni sono nei limiti.")+
-      "\n\nPremi OK e finisco: preparo la lista della spesa e faccio il controllo finale. Ci vuole ancora un minuto.",
+      (avvisi.length?("\n\n"+avvisi.join("\n")):"\n\n"+tr("✓ Controllo superato: tutti i giorni sono nei limiti."))+
+      "\n\n"+tr("Premi OK e finisco: metto a posto la lista della spesa."),
       {ok:tr("Vai avanti"),ko:trBtn("Annulla")})){if(box)box.textContent="";genBoxVia();return;}
     snapSave("prima di: piano generato");
     S.customPlan=plan;PLAN=plan;S.permMeals={};S.week=freshWeek();
     S.customShop=null;S.shop={};      /* la spesa riparte dagli ingredienti del nuovo piano */
     S.planW=S.profile.w;S.ui=S.ui||{};
     save();
-    /* ── REGOLA: finché il processo non è FINITO, l'utente non si sposta.
-       Prima qui c'era show("piano"): ti portava via dopo Domenica, e il
-       riquadro di avanzamento restava sulla pagina vecchia — sembrava
-       tutto fermo. Ora spesa e controllo si completano dove sei, con i
-       passaggi in vista; si va al Piano solo alla fine. ── */
-    if(aiOn()){
-      genPassi(box,0,0);                       /* ◍ Lista della spesa */
-      try{await genShop(true);}catch(e){}
-      genPassi(box,0,1);                       /* ✓ spesa · ◍ controllo */
-      await wait(400);
-      genPassi(box,0,2);                       /* tutto fatto */
-      await wait(600);
-    }else{
-      genPassi(box,0,2);await wait(400);
-    }
+    /* ── LA SPESA È GIÀ ARRIVATA COL PIANO ────────────────────────
+       Stessa risposta, nessuna seconda chiamata: era il passaggio che
+       allungava l'attesa DOPO che il piano era già pronto.
+       E se la spesa è tornata storta NON si rifà niente: il piano è
+       buono, e la lista sa ricostruirsi dagli ingredienti dei piatti.
+       Rifare sette giorni per una lista sarebbe uno spreco che si paga
+       in attesa. */
+    if(esito.spesa){S.customShop=esito.spesa;S.shop={};save();}
+    else{try{await genShop(true);}catch(e){}}
+    genPassi(box,7,2);await wait(400);
     if(box)box.textContent="";genBoxVia();
     render("piano");show("piano");
     /* L'annuncio arriva SOLO adesso: piano, spesa e controllo sono fatti. */

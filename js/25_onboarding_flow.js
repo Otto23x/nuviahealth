@@ -495,16 +495,26 @@ window.onb2Gen=onb2Gen;
 const O2GIORNI=["Lunedì","Martedì","Mercoledì","Giovedì","Venerdì","Sabato","Domenica"];
 function onb2GenRighe(fatti,stato){
   /* Le frasi stanno dentro tr() LETTERALI, non costruite con un
-     ternario: così il controllo delle traduzioni le vede davvero. */
+     ternario: così il controllo delle traduzioni le vede davvero.
+     I SETTE GIORNI SONO TUTTI «IN CORSO» INSIEME (v13.59): nascono
+     nella stessa risposta, quindi non c'è un lunedì che finisce prima
+     del martedì. Accenderli a scalini sarebbe inventare un
+     avanzamento — e questo elenco esiste per dire la verità
+     sull'attesa, non per far muovere qualcosa. */
   const R=O2GIORNI.map((g,i)=>{
     const n={g:tr(g)};
     if(i<fatti) return {t:tr("{g}: completato",n),s:"ok"};
-    if(i===fatti)return {t:tr("{g}: in corso…",n),s:"ora"};
-    return {t:tr("{g}: in attesa",n),s:"attesa"};});
+    return {t:tr("{g}: in corso…",n),s:"ora"};});
   const fine=(stato==="fatto");
+  /* La spesa arriva nella stessa risposta del piano: quando i giorni
+     ci sono, c'è anche lei. Prima queste due righe dicevano «pronta» e
+     «fatto» al termine di un percorso in cui la spesa non veniva mai
+     chiesta e il controllo non esisteva: due passaggi dichiarati e mai
+     eseguiti. */
   R.push(fine?{t:tr("Lista della spesa: pronta"),s:"ok"}
              :{t:tr("Lista della spesa: da calcolare"),s:"attesa"});
   R.push(fine?{t:tr("Controllo di coerenza: fatto"),s:"ok"}
+        :(stato==="controllo")?{t:tr("Controllo di coerenza: in corso…"),s:"ora"}
              :{t:tr("Controllo di coerenza: da fare"),s:"attesa"});
   return R;}
 
@@ -629,10 +639,24 @@ window.onb2GeneraOra=async()=>{
   try{
     const t=onb2Targets();
     if(!t)throw new Error("dati");
-    const plan=await wizGenDays(onb2DatiPiano(),t,(i,nome)=>{
-      g.perc=Math.round(i/7*100);
-      g.riga=tr("Sto componendo il tuo piano: {g}…",{g:nome});
-      g.righe=onb2GenRighe(i,"lavoro");onb2GenTocca();});
+    /* La settimana si scrive in una volta sola, quindi l'avanzamento
+       non è più «3 di 7»: sono le fasi vere del lavoro. La percentuale
+       resta perché la barra esiste, ma dice a che punto è il PROCESSO,
+       non quanti giorni sono nati. */
+    const plan=await wizGenDays(onb2DatiPiano(),t,null,(f,dati)=>{
+      if(f==="settimana"){g.perc=15;g.riga=tr("Sto componendo il tuo piano…");g.righe=onb2GenRighe(0,"lavoro");}
+      else if(f==="controllo"){g.perc=70;g.riga=tr("Controllo i conti e quello che hai escluso…");g.righe=onb2GenRighe(7,"controllo");}
+      else if(f==="ritocco"){g.perc=80;g.riga=trh("Rifaccio i giorni che non tornano: {v1}…",{v1:(dati||[]).join(", ")});g.righe=onb2GenRighe(7,"controllo");}
+      onb2GenTocca();});
+    /* SICUREZZA: un alimento escluso rimasto dentro dopo il rifacimento
+       non si consegna. Meglio il piano di base, che è suo e non le fa
+       male, di un piano su misura con dentro una cosa che ha escluso. */
+    if(plan&&plan.insicuro){
+      const tb=onb2Targets();
+      g.piano=tb?onb2PianoBase(dayTargetK()||tb.kcal):null;
+      g.stato=g.piano?"base":"senzaAI";g.perc=100;g.righe=[];
+      g.riga=tr("Nel piano su misura era rimasto un alimento che avevi escluso: ti do quello di base con le quantità rifatte sui tuoi numeri, e il su misura lo rifacciamo da Piano.");
+      return onb2GenTocca();}
     g.piano=plan||null;g.stato="fatto";g.perc=100;
     g.riga=tr("Piano pronto, spesa compresa.");
     g.righe=onb2GenRighe(7,"fatto");
@@ -651,7 +675,18 @@ function onb2DatiPiano(){
     :(function(){const d=new Date();d.setFullYear(d.getFullYear()-(+b.eta||30));return d;})();
   const vietati=[S.diet.no,S.diet.religiose,S.diet.patologie?tr("tenere conto di: {v1}",{v1:S.diet.patologie}):""]
     .filter(Boolean).join("; ");
-  return {gen:b.gen||"m",dob:nascita.toISOString().slice(0,10),h:+b.h,w:+b.w,fat:null,
+  /* ── DUE COSE DIVERSE, E VANNO TENUTE SEPARATE ────────────────────
+     `no` è il testo che legge il MODELLO, e contiene anche le
+     patologie introdotte da «tenere conto di: …» — una frase, non un
+     elenco di alimenti.
+     `vietatiLista` è quello che confronta il CODICE, e deve contenere
+     solo alimenti. Passando il testo intero, il controllo di sicurezza
+     avrebbe messo fra le parole vietate «tenere» e «conto»: da lì in
+     poi nessun piano sarebbe più passato, e il motivo sarebbe stato
+     incomprensibile. */
+  const vietatiLista=vietatiElenco([S.diet.no,S.diet.religiose].filter(Boolean).join("; "),S.diet.intol);
+  return {vietatiLista:vietatiLista,
+    gen:b.gen||"m",dob:nascita.toISOString().slice(0,10),h:+b.h,w:+b.w,fat:null,
     act:attMap[o.ris.attivita]||1.375,goal:goalMap[o.ris.obiettivo]||"moderato",
     vita:o.ris.ritmi||"",sport:o.ris.attivita||"",
     intol:S.diet.intol||"",no:vietati,si:S.diet.si||"",
@@ -1281,6 +1316,12 @@ window.onb2Chiudi=async(modo)=>{
        cambia il modo di applicare un piano, cambia in un posto solo. */
     S.customPlan=gg.piano;PLAN=S.customPlan;S.permMeals={};
     S.customShop=null;S.week=freshWeek();
+    /* LA SPESA ARRIVA COL PIANO (v13.59). Prima qui restava null e la
+       pagina Spesa ripiegava su buildShopFromPlan, cioè sugli
+       ingredienti spezzati dalle descrizioni: una lista, ma non quella
+       che la schermata prometteva. Ora è la lista vera, chiesta nella
+       stessa risposta e senza una chiamata in più. */
+    try{if(gg.piano.spesa){S.customShop=gg.piano.spesa;S.shop={};}}catch(e){}
     try{S.ui.pianoProprio=0;}catch(e){}}
   entra();};
 
