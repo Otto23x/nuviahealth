@@ -105,21 +105,29 @@ header{background:rgba(243,246,243,.86);backdrop-filter:saturate(1.5) blur(14px)
   color:var(--ink);padding:12px 16px 12px;position:sticky;top:0;z-index:50;
   border-bottom:1px solid var(--linea);transition:background .3s,border-color .3s}
 
-.hrow{display:flex;align-items:center;justify-content:space-between;gap:8px}
+/* LA DATA STA IN MEZZO ALLO SCHERMO, non in mezzo a quello che avanza
+   (founder, 24/08). Con `space-between` la barra della data era
+   centrata nello spazio RESIDUO fra il marchio e i comandi: pesi
+   diversi ai due lati, quindi data spostata — e spostata di nuovo ogni
+   volta che compariva la freccia «indietro». Con tre colonne di cui le
+   due laterali larghe uguali (1fr), il centro è il centro e ci resta. */
+.hrow{display:grid;grid-template-columns:1fr auto 1fr;align-items:center;gap:8px}
+.hrow>.hbtns{justify-self:end}
 header h1{font-size:18px;font-weight:700;letter-spacing:.2px}
 .logo-badge{display:inline-flex;align-items:center;gap:8px;color:var(--bosco);font-weight:800;font-size:19px;letter-spacing:-.03em;line-height:1.15;transition:transform .25s var(--ease)}
 .logo-badge:hover{transform:rotate(-2deg) scale(1.05)}
 .nvlogo{flex:0 0 auto}
-/* IL NOME ACCANTO AL MARCHIO (founder, 23/08): «il marchio con la
-   scritta Nuvia in alto — oggi non si vede né all'ingresso né durante
-   il percorso guidato». Era vero: in alto c'era il solo disegno, e un
-   disegno senza nome non si impara. Il nome sta nel serif del marchio,
-   perché è la firma e non un'etichetta; a schermo stretto sparisce lui
-   e resta il simbolo, mai il contrario. Brand book: si scrive sempre
-   «Nuvia», mai NUVIA. */
-.nvnome{font-family:'Fraunces',Georgia,serif;font-size:20px;font-weight:600;
-  color:var(--bosco);letter-spacing:-.01em;line-height:1}
-@media (max-width:360px){.nvnome{display:none}}
+/* IL NOME NELL'HEADER NON C'È PIÙ (founder, 24/08). Il 23/08 era stato
+   aggiunto come TESTO in Fraunces accanto al simbolo, perché «un
+   disegno senza nome non si impara» — vero, ma la conclusione era
+   sbagliata due volte: il nome disegnato a mano accanto al logo non è
+   il logo (la scritta ufficiale ha lettere sue, non un serif qualsiasi),
+   e quel blocco sbilanciava la barra facendo scivolare la data.
+   Il nome per esteso si legge dove il marchio si PRESENTA, e lì si usa
+   il logotipo vero: prima schermata e pagina Nuvia. Nell'header resta
+   il segno, come in ogni marchio che si rispetti.
+   La regola resta: si scrive sempre «Nuvia», mai NUVIA. */
+.nvnome{display:none}
 /* ── Pagina Nuvia (brand) ── */
 .nvhero{text-align:center;padding:24px 16px 20px;background:var(--card);border-radius:var(--r-lg)}
 .nvhero h1{margin:12px 0 4px;font-size:30px;color:var(--bosco);letter-spacing:-.02em}
@@ -135,7 +143,7 @@ header h1{font-size:18px;font-weight:700;letter-spacing:.2px}
 .hbtn:active{transform:scale(.92)}
 
 /* ══ Scorrimento date ══ */
-.datebar{display:flex;align-items:center;justify-content:center;gap:8px;margin:0;flex:1;min-width:0}
+.datebar{display:flex;align-items:center;justify-content:center;gap:8px;margin:0;min-width:0}
 .datebar button{border:1px solid var(--linea);background:var(--card);color:var(--grigio);border-radius:50%;width:30px;height:30px;flex:none;font-size:14.5px;cursor:pointer;transition:transform .18s var(--ease),background .2s}
 .datebar button:hover{background:var(--menta);color:var(--bosco);transform:scale(1.1)}
 .datebar button:active{transform:scale(.88)}
@@ -753,7 +761,19 @@ body.onb .fab{display:none}
 .daytotal{font-size:13px;font-weight:700;color:var(--bosco);padding:8px 4px 16px}
 .daytotal span{color:var(--salvia)}
 /* ══ FORM ══ */
-textarea,input[type=text],input[type=number],input[type=date],input[type=password],select{
+/* L'ELENCO PER TIPO ERA UNA TRAPPOLA (founder, 24/08: «fai il campo
+   email decentemente come il campo nome, non quel riquadro vecchio»).
+   Non era un campo trascurato: era che `input[type=email]` non stava
+   in questa lista, e quindi restava con l'aspetto grezzo del browser
+   accanto a campi curati. Lo stesso valeva per `tel`, `search`, `url`
+   e `time` — nessuno usato ancora, ma la prossima volta sarebbe
+   successo di nuovo, e in silenzio.
+   Adesso si dice quali tipi NON si vestono così (spunte, radio, colore
+   e cursori, che hanno una forma loro) e si veste tutto il resto: un
+   campo nuovo nasce già come gli altri. */
+textarea,select,
+input:not([type]),
+input:not([type=checkbox]):not([type=radio]):not([type=range]):not([type=color]):not([type=file]):not([type=submit]):not([type=button]):not([type=reset]):not([type=hidden]){
   width:100%;border:1px solid var(--linea);border-radius:12px;padding:16px;font-size:16px;
   min-height:56px;font-family:inherit;background:var(--crema);color:var(--ink);
   transition:border-color .2s,background .2s,box-shadow .2s}
@@ -926,8 +946,12 @@ label{font-size:11.5px;font-weight:700;letter-spacing:.09em;text-transform:upper
 /* Fila icone: MAI lo scorrimento laterale — sei pulsanti, una riga.
    flex:1 1 0 + min-width:0 li fa stringere insieme; gap e padding sulla
    scala 4/8, e i 44px di altezza toccabile non si toccano. */
-.mtools.filaicone{flex-wrap:nowrap;gap:4px;overflow:visible;padding-bottom:4px;max-width:100%}
-.mtools.filaicone .ibtn{flex:1 1 0;min-width:0;padding:0 4px}
+/* IL BOTTONE «⋯» DEGLI ATTREZZI (v13.86). Ha preso il posto della
+   fila di sei icone sotto ogni pasto: apre il foglio con tutti e
+   dieci gli attrezzi. Resta un bottone come gli altri — quindi i
+   44px toccabili valgono anche per lui — solo un po' più largo,
+   perché tre puntini piccoli non si vedono e non si prendono. */
+.ibtn.attrezzi-piu{min-width:56px}
 /* NOTA D'ORDINE: questa deroga sta DOPO la regola base .ibtn qui sopra.
    Il collaudo a11y legge la PRIMA «.ibtn{» del foglio per verificare i
    44px: se la deroga la precede, legge quella sbagliata. La cascata non
@@ -1141,13 +1165,27 @@ html[data-theme="dark"] #zoomOv img{background:#11201E}
 .tundo{margin-left:12px;background:transparent;border:1px solid rgba(255,255,255,.45);color:inherit;
   border-radius:99px;padding:4px 12px;font-size:13px;font-weight:700;cursor:pointer;min-height:32px}
 .tundo:active{background:rgba(255,255,255,.15)}
-#toast{position:fixed;left:14px;right:14px;bottom:calc(96px + env(safe-area-inset-bottom));
-  transform:translateY(12px);z-index:96;max-width:520px;margin:0 auto;
+/* ── IL TOAST STA IN ALTO (founder, 24/08) ───────────────────────
+   In basso si accavallava con la barra delle schede, con la spia
+   dell'AI e col riquadro della generazione: quattro cose nella stessa
+   fascia di centoventi pixel, e un messaggio da quindici secondi
+   copriva i comandi proprio mentre servivano.
+   In alto, sotto l'header, non copre niente di ciò che si tocca — e
+   si legge nella direzione in cui si sta già guardando. */
+#toast{position:fixed;left:14px;right:14px;top:calc(72px + env(safe-area-inset-top));
+  transform:translateY(-12px);z-index:96;max-width:520px;margin:0 auto;
+  display:flex;align-items:flex-start;gap:12px;
   background:var(--card);color:var(--ink);border-left:3px solid var(--salvia);
   border-radius:var(--r-lg);padding:16px 16px;font-size:14.5px;font-weight:500;line-height:1.45;
   opacity:0;pointer-events:none;transition:opacity .3s,transform .3s var(--ease);
   box-shadow:0 1px 2px rgba(12,31,23,.06),0 18px 40px -20px rgba(12,31,23,.45)}
-#toast.on{opacity:1;transform:translateY(0)}
+#toast.on{opacity:1;transform:translateY(0);pointer-events:auto}
+/* La X non compete col messaggio: sta in fondo alla riga, grigia, e
+   ha comunque i suoi 44px di area toccabile. */
+.tclose{margin-left:auto;flex:0 0 auto;border:0;background:none;color:var(--grigio);
+  font-size:20px;line-height:1;cursor:pointer;padding:0 4px;min-width:44px;min-height:44px;
+  display:flex;align-items:center;justify-content:center;transition:color .2s}
+.tclose:hover{color:var(--ink)}
 #confetti{position:fixed;inset:0;pointer-events:none;z-index:97;overflow:hidden}
 #confetti span{position:absolute;width:9px;height:9px;border-radius:4px;top:-12px}
 /* ══ MODALI ══ */
@@ -1295,7 +1333,7 @@ body.onb{padding-bottom:0}
 .o2seg.ora{background:var(--menta)}
 .o2seg i{display:block;height:100%;background:var(--azione);border-radius:99px;
   transition:width .45s var(--ease)}
-.o2wrap{padding:8px 4px 0;animation:o2in .32s var(--ease) both}
+.o2wrap{padding:8px 0 0;animation:o2in .32s var(--ease) both}
 @keyframes o2in{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
 .o2q{font-family:'Fraunces',Georgia,serif;font-size:clamp(23px,6vw,29px);line-height:1.14;
   letter-spacing:-.02em;margin:4px 0 8px}
@@ -1351,6 +1389,16 @@ body.onb{padding-bottom:0}
    Poche cose, grandi, con l'avviso sui dati BEN VISIBILE: una
    cosa scomoda scritta in grigio piccolo è una cosa nascosta. */
 .primo{padding:16px 0 32px;max-width:520px;margin:0 auto}
+/* ══ IL MARGINE LATERALE È UNO SOLO (founder, 24/08) ═════════════
+   «Perché non ci sono spaziature laterali tra testo e bordo? Questa
+   spaziatura dovrebbe essere uniforme in tutta l'app.»
+   Aveva ragione: `.saluto` e `.primo` avevano padding laterale ZERO e
+   `.o2wrap` ne aveva 4 — stavano in piedi solo perché montati dentro
+   una `.page`, che i suoi 16 li dà. Risultato: il saluto respirava 16,
+   l'onboarding 20, e i comandi a tutta larghezza toccavano il bordo di
+   quei 16 mentre il testo sopra ne aveva 20.
+   Adesso il margine lo dà `.page` e basta: chi ci sta dentro non ne
+   aggiunge e non ne toglie. Il collaudo t_marchio lo verifica. */
 .primo-logo{text-align:center;margin-bottom:16px}
 .primo-t{font-family:'Fraunces',Georgia,serif;font-size:28px;color:var(--bosco);
   text-align:center;line-height:1.15}
@@ -1396,11 +1444,13 @@ body.onb{padding-bottom:0}
 /* ══ IL SALUTO: la pagina che dice a cosa serve Nuvia ══════════
    Niente card, niente riquadri: è una pagina che si legge in
    quindici secondi, non un modulo da compilare. Il marchio col nome
-   in cima è la prima volta che una persona lo vede scritto. */
+   in cima è la prima volta che una persona lo vede scritto — e dalla
+   v13.61 è il LOGOTIPO ufficiale, non più il simbolo con la parola
+   ricomposta accanto in un serif qualsiasi. Un marchio si presenta
+   con le sue lettere. */
 .saluto{padding:32px 0 40px}
-.saluto-marchio{display:flex;flex-direction:column;align-items:center;gap:8px;margin-bottom:20px}
-.saluto-nome{font-family:'Fraunces',Georgia,serif;font-size:32px;font-weight:600;
-  color:var(--bosco);letter-spacing:-.01em;line-height:1}
+.saluto-marchio{display:flex;justify-content:center;margin-bottom:24px}
+.saluto-marchio img{width:min(56vw,210px);height:auto}
 .saluto .primo-t{font-size:24px;margin-bottom:32px}
 .saluto-p{margin:20px 0}
 .saluto-p b{display:block;font-size:16px;color:var(--bosco);margin-bottom:4px}
