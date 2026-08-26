@@ -94,11 +94,18 @@ function ONB2t(){return [
  {k:"dieta",sez:"alimentazione",tipo:"dieta",
   q:tr("Come mangi, per scelta o abitudine?")},
 
- {k:"allergie",sez:"alimentazione",tipo:"multi",none:"niente",altro:true,
-  q:tr("Ci sono alimenti che il tuo corpo non tollera?"),
-  sub:tr("Non compariranno mai nei tuoi piatti."),
-  op:[["niente",tr("Nessuna intolleranza"),""]]
-     .concat((typeof INTOL_LIST!=="undefined"?INTOL_LIST:[]).map(x=>[x,O2CAP(x),""]))},
+ /* ── INTOLLERANZE E ALLERGIE, DISTINTE (founder, 26/08) ─────────
+    «Oltre a intolleranze bisogna chiedere le allergie… due colonne
+    da spuntare: una se è intollerante, l'altra se è allergico.»
+    Non è pignoleria: un'intolleranza rovina la giornata, un'allergia
+    può costare un pronto soccorso — e il piano deve saperlo, perché
+    per un allergico non esistono «tracce» accettabili. Ogni alimento
+    ha due caselle, che si escludono a vicenda: si è l'uno o l'altro,
+    rispetto allo stesso cibo. */
+ {k:"allergie",sez:"alimentazione",tipo:"intoll",altro:true,
+  q:tr("Intolleranze e allergie"),
+  sub:tr("Per ogni alimento segna se ti dà un'intolleranza o una vera allergia: le allergie escludono senza nessuna eccezione."),
+  op:(typeof INTOL_LIST!=="undefined"?INTOL_LIST:[]).map(x=>[x,O2CAP(x),""])},
 
  /* IL CAMPO SOTTO LE CONDIZIONI ERA «FARMACI» (founder, 24/08):
     «dovrebbe esserci altro per far inserire altre condizioni».
@@ -121,25 +128,19 @@ function ONB2t(){return [
     vuole grassi nello stesso pasto, i probiotici vogliono fibra. Le
     regole ci sono già (INTEG_REGOLE) e finora giravano a vuoto,
     perché nessuno chiedeva cosa prendi. */
- {k:"integratori",sez:"alimentazione",tipo:"multi",none:"nessuno",
+ /* ── LA FREQUENZA STA ACCANTO A OGNI VOCE (founder, 26/08) ──────
+    «Intendo un menù a tendina in parte ad ogni integratore, non
+    sulla pagina dopo.» Aveva ragione due volte: la domanda sulla
+    frequenza arrivava a schermata cambiata, quando l'elenco non si
+    vedeva più — e una frequenza sola per tutto non descrive nessuno:
+    la vitamina D è quotidiana e la creatina no, nella stessa persona.
+    Ora ogni voce spuntata apre la sua tendina, lì. */
+ {k:"integratori",sez:"alimentazione",tipo:"integ",none:"nessuno",
   testo:{k:"farmaci",label:tr("Farmaci che prendi in modo continuativo"),ph:tr("es. levotiroxina — se non ce ne sono, lascia vuoto")},
-  q:tr("Prendi integratori o farmaci tutti i giorni?"),
+  q:tr("Prendi integratori o farmaci?"),
   sub:tr("Cambiano il piano: alcuni contano nei target, altri vogliono o evitano certi alimenti nello stesso pasto."),
   op:[["nessuno",tr("Niente di tutto questo"),""]]
      .concat((typeof INTEG_LIST!=="undefined"?INTEG_LIST:[]).map(x=>[x,O2CAP(x),""]))},
-
- /* La frequenza stava nelle richieste originali del founder ed era
-    rimasta indietro: un multivitaminico «ogni tanto» non entra nei
-    target come uno quotidiano. La schermata compare solo se qualcosa
-    è stato scelto davvero (il `se:` la salta altrimenti). */
- {k:"integratori_freq",sez:"alimentazione",tipo:"scelta",
-  se:()=>{const v=onb2Stato().ris.integratori;
-    return Array.isArray(v)&&v.length>0&&!(v.length===1&&v[0]==="nessuno");},
-  q:tr("Ogni quanto li prendi?"),
-  sub:tr("Contano nei target solo se ci sono davvero tutti i giorni."),
-  op:[["giorni",tr("Tutti i giorni"),""],
-      ["quasi",tr("Quasi tutti i giorni"),""],
-      ["saltuario",tr("Qualche volta a settimana"),""]]},
 
  {k:"protocolli",sez:"alimentazione",tipo:"multi",none:"nessuno",
   q:tr("Segui uno schema alimentare preciso?"),
@@ -166,9 +167,13 @@ function ONB2t(){return [
   q:tr("Cosa eviti e cosa ami"),
   sub:tr("Non intolleranze: gusti. Il piano gira intorno alle prime e punta sulle seconde.")},
 
+ /* La frase diceva «niente più liste» — e la prima cosa dopo era
+    un'altra schermata di scelte. Il founder: «ha senso? non credo».
+    La pausa adesso dice quello che succede davvero: il cibo è
+    raccontato, si passa alla settimana. */
  {k:"pausa2",sez:"alimentazione",tipo:"pausa",posa:"cucina",
-  q:tr("Da qui in poi niente più liste."),
-  sub:tr("Restano le domande sulla tua settimana: quanto ti muovi, come sono fatte le giornate, quanto tempo hai.")},
+  q:tr("Il cibo è raccontato."),
+  sub:tr("Ora la tua settimana: quanto ti muovi, che orari fai, quanto tempo hai per cucinare. Il piano deve entrare nella tua vita, non il contrario.")},
 
  {k:"corpo",sez:"vita",tipo:"scelta",sensibile:true,
   se:()=>((onb2Stato().ris.bio||{}).gen==="f"),
@@ -199,42 +204,33 @@ function ONB2t(){return [
     Adesso i valori sono quelli, e sono anche le chiavi di ACT_STEPS:
     così la stessa risposta imposta i passi base, che finora
     restavano a 3.000 qualunque cosa una persona rispondesse. */
- {k:"attivita",sez:"vita",tipo:"scelta",
-  /* Riscontro del founder (25/08), due difetti in una schermata:
-     1. «Ferma» e «Seduta» parlavano al femminile a chi aveva appena
-        detto di essere un uomo. Le opzioni ora descrivono le
-        GIORNATE, non la persona: il genere sparisce dal problema
-        invece di essere gestito.
-     2. il titolo era il gemello di «Com'è fatta la tua giornata?»
-        (ritmi) e sembrava la stessa domanda ripetuta. Ora una chiede
-        QUANTO ti muovi (fabbisogno), l'altra DOVE passi le giornate
-        (orari e contesto): due titoli che non si somigliano. */
-  q:tr("Quanto ti muovi, in una settimana normale?"),
-  sub:tr("Conta la giornata intera, non solo l'allenamento: è da lì che esce quanto consumi."),
-  op:[["fermo",tr("Giornate quasi ferme"),tr("Scrivania o divano, nessun allenamento")],
-      ["poco",tr("Tanta sedia, qualche camminata"),tr("Nessun allenamento fisso")],
-      ["leggero",tr("Un po' in movimento"),tr("Oppure mi alleno una o due volte a settimana")],
-      ["regolare",tr("In movimento quasi ogni giorno"),tr("Oppure tre o quattro allenamenti a settimana")],
-      ["intenso",tr("Lavoro fisico, o mi alleno sul serio"),tr("Cinque volte a settimana o più")]]},
+ {k:"attivita",sez:"vita",tipo:"giornate",
+  /* ── UNA SCHERMATA SOLA PER LE GIORNATE (founder, 26/08) ─────────
+     «Dove passano le tue giornate è una pagina duplicata… viene
+     chiesta due volte la stessa cosa.» Era già successo il 25/08 e
+     l'avevamo «risolto» cambiando i titoli: non bastava, e la terza
+     volta non si tenta lo stesso rimedio. Le due domande adesso
+     stanno su UNA schermata, una sotto l'altra: quanto ti muovi (da
+     lì esce il fabbisogno) e dove passano le giornate (da lì escono
+     orari e contesto del piano). Due gruppi, un solo posto, nessuna
+     sensazione di déjà-vu. Le chiavi restano `attivita` e `ritmi`:
+     tutto quello che le legge — o2Att, i passi base, il turnista —
+     continua a funzionare senza saperlo. */
+  q:tr("Le tue giornate"),
+  sub:tr("Servono due cose: quanto ti muovi, e dove passi il tempo. Il piano si adatta a tutte e due."),
+  gr1:tr("Quanto ti muovi, in una settimana normale?"),
+  op:[["fermo",tr("Quasi per niente"),tr("Niente sport e poca camminata")],
+      ["poco",tr("Poco"),tr("Qualche camminata, nessun allenamento fisso")],
+      ["leggero",tr("Un po'"),tr("Mi alleno una o due volte a settimana")],
+      ["regolare",tr("Parecchio"),tr("Tre o quattro allenamenti a settimana")],
+      ["intenso",tr("Molto"),tr("Lavoro fisico, o cinque e più allenamenti")]],
+  gr2:tr("E dove passano, di solito?"),
+  op2:[["sedentario",tr("Alla scrivania"),tr("Ufficio, computer, guida")],
+      ["inPiedi",tr("In piedi"),tr("Lavoro fisico, cammino molto")],
+      ["turni",tr("A turni"),tr("Orari che cambiano di settimana in settimana")],
+      ["studente",tr("Tra lezioni e studio"),tr("Orari spezzati, pasti fuori")],
+      ["casa",tr("A casa"),tr("Gli orari li decido io")]]},
 
- /* ── R1 · «CHE ALLENAMENTO VOGLIO FARE» (riscontro del founder,
-    25/08 sera) ────────────────────────────────────────────────────
-    «Mi sono accorto che nel percorso non mi chiedi neanche che
-    allenamento voglio fare e come mi alleno.» La domanda esisteva
-    già — ma solo dentro Sport → trainerChiedi(), due dlgPrompt
-    raggiungibili solo da chi apriva quella pagina e trovava «Dimmi
-    che sport ti piacciono». Fino a quel momento il trainer AI
-    proponeva sport a caso (trainForAI() restituisce stringa vuota
-    senza S.train.ama).
-    Qui si chiede una volta sola, nel percorso, e la risposta travasa
-    (onb2Travasa, sotto) in DUE posti che oggi si scoprono uno alla
-    volta: `S.train.ama` — quello che legge davvero il trainer — e
-    `S.allen.abituali` — quello che legge il motore dei suggerimenti
-    settimanali (spuntoAllenamento, in 29_allenamenti_ibridi.js).
-    Chi vuole raccontare anche giorno e durata lo fa comunque dopo,
-    da Sport → «Come ti alleni di solito»: qui basta la lista, non
-    serve la precisione — stessa filosofia di quella schermata:
-    «raccontamelo una volta e non te lo chiedo più». */
  {k:"sportPref",sez:"vita",tipo:"multi",none:"nessuno",altro:true,
   q:tr("Quali sport ti piacciono?"),
   sub:tr("Così il tuo allenatore propone cose che faresti davvero, non attività a caso. Puoi segnarne più di uno."),
@@ -247,15 +243,6 @@ function ONB2t(){return [
       ["squadra",tr("Sport di squadra"),tr("Calcio, basket, pallavolo")],
       ["yoga",tr("Yoga o pilates"),tr("Anche stretching, mobilità")],
       ["nessuno",tr("Niente di regolare, per ora"),tr("Si parte da qui")]]},
-
- {k:"ritmi",sez:"vita",tipo:"scelta",
-  q:tr("Dove passano le tue giornate?"),
-  sub:tr("Gli orari veri contano più delle buone intenzioni: il piano si adatta a loro."),
-  op:[["sedentario",tr("Alla scrivania quasi tutto il giorno"),tr("Ufficio, computer, guida")],
-      ["inPiedi",tr("In piedi o in movimento"),tr("Lavoro fisico, cammino molto")],
-      ["turni",tr("A turni"),tr("Orari che cambiano di settimana in settimana")],
-      ["studente",tr("Studio"),tr("Lezioni, biblioteca, pasti fuori")],
-      ["casa",tr("A casa"),tr("Gestisco i miei orari")]]},
 
  /* ── I PASTI FUORI CASA ─────────────────────────────────────────
     Il piano ha già regole diverse per un pasto fuori — niente
@@ -480,18 +467,39 @@ function renderOnb2(){
   else if(sc.tipo==="preferenze")c=onb2Pref(sc);
   else if(sc.tipo==="piani")c=onb2Piani(sc);
   else if(sc.tipo==="pausa")c=onb2Pausa(sc);
+  else if(sc.tipo==="intoll")c=onb2Intoll(sc);
+  else if(sc.tipo==="integ")c=onb2Integ(sc);
+  else if(sc.tipo==="giornate")c=onb2Giornate(sc);
   else c=onb2Fine(sc);
 
+  /* ── IL TITOLO DELL'ULTIMA SCHERMATA DICE LA VERITÀ (26/08) ──────
+     «Come vuoi che ti segua?» era il titolo della scelta dei piani,
+     rimasto appiccicato anche alla chiusura: a piano PRONTO non
+     chiedeva niente che avesse senso chiedere. Il titolo ora segue lo
+     stato della generazione. */
+  let q=sc.q,sub=sc.sub;
+  if(sc.tipo==="fine"){
+    const g=onb2Gen();
+    if(g.stato==="fatto"||g.stato==="base"){q=tr("Il tuo piano è pronto.");sub=tr("Lo trovi in Piano, con la spesa già scritta. Benvenuto.");}
+    else if(g.stato==="lavoro"){q=tr("Sto scrivendo il tuo piano…");sub=tr("Puoi già entrare: si attiva da solo appena è finito.");}
+    else{q=tr("Ci siamo.");sub=tr("Il diario è pronto: si comincia da lì.");}}
+  /* Tutto il percorso vive dentro un riquadro, come il resto
+     dell'app (founder, 26/08): stessa carta, stessa distanza dai
+     bordi delle altre pagine. */
   el.innerHTML=onb2Barra()+
    `<div class="o2wrap" data-passo="${i+1}" data-chiave="${esc(sc.k)}">
-      <h1 class="o2q">${esc(sc.q)}</h1>
-      ${sc.sub?`<p class="o2sub">${esc(sc.sub)}</p>`:""}
-      ${c}
+      <div class="card o2card">
+        <h1 class="o2q">${esc(q)}</h1>
+        ${sub?`<p class="o2sub">${esc(sub)}</p>`:""}
+        ${c}
+      </div>
       <div class="o2nav o2nav2">
         <button class="btn ghost o2back" type="button" onclick="onb2Indietro()"
           aria-label="${esc(tr("Torna indietro"))}">${esc(tr("Indietro"))}</button>
         ${sc.tipo!=="fine"?`<button class="btn o2next" type="button"
-          onclick="onb2AvantiSchermo()">${esc(tr("Avanti"))}</button>`:""}
+          onclick="onb2AvantiSchermo()">${esc(tr("Avanti"))}</button>`
+        :`<button class="btn o2next o2entra" type="button"
+          onclick="onb2Chiudi('piano')">${esc(tr("Entra"))}</button>`}
         ${onb2MicBarra(sc.k,i)}
       </div>
     </div>`;
@@ -509,6 +517,82 @@ function onb2Scelta(sc){
        <b>${esc(t)}</b>${d?`<span>${esc(d)}</span>`:""}</button>`).join("")+`</div>`;
   h+=onb2Mic(sc.k);
   return h;}
+
+/* ── Intolleranze e allergie: due caselle per riga ────────────────
+   Ogni alimento ha «Intollerante» e «Allergico», che si escludono a
+   vicenda: rispetto allo stesso cibo si è l'uno o l'altro. Un solo
+   tocco su una casella accesa la spegne. Chi non ha niente va avanti
+   e basta: nessuna casella accesa VUOL DIRE nessuna intolleranza,
+   senza costringere a dichiararlo. */
+function onb2Intoll(sc){
+  const o=onb2Stato();
+  const intol=Array.isArray(o.ris.allergie)?o.ris.allergie:[];
+  const gravi=Array.isArray(o.ris.allergie_gravi)?o.ris.allergie_gravi:[];
+  let h=onb2Chip(sc.k);
+  h+=`<div class="o2itesta"><span></span><b>${esc(tr("Intollerante"))}</b><b>${esc(tr("Allergico"))}</b></div>`;
+  h+=`<div class="o2ops o2intoll">`+sc.op.map(([v,t])=>{
+    const i=intol.includes(v),g=gravi.includes(v);
+    return `<div class="o2irow${(i||g)?" scelta":""}">
+      <span class="o2inome">${esc(t)}</span>
+      <button class="o2ibox${i?" on":""}" type="button" aria-pressed="${i}"
+        aria-label="${esc(trh("{v1}: intollerante",{v1:t}))}"
+        onclick="onb2IntollTag('${esc(v)}','intol')">${i?"✓":""}</button>
+      <button class="o2ibox o2ibox-a${g?" on":""}" type="button" aria-pressed="${g}"
+        aria-label="${esc(trh("{v1}: allergico",{v1:t}))}"
+        onclick="onb2IntollTag('${esc(v)}','grave')">${g?"✓":""}</button>
+    </div>`;}).join("")+`</div>`;
+  h+=`<div class="o2form"><input type="text" id="o2alt" value="${esc(o.ris.allergie_altro||"")}"
+      placeholder="${esc(tr("altro, scrivilo tu"))}"></div>`;
+  return h;}
+window.onb2IntollTag=(v,tipo)=>{
+  const o=onb2Stato();
+  const A=o.ris.allergie=Array.isArray(o.ris.allergie)?o.ris.allergie.filter(x=>x!=="niente"):[];
+  const G=o.ris.allergie_gravi=Array.isArray(o.ris.allergie_gravi)?o.ris.allergie_gravi:[];
+  const dentro=(l,x)=>l.indexOf(x)>-1;
+  const via=(l,x)=>{const i=l.indexOf(x);if(i>-1)l.splice(i,1);};
+  if(tipo==="grave"){ if(dentro(G,v))via(G,v); else{G.push(v);via(A,v);} }
+  else{ if(dentro(A,v))via(A,v); else{A.push(v);via(G,v);} }
+  onb2Salva();renderOnb2();};
+
+/* ── Integratori: la tendina della frequenza accanto a ogni voce ── */
+function onb2Integ(sc){
+  const o=onb2Stato(),sel=Array.isArray(o.ris.integratori)?o.ris.integratori:[];
+  const freq=o.ris.integ_freq||{};
+  const FR=[["giorni",tr("tutti i giorni")],["quasi",tr("quasi tutti i giorni")],["saltuario",tr("qualche volta")]];
+  let h=onb2Chip(sc.k);
+  h+=`<div class="o2ops o2multi" data-multi="integratori">`+sc.op.map(([v,t,d])=>{
+    const on=sel.includes(v);
+    const tendina=(on&&v!=="nessuno")
+      ?`<select class="o2ifreq" aria-label="${esc(trh("Ogni quanto: {v1}",{v1:t}))}"
+          onchange="onb2IntegFreq('${esc(v)}',this.value)" onclick="event.stopPropagation()">${
+          FR.map(([fv,ft])=>`<option value="${fv}"${(freq[v]||"giorni")===fv?" selected":""}>${esc(ft)}</option>`).join("")}</select>`
+      :"";
+    return `<div class="o2irowi"><button class="o2op o2opm${on?" scelta":""}" type="button" data-v="${esc(v)}"
+       onclick="onb2Toggle('integratori','${esc(v)}')" aria-pressed="${on}">
+       <i class="o2box" aria-hidden="true">${on?"✓":""}</i>
+       <span class="o2opt"><b>${esc(t)}</b>${d?`<span>${esc(d)}</span>`:""}</span></button>${tendina}</div>`;
+    }).join("")+`</div>`;
+  h+=`<div class="o2form"><label>${esc(sc.testo.label)}</label>
+    <input type="text" id="o2txtx" value="${esc(o.ris[sc.testo.k]||"")}" placeholder="${esc(sc.testo.ph)}"></div>`;
+  return h;}
+window.onb2IntegFreq=(v,f)=>{const o=onb2Stato();
+  (o.ris.integ_freq=o.ris.integ_freq||{})[v]=f;onb2Salva();};
+
+/* ── Le giornate: due gruppi, una schermata (vedi la nota nella
+   tabella). La scelta NON avanza da sola: coi gruppi sono due, si
+   avanza con «Avanti» quando ci sono tutte e due le risposte. */
+function onb2Giornate(sc){
+  const o=onb2Stato();
+  const gruppo=(titolo,ops,k)=>`<div class="o2gr"><b class="o2grt">${esc(titolo)}</b>
+    <div class="o2ops">`+ops.map(([v,t,d])=>
+    `<button class="o2op${o.ris[k]===v?" scelta":""}" type="button" onclick="onb2Set('${k}','${esc(v)}')">
+       <b>${esc(t)}</b>${d?`<span>${esc(d)}</span>`:""}</button>`).join("")+`</div></div>`;
+  return onb2Chip("attivita")
+    +gruppo(sc.gr1,sc.op,"attivita")
+    +gruppo(sc.gr2,sc.op2,"ritmi");}
+window.onb2Set=(k,v)=>{const o=onb2Stato();o.ris[k]=v;onb2Salva();
+  try{if(typeof confermaPasso==="function")confermaPasso(k);}catch(e){}
+  renderOnb2();};
 
 /* ── Multi-selezione: si tocca più di una card, «Avanti» conferma. ──
    La voce `none` («nessuna») è esclusiva: toccarla spegne le altre,
@@ -550,6 +634,11 @@ window.onb2Toggle=(k,v)=>{
      della lista — e la pagina non si muove. renderOnb2 resta il
      ripiego se la lista non si trova (non dovrebbe succedere mai,
      ma un ripiego che ridisegna è meglio di una spunta persa). */
+  /* La schermata degli integratori invece SI ridisegna: la spunta fa
+     comparire o sparire la tendina della frequenza accanto alla voce,
+     e quella non è un ritocco sul posto — è struttura. Un lampo su
+     una riga vale la tendina che appare dove deve. */
+  if(sc&&sc.tipo==="integ")return renderOnb2();
   const lista=document.querySelector('.o2multi[data-multi="'+(window.CSS&&CSS.escape?CSS.escape(k):k)+'"]');
   if(!lista)return renderOnb2();
   lista.querySelectorAll(".o2opm").forEach(b=>{
@@ -1076,7 +1165,7 @@ function onb2DatiPiano(){
     gen:b.gen||"m",dob:nascita.toISOString().slice(0,10),h:+b.h,w:+b.w,fat:null,
     act:o2Att(o.ris.attivita)||1.375,goal:goalMap[o.ris.obiettivo]||"moderato",
     vita:o.ris.ritmi||"",sport:o.ris.attivita||"",
-    intol:S.diet.intol||"",no:vietati,si:S.diet.si||"",
+    intol:S.diet.intol||"",allergie:S.diet.allergie||"",no:vietati,si:S.diet.si||"",
     pronto:(o.ris.cucina==="veloce")?"pronto":"semplice",
     nPasti:S.diet.nPasti||5,colaz:"",liberi:(S.diet.pastiLiberi!=null?+S.diet.pastiLiberi:1),
     /* ── LE RISPOSTE NUOVE ARRIVANO AL PIANO ──────────────────────
@@ -1360,6 +1449,19 @@ window.onb2AvantiSchermo=()=>{
   if(sc.tipo==="fuori")return onb2FuoriOk();
   if(sc.tipo==="preferenze")return onb2PrefOk();
   if(sc.tipo==="multi")return onb2MultiOk(sc.k);
+  if(sc.tipo==="intoll"){
+    /* il campo libero si raccoglie qui, come nei multi */
+    const o=onb2Stato(),alt=document.getElementById("o2alt");
+    if(alt)o.ris.allergie_altro=alt.value.trim();
+    if(!Array.isArray(o.ris.allergie))o.ris.allergie=[];
+    if(!Array.isArray(o.ris.allergie_gravi))o.ris.allergie_gravi=[];
+    onb2Salva();return onb2Avanti();}
+  if(sc.tipo==="integ")return onb2MultiOk(sc.k);
+  if(sc.tipo==="giornate"){
+    const o=onb2Stato();
+    if(o.ris.attivita==null||o.ris.ritmi==null)
+      return dlgAlert(tr("Rispondi a tutte e due: quanto ti muovi, e dove passano le giornate."));
+    return onb2Avanti();}
   if(sc.tipo==="pausa")return onb2Avanti();
   /* schermata a scelta: senza risposta non si va avanti a vuoto */
   if(o.ris[sc.k]==null)return dlgAlert(tr("Scegli una risposta per andare avanti."));
@@ -1634,8 +1736,10 @@ function onb2Fine(sc){
        esiste più, e il piano raggiunge la persona da solo. Un bottone
        che si chiama «appena è pronto» e agisce adesso è una bugia.
        t_piani_onboarding lo chiedeva già; era rimasto a metà. -->
-  <button class="btn o2entra" type="button" onclick="onb2Chiudi('piano')">${esc(tr("Entra"))}</button>
   ${pronto?"":`<div class="hint" style="text-align:center;margin-top:4px">${esc(tr("Il piano continua a scriversi e si attiva da solo."))}</div>`}`;}
+/* «Entra» non sta più qui dentro: sta nella barra dei comandi, di
+   fianco a «Indietro» — richiesta del founder (26/08). Due bottoni,
+   una riga, come in tutte le altre schermate. */
 
 /* L'avanzamento raccontato riga per riga: la persona vede cosa manca
    invece di una rotella che gira. */
@@ -1722,7 +1826,15 @@ function onb2Travasa(){
     S.diet.vegUova=(r.dieta.uova!==false);
     S.diet.vegPesce=!!r.dieta.pesce;
     S.diet.tradizione=r.dieta.tradizione||"italiana";}
-  if(Array.isArray(r.allergie))S.diet.intol=conAltro(senzaNone(r.allergie,"niente"),r.allergie_altro);
+  /* Le intolleranze e le allergie viaggiano INSIEME in S.diet.intol —
+     è la stringa che tutta la sicurezza già legge (vietatiElenco, il
+     prompt, le Regole) — e le allergie anche DA SOLE in S.diet.allergie,
+     perché al modello vanno dette con un altro peso. */
+  if(Array.isArray(r.allergie)||Array.isArray(r.allergie_gravi)){
+    const tolleranze=senzaNone(r.allergie||[],"niente");
+    const gravi=senzaNone(r.allergie_gravi||[],"niente");
+    S.diet.intol=conAltro(tolleranze.concat(gravi.filter(x=>!tolleranze.includes(x))),r.allergie_altro);
+    S.diet.allergie=gravi.join(", ");}
   /* le condizioni scritte a mano si aggiungono a quelle spuntate:
      l'elenco non può prevedere la condizione di ognuno */
   if(Array.isArray(r.salute))S.diet.patologie=conAltro(senzaNone(r.salute,"niente"),r.salute_altro);
@@ -1732,8 +1844,18 @@ function onb2Travasa(){
      prendi, quindi le proteine in polvere si sommavano sopra il
      target invece di contarci dentro, e il ferro finiva nel pasto col
      caffè. */
-  if(Array.isArray(r.integratori))S.diet.integratori=senzaNone(r.integratori,"nessuno").join(", ");
-  if(r.integratori_freq)S.diet.integratoriFreq=r.integratori_freq;
+  /* Ogni integratore con la SUA frequenza, scritta accanto al nome:
+     «vitamina D (tutti i giorni), creatina (qualche volta)». È la
+     stringa che integForAI() passa al modello. integratoriFreq
+     riassume per le regole di conteggio: basta UN quotidiano perché
+     i target debbano tenerne conto. */
+  if(Array.isArray(r.integratori)){
+    const FRT={giorni:tr("tutti i giorni"),quasi:tr("quasi tutti i giorni"),saltuario:tr("qualche volta a settimana")};
+    const fm=r.integ_freq||{};
+    const voci=senzaNone(r.integratori,"nessuno");
+    S.diet.integratori=voci.map(v=>v+" ("+(FRT[fm[v]||"giorni"])+")").join(", ");
+    const f=voci.map(v=>fm[v]||"giorni");
+    S.diet.integratoriFreq=f.includes("giorni")?"giorni":(f.includes("quasi")?"quasi":(f.length?"saltuario":""));}
   /* ── R1 · gli sport preferiti, travasati in DUE posti ──────────
      `S.train.ama` è la stringa che trainForAI() legge davvero (vedi
      src/15_6…js): senza questa, il trainer proponeva attività a

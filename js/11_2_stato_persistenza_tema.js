@@ -6,7 +6,7 @@ const KEY="diarioDieta_v2"; // NON cambiare mai: e' dove vivono i dati dell'uten
    apposta per verificare il deploy non verificava niente — e mentre si
    cercava un piano che «non arriva mai», non si poteva nemmeno sapere
    QUALE versione stesse girando sul telefono. Riallineata (25/08). */
-const APP_VER="13.94.0";        // aggiorna a ogni release: visibile in Io per verificare il deploy
+const APP_VER="13.96.0";        // aggiorna a ogni release: visibile in Io per verificare il deploy
 /*   SBLOCCO DI TEST — DA METTERE A false PRIMA DEL RILASCIO  
    Con true, ciclo/allattamento/gravidanza restano CLICCABILI anche sui
    profili maschili, per poterli provare senza cambiare genere. Con false
@@ -243,6 +243,17 @@ function hasAnyData(){
   return false;}
 if(!S.onboard.done&&!S.customPlan&&!hasAnyData()){
   S.customPlan=emptyPlan();PLAN=S.customPlan;S.week=freshWeek();
+  /* ── LA RICARICA NON DEVE BUTTARE FUORI DAL PERCORSO (v13.96) ────
+     Il ramo qui sotto esiste per chi usava l'app PRIMA che il
+     percorso guidato nascesse: quelli non devono farlo. Ma nessuno
+     marcava mai `started`, e questo primo ramo scrive S.customPlan —
+     quindi al PRIMO riavvio la condizione «!S.customPlan» era falsa,
+     si cadeva nel ramo dei veterani, e `done` diventava true: chi
+     ricaricava la pagina sul saluto si ritrovava dentro l'app, su Io,
+     senza piano e senza spiegazioni. Riprodotto passo-passo il 26/08:
+     saluto → ricarica → pg-io. Un avvio VERGINE è per definizione
+     qualcuno che il percorso deve farlo: lo si scrive subito. */
+  S.onboard.started=true;
 }else if(!S.onboard.done&&!S.onboard.started&&!onb2Iniziato()){
   /* Utente che usava già l'app prima del percorso guidato: non glielo
      imponiamo. Vale SOLO se il percorso non è mai stato aperto: chi lo ha
@@ -255,6 +266,20 @@ if(!S.onboard.done&&!S.customPlan&&!hasAnyData()){
      spiegazioni, con metà delle risposte date a vuoto. */
   S.onboard.done=true;
 }
+/* ── LA RIPARAZIONE PER CHI C'È GIÀ CASCATO ──────────────────────
+   Chi ha ricaricato con il difetto sopra si porta un `done:true`
+   scritto per sbaglio: profilo vuoto, nessun dato, percorso mai
+   aperto — e un'app che non sa niente di lui. Si riconosce proprio
+   da questo (done senza data di nascita, senza dati e senza una sola
+   risposta) e si rimette nel percorso, da dove era rimasto. Un
+   veterano vero non passa di qui: ha i dati, o almeno la dob. */
+/* SOLO il profilo davvero vergine: il difetto colpiva chi ricaricava
+   PRIMA di rispondere alla prima domanda, quindi chi non ha né nome
+   né numeri. Un profilo con un nome o un peso è di qualcuno che l'app
+   la usa (o di un collaudo che la semina): non si tocca. */
+if(S.onboard.done&&!S.onboard.started&&!onb2Iniziato()&&!hasAnyData()
+   &&!(S.profile&&(S.profile.dob||S.profile.name||S.profile.w>0||S.profile.h>0))){
+  S.onboard.done=false;S.onboard.started=true;}
 enrichFiber(PLAN);
 if(!S.week||!S.week.days||S.week.days.length!==7)S.week=freshWeek();
 S.week.days.forEach((d,di)=>{(d.meals||[]).forEach(m=>{if(m.skip===undefined)m.skip=false;if(m.movedAs===undefined)m.movedAs="";if(m.custom===undefined)m.custom=null;});

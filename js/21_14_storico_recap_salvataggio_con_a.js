@@ -464,10 +464,6 @@ const CYC_PRESETS=[
   ["pers",   0,  0, "Altro — scelgo io le settimane"]
 ];
 /* Quale preset corrisponde alla configurazione attuale (o "pers.") */
-function cycPresetNow(){
-  if(!cycOn())return "cost";
-  const p=CYC_PRESETS.find(x=>x[1]===cycDefDays()&&x[2]===cycMaintDays());
-  return p?p[0]:"pers";}
 window.cycPresetSet=(v)=>{
   /* «Altro» non applica uno schema: accende i campi delle settimane,
      che prima non comparivano mai — la voce era una scelta che non
@@ -1224,28 +1220,8 @@ const OCC_LIST=["cena fuori il sabato","pranzo in famiglia la domenica","aperiti
    settimanalmente» e «vitamina D tutti i giorni» sono due cose diverse
    per chi costruisce il piano. La frequenza si salva accanto al nome. */
 const FREQ=["giornalmente","settimanalmente","mensilmente","al bisogno"];
-function freqChecksHTML(pre,key,list,cur,label,hint){
-  const c=String(cur||"").toLowerCase();
-  const freqDi=(x)=>{const m=c.match(new RegExp(x.toLowerCase()+"\\s*\\(([^)]+)\\)"));return m?m[1].trim():"giornalmente";};
-  let h=`<label>${tr(label)}</label><div class="ckgrid">`+list.map((x,i)=>{
-    const on=c.indexOf(x.toLowerCase())>-1, f=freqDi(x);
-    return `<div class="freqrow">
-      <label class="ck" style="flex:1"><input type="checkbox" id="${pre}${key}${i}" ${on?"checked":""} onchange="freqSync('${pre}${key}${i}')"> ${(y=>y[0].toUpperCase()+y.slice(1))(tr(x))}</label>
-      <select id="${pre}${key}${i}f" class="freqsel" ${on?"":"disabled"}>${FREQ.map(o=>`<option value="${o}" ${f===o?"selected":""}>${o[0].toUpperCase()+o.slice(1)}</option>`).join("")}</select>
-    </div>`;}).join("")+`</div>`;
-  const extra=parseSlots(cur).filter(x=>!list.some(k=>x.toLowerCase().indexOf(k.toLowerCase())>-1)).join(", ");
-  h+=`<input type="text" id="${pre}${key}txt" value="${esc(extra)}" placeholder="${tr("altro, scrivilo tu")}">`;
-  if(hint)h+=`<div class="hint">${hint}</div>`;
-  return h;}
 window.freqSync=(id)=>{const c=document.getElementById(id),f=document.getElementById(id+"f");
   if(c&&f)f.disabled=!c.checked;};
-function readFreqChecks(pre,key,list){const out=[];
-  list.forEach((x,i)=>{const e=document.getElementById(pre+key+i);
-    if(e&&e.checked){const f=document.getElementById(pre+key+i+"f");
-      out.push(x+(f&&f.value?" ("+f.value+")":""));}});
-  const t=document.getElementById(pre+key+"txt");
-  if(t&&t.value.trim())t.value.split(",").map(x=>x.trim()).filter(Boolean).forEach(x=>out.push(x));
-  return out.join(", ");}
 /* L'etichetta passa da tr(), il valore no: readTagChecks() legge sempre
    la lista italiana, quindi in stato finisce «niente carne di maiale»
    anche con l'app in inglese. Il confronto con c.indexOf resta sul
@@ -1618,8 +1594,6 @@ function genBoxVia(){
    Usato sia da «Genera nuovo piano» sia dal percorso guidato: il PRIMO
    piano della vita di un utente ha la stessa qualità delle rigenerazioni
    (retry silenzioso sul giorno, normalizzazione unica, stesso contratto). */
-function dayJSONContract(dayName){
-  return ' Rispondi SOLO con un oggetto JSON, senza alcun testo intorno: {"day":"'+dayName+'","ctx":"contesto breve del giorno","meals":[{"n":"Colazione","t":"08:00","type":"norm","d":"descrizione con grammature","k":numero,"p":numero,"c":numero,"f":numero,"fib":numero,"z":numero}]} dove type vale "norm", "mensa" oppure "free".';}
 async function askDayAI(q){
   let d=null,lastE=null;
   for(let att=0;att<2&&!d;att++){
@@ -1717,7 +1691,23 @@ const VIETATI_ESENTI=[
   /(\S+\s+){0,2}(gluten ?free|delattosat\w*|deglutinat\w*|senza glutine)/g,
   /privo di (glutine|lattosio)/g,
   /latte (di |d')(mandorl\w*|soia|riso|avena|cocco|nocciol\w*)/g,
-  /bevanda (vegetale|di soia|di mandorla|di riso|di avena)/g];
+  /bevanda (vegetale|di soia|di mandorla|di riso|di avena)/g,
+  /* ── LE VARIANTI VEGETALI NON SONO IL DIVIETO (v13.96) ──────────
+     Il difetto che consegnava a TUTTI il piano di base. A un
+     intollerante al lattosio il modello scrive — correttamente —
+     «yogurt di soia», «gelato di soia», «burro di arachidi»: il
+     controllo trovava la parola «yogurt», «gelato», «burro» e
+     bocciava per sicurezza. Si rifaceva il giorno, il modello
+     riproponeva un'altra variante vegetale (giusta anche quella),
+     si ribocciava, e si ripiegava sul piano di base. Ogni volta.
+     Il founder: «viene riutilizzato un piano fatto per un'altra
+     persona» — era esattamente questo.
+     La finestra di due parole salta i connettivi («panna e speck
+     di soia» NON è esente: la congiunzione ferma la finestra). */
+  /(yogurt|gelato|formagg\w*|panna|besciamella|burro|latte|ricotta|mozzarella|mascarpone|stracchino|robiola|scamorza|provola|caciotta|feta|brie|cheddar|kefir|maionese|frittata)(\s+(?!e\b|con\b|o\b|in\b|al\b|alla\b)\S+){0,2}\s+(vegetal\w*|vegan\w*|di soia|di cocco|di mandorl\w*|di riso|d'avena|di avena|di anacardi|d'acqua|di ceci)/g,
+  /burro (di |d')(arachid\w*|mandorl\w*|anacard\w*|nocciol\w*|sesamo|semi)/g,
+  /(pane|pasta|pizza|biscott\w*|cracker\w*|grissin\w*|piadina)(\s+(?!e\b|con\b|o\b)\S+){0,2}\s+(di riso|di mais|di grano saraceno|di legumi|di lenticchie|di ceci|di quinoa)/g,
+  /farinata/g];
 
 /* minuscole, niente accenti: «pomodorì», «Pomodori» e «POMODORO» sono
    la stessa parola quando si cerca un divieto. */

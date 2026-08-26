@@ -744,8 +744,30 @@ window.setWater=(d,i)=>{
    ═══════════════════════════════════════════════════════════════ */
 let scanner=null;
 let SCANQ=null; // {di, pdi, mi, items:[{name,k100,p100,c100,f100,fib100,g}]}
-window.scanStart=(di,pdi,mi,ei)=>{
-  if(window._noScan||typeof Html5Qrcode==="undefined")return dlgAlert(tr("Scanner non disponibile: serve internet al primo avvio per caricare la libreria."));
+/* ── LA LIBRERIA SI CARICA QUI, NON ALL'AVVIO (v13.96) ───────────
+   html5-qrcode pesa 366 KB: era il file più pesante dell'app dopo il
+   codice, scaricato e messo in cache ALL'INSTALLAZIONE, per tutti —
+   anche per chi non inquadrerà mai un codice a barre. Ora vive dietro
+   questa funzione: il primo tocco su «scansiona» la scarica (e da lì
+   il service worker la tiene, quindi offline continua a funzionare
+   per chi l'ha usata almeno una volta). Chi non scansiona non paga
+   niente. `_noScan` resta il rubinetto dei collaudi: in jsdom la
+   fotocamera non esiste. */
+let SCAN_LIB=null;
+function scanLib(){
+  if(window._noScan)return Promise.reject(new Error("noscan"));
+  if(typeof Html5Qrcode!=="undefined")return Promise.resolve();
+  if(SCAN_LIB)return SCAN_LIB;
+  SCAN_LIB=new Promise((ok,no)=>{
+    const s=document.createElement("script");
+    s.src="vendor/html5-qrcode.min.js";
+    s.onload=()=>ok();
+    s.onerror=()=>{SCAN_LIB=null;no(new Error("rete"));};
+    document.head.appendChild(s);});
+  return SCAN_LIB;}
+window.scanStart=async(di,pdi,mi,ei)=>{
+  try{await scanLib();}
+  catch(e){return dlgAlert(tr("Scanner non disponibile: serve internet la prima volta, per caricare il lettore."));}
   SCANQ={di,pdi:(pdi!=null?pdi:null),mi:(mi!=null?mi:null),ei:(ei!=null?ei:null),items:[]};
   renderScanQ();scanOne();};
 async function stopCam(){if(scanner){try{await scanner.stop();}catch(_){}scanner=null;}

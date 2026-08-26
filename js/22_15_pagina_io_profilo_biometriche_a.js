@@ -109,6 +109,7 @@ async function wizGenDays(d,t,onStep,onFase){
   const DAYS=["Lunedì","Martedì","Mercoledì","Giovedì","Venerdì","Sabato","Domenica"];
   const persona=JSON.stringify({eta:wizAge(),genere:d.gen,altezza:d.h,peso:d.w,bmi:t.bmi,
     massa_grassa_pct:d.fat,stile_di_vita:d.vita,sport:d.sport,intolleranze:d.intol,
+    allergie_gravi:d.allergie||"",
     cibi_vietati:d.no,cibi_amati:d.si,preferenza_semplice_pronto:d.pronto,
     pasti_al_giorno:d.nPasti,colazione:d.colaz,obiettivo:d.goal});
   const liberi=+d.liberi||0;
@@ -139,6 +140,7 @@ async function wizGenDays(d,t,onStep,onFase){
     :(d.integratoriFreq==="quasi")?" Gli integratori ci sono quasi tutti i giorni: contali nei target con prudenza.":"";
   const comune=' Persona: '+persona+
     '. Target di OGNI giorno: circa '+t.kcal+' kcal (tolleranza ±5%) e almeno '+t.prot+' g di proteine, distribuiti sui '+(+d.nPasti||5)+' pasti.'+
+    (d.allergie?' ATTENZIONE, ALLERGIE VERE: '+d.allergie+'. Per queste non esistono eccezioni né «tracce»: nessun derivato, nessun dubbio.':'')+
     ' Rispetta intolleranze e cibi vietati; usa i cibi amati; piatti '+(d.pronto==="pronto"?"semplicissimi e in gran parte pronti":"semplici")+
     ' con grammature sempre indicate e valori nutrizionali REALI; cucina italiana/mediterranea con componenti separate nel piatto;'+
     ' NON inserire integratori nel piano.'+fuoriRiga+integRiga+integFreq+
@@ -998,16 +1000,6 @@ function qSweep(di){
   (S.week.days[di].extras||[]).forEach((e,ei)=>{
     if(e.st==="skip")return;
     if(e.d&&qOf(e,e.d)==null)qRefreshExtra(di,ei);});}
-function qStreak(){
-  let n=0;const oggi=new Date();
-  for(let back=1;back<=60;back++){
-    const d=new Date(oggi);d.setDate(d.getDate()-back);
-    const di=wd(d);
-    if(iso(d)<S.week.started)break;      /* fuori dalla settimana in memoria */
-    const q=dayQuality(di);
-    if(q==null||q<61)break;
-    n++;}
-  return n;}
 function wizDayTot(di){let k=0,p=0;WIZ.plan[di].meals.forEach(m=>{k+=m.o[0].k;p+=m.o[0].p;});return "~"+k+" kcal · ~"+p+"g prot";}
 function wizDayTarget(di){
   /* Raggiungimento del giorno rispetto al target: si capisce a colpo

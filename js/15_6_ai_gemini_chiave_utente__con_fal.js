@@ -789,7 +789,6 @@ const CUCINE=[
 function cucinaRow(k){const c=String(k||"italiana");
   return CUCINE.find(x=>x[0]===c)||CUCINE[0];}
 function cucinaRule(k){return "Stile obbligatorio: "+cucinaRow(k)[2];}
-function cucinaLabel(k){return tr(cucinaRow(k)[1]);}
 function dietStr(){const D=S.diet;
   const L=[];
   let tipoTxt=(D.tipo||"mediterranea");

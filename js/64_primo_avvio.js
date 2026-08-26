@@ -94,12 +94,20 @@ window.salutoChiudi=()=>{
    ricevi), poi «raddrizza la giornata storta» (cosa fa quando serve).
    E il titolo della seconda è il suo: la giornata non si guarda, si
    RADDRIZZA. */
+/* ── COMPATTO, PERCHÉ «COMINCIA» SI DEVE VEDERE (founder, 26/08) ──
+   «Il logo è posizionato male, va messo più in alto riducendo la
+   spaziatura col banner e con la scritta… è fondamentale che l'utente
+   veda il pulsante senza dover scrollare.» Il marchio scende a 96px,
+   gli spazi si stringono, e i quattro punti stanno in UN riquadro —
+   la stessa carta del resto dell'app — così su uno schermo normale il
+   bottone sta sopra la piega. */
 window.salutoHTML=()=>`<div class="primo saluto">
   <div class="saluto-marchio">
     <img src="assets/marchio-esteso.svg" alt="Nuvia" onerror="this.style.display='none'">
   </div>
   <h1 class="primo-t">${esc(tr("Il diario che si ripara mentre lo vivi."))}</h1>
 
+  <div class="card saluto-card">
   <div class="saluto-p">
     <b>${esc(tr("Il piano è tuo, non di un manuale"))}</b>
     <span>${esc(tr("Nasce dai tuoi orari, dai cibi che eviti e da quelli che ti piacciono. E si riscrive quando cambia qualcosa, senza ricominciare da capo."))}</span>
@@ -115,6 +123,7 @@ window.salutoHTML=()=>`<div class="primo saluto">
   <div class="saluto-p">
     <b>${esc(tr("I tuoi dati restano tuoi"))}</b>
     <span>${esc(tr("Quello che mangi e quanto pesi stanno sul tuo telefono e, se lo colleghi, sul tuo Drive. Decidi tu cosa condividere, e puoi cancellare tutto in qualsiasi momento."))}</span>
+  </div>
   </div>
 
   <button class="btn saluto-via" type="button" onclick="salutoChiudi()">${esc(tr("Comincia"))}</button>
