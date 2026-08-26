@@ -90,7 +90,6 @@ body{font-family:'Inter',system-ui,-apple-system,'Segoe UI',Roboto,sans-serif;ba
 /* v5.1: nessun blob animato/sfocato in sfondo (batteria) */
 body::before,body::after{display:none!important}
 
-
 h1,h2,.dayname,.mtx .v,.stat3 .v{font-variant-numeric:tabular-nums}
 h1{font-size:var(--t-xl);letter-spacing:-.022em;line-height:1.08}
 .card{font-size:var(--t-md)}
@@ -127,7 +126,6 @@ header h1{font-size:18px;font-weight:700;letter-spacing:.2px}
    il logotipo vero: prima schermata e pagina Nuvia. Nell'header resta
    il segno, come in ogni marchio che si rispetti.
    La regola resta: si scrive sempre «Nuvia», mai NUVIA. */
-.nvnome{display:none}
 /* ── Pagina Nuvia (brand) ── */
 .nvhero{text-align:center;padding:24px 16px 20px;background:var(--card);border-radius:var(--r-lg)}
 .nvhero h1{margin:12px 0 4px;font-size:30px;color:var(--bosco);letter-spacing:-.02em}
@@ -159,10 +157,6 @@ header h1{font-size:18px;font-weight:700;letter-spacing:.2px}
 
 /* ══ NAV: dock flottante in vetro ══ */
 /* ══ AVANZAMENTO DEL PERCORSO ══ */
-.obprog{margin-bottom:16px}
-.obpbar{height:5px;border-radius:99px;background:var(--linea);overflow:hidden}
-.obpbar i{display:block;height:100%;border-radius:99px;background:var(--bosco);transition:width .45s var(--ease)}
-.obpl{display:flex;justify-content:space-between;margin-top:8px;font-size:11.5px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--grigio)}
 /* ══ AVANZAMENTO DELLA GENERAZIONE ══
    Un riquadro fisso in fondo, per quando la pagina Piano non c'è —
    tipicamente alla fine dell'onboarding, che è proprio la prima volta
@@ -180,14 +174,6 @@ header h1{font-size:18px;font-weight:700;letter-spacing:.2px}
 .ah{display:flex;justify-content:space-between;align-items:baseline;font-size:var(--t-sm);color:var(--grigio)}
 .ah b{color:var(--ink);font-variant-numeric:tabular-nums}
 .agl{display:flex;flex-wrap:wrap;gap:8px;margin:8px 0 8px}
-.ag::after{content:"";position:absolute;left:0;right:0;top:50%;height:44px;transform:translateY(-50%)}
-/* I bicchieri sono volutamente sottili, ma il dito non è sottile: la
-   pastiglia visibile resta 26px e l'area toccabile la circonda fino a 44. */
-.ag{flex:1 1 0;min-width:16px;height:26px;border-radius:8px;border:1.5px solid var(--linea);position:relative;
-  background:var(--card);cursor:pointer;padding:0;transition:background .2s,border-color .2s,transform .15s var(--ease)}
-.ag.on{background:#00AFA3;border-color:#0C7C74;
-  box-shadow:inset 0 -6px 0 rgba(0,0,0,.08)}
-.ag:active{transform:scale(.9)}
 .af{font-size:var(--t-xs);color:var(--grigio)}
 /* ── I BICCHIERI ──────────────────────────────────────────────
    Il bottone non ha sfondo: il bicchiere È il bottone. Il tocco
@@ -196,6 +182,23 @@ header h1{font-size:18px;font-weight:700;letter-spacing:.2px}
   color:var(--linea);transition:color .25s var(--ease),transform .15s var(--ease)}
 .ag2:active{transform:scale(.88)}
 .ag2.on{color:var(--teal)}
+/* ── L'AREA TOCCABILE, RITROVATA (v13.95) ─────────────────────
+   Il bottone è 30×30 — un bicchiere di 22×30 con 4px di lato — cioè
+   sotto la soglia dei 44px in tutte e due le direzioni. Un'area
+   invisibile centrata lo porta a 44×44.
+   PERCHÉ MANCAVA: la promessa c'era, ma la portava la classe `.ag`,
+   quella dei bicchieri VECCHI, a pastiglia. Quando sono diventati
+   bottoni con dentro il disegno del bicchiere la classe è cambiata in
+   `.ag2` e l'area non è venuta dietro. Nel foglio `.ag` era rimasta,
+   senza che nessuno la indossasse più, e il collaudo
+   dell'accessibilità misurava LEI: verde su una regola morta, mentre
+   il bottone vero era piccolo. L'ha trovato la pulizia del codice
+   morto, non il collaudo.
+   I 7px che l'area sborda per lato stanno dentro gli 8px di distacco
+   fra un bicchiere e l'altro: due aree non si sovrappongono. */
+.ag2{position:relative}
+.ag2::after{content:"";position:absolute;left:50%;top:50%;
+  width:44px;height:44px;transform:translate(-50%,-50%)}
 @media (prefers-reduced-motion:no-preference){
   /* il liquido sale, non appare: 320 ms, come versare */
   .ag2 rect,.ag2 ellipse{transition:y .32s cubic-bezier(.22,1,.36,1),height .32s cubic-bezier(.22,1,.36,1)}}
@@ -523,7 +526,6 @@ header h1{font-size:18px;font-weight:700;letter-spacing:.2px}
 /* Il foglio che sale: la maniglia si trascina davvero, e mentre lo si
    trascina NON c'è transizione (seguirebbe il dito in ritardo). */
 .sheet-drag{transition:none!important}
-.sheet-chiudi{animation:sheetGiu .2s var(--ease) both}
 @keyframes sheetGiu{to{transform:translateY(100%)}}
 
 /* ── figure esercizi animate ─────────────────────────────────────
@@ -682,7 +684,6 @@ body.onb .fab{display:none}
 .chk.c{background:var(--salvia);border-color:var(--salvia);box-shadow:0 0 0 5px color-mix(in srgb,var(--salvia) 18%,transparent)}
 .meal.free .chk.c{background:var(--zaff);border-color:var(--zafft);box-shadow:0 0 0 5px color-mix(in srgb,var(--zaff) 18%,transparent)}
 .chk.s{background:var(--rosso)!important;border-color:var(--rosso)!important}
-
 
 .mbody{flex:1;min-width:0}
 .mtop{display:flex;justify-content:space-between;align-items:baseline;gap:8px;font-size:13px;margin-bottom:4px}
@@ -900,10 +901,6 @@ label{font-size:11.5px;font-weight:700;letter-spacing:.09em;text-transform:upper
   border:0;border-radius:50%;width:44px;height:44px;color:#EAF4F2;cursor:pointer;
   display:flex;align-items:center;justify-content:center}
 /* ogni scena ha la sua luce: il colore racconta quanto le parole */
-.film-apre{background:radial-gradient(70vw 70vw at 80% 10%,rgba(0,175,163,.22),transparent 60%)}
-.film-tiene{background:radial-gradient(70vw 70vw at 15% 80%,rgba(0,175,163,.18),transparent 60%)}
-.film-sera{background:radial-gradient(75vw 75vw at 85% 85%,rgba(228,99,47,.20),transparent 62%)}
-.film-riprende{background:radial-gradient(70vw 70vw at 20% 20%,rgba(0,224,198,.20),transparent 60%)}
 .film-chiude,.film-fine{background:radial-gradient(80vw 80vw at 50% 50%,rgba(0,175,163,.16),transparent 65%)}
 .film-azioni{display:flex;gap:12px;margin-top:32px;flex-wrap:wrap}
 .film-invito{cursor:pointer}
@@ -944,7 +941,6 @@ label{font-size:11.5px;font-weight:700;letter-spacing:.09em;text-transform:upper
    dipende dall'ordine (la deroga vince per specificità), il test sì. */
 /* ══ GAUGE / STATISTICHE ══ */
 .gaugecard{background:var(--card);border:1px solid var(--linea);border-radius:20px;padding:16px;margin-bottom:12px;box-shadow:var(--shadow);text-align:center;transition:transform .3s var(--ease),box-shadow .3s var(--ease)}
-
 
 .stat3{display:flex;gap:8px;margin-top:12px}
 .stat3>div{flex:1;background:var(--menta);border-radius:12px;padding:12px 4px;text-align:center;transition:transform .25s var(--ease),box-shadow .25s}
@@ -1000,25 +996,9 @@ html[data-theme="dark"] .water span.f{background:#0E2C29}
 /* Riga senza simbolo (celle unite): torna testo normale allineato a sinistra,
    altrimenti eredita larghezza 64px, centratura e corpo 17px della colonna icone. */
 .gtable td[colspan]{width:auto;text-align:left;font-size:inherit}
-.obwrap{max-width:620px;margin:0 auto}
-.obtop{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px}
-.obstep{font-size:13px;font-weight:700;color:var(--grigio);letter-spacing:.03em}
-.obdots{display:flex;gap:8px;margin-bottom:12px}
-.obp{font-size:14.5px;line-height:1.55;color:var(--ink);margin:0 0 12px}
-.obwrap label{white-space:normal}
 .obwrap .card{padding:16px 16px}
-.obwrap input,.obwrap select,.obwrap textarea{max-width:100%}
-.obbox{background:var(--menta);border-left:4px solid var(--salvia);border-radius:12px;padding:12px 16px;font-size:14.5px;line-height:1.55;margin:12px 0}
-.obwarn{background:var(--zaffbg);border-left:4px solid var(--zaff);border-radius:12px;padding:12px 16px;font-size:14.5px;line-height:1.55;margin:12px 0}
-.obwhere{font-size:13px;color:var(--grigio);margin-top:12px;padding-top:8px;border-top:1px dashed var(--linea)}
-.obol{margin:8px 0 0 16px;padding:0;font-size:13px;line-height:1.7}
-.obstat{display:inline-block;margin:0 16px 12px 0}
 .obstat .n{font-size:30px;font-weight:800;color:var(--bosco);line-height:1}
 .obstat .l{font-size:11.5px;color:var(--grigio);margin-top:4px}
-.obchoice{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin:16px 0}
-.obcard{border:1px solid var(--linea);border-radius:12px;padding:12px}
-.obcard h3{margin:0 0 8px;font-size:17px;color:var(--bosco)}
-.obcard p{font-size:14.5px;line-height:1.5;color:var(--grigio);margin:0 0 12px}
 @media(max-width:560px){.obchoice{grid-template-columns:1fr}}
 .wzbar{display:flex;gap:8px;margin:8px 0 4px;flex-wrap:wrap}
 .wzbar .btn{flex:1 1 104px;min-width:0;margin-top:0;text-align:center}
@@ -1144,20 +1124,10 @@ html[data-theme="dark"] #zoomOv img{background:#11201E}
    unico e la seconda, che è quella operativa, sparirebbe nella prima. */
 .esscopo{font-size:13px;color:var(--ink);line-height:1.45;text-align:left;margin-bottom:4px}
 .escome{font-size:13px;color:var(--grigio);line-height:1.45;text-align:left}
-.rbolle{display:flex;flex-wrap:wrap;gap:8px;margin:0 0 12px}
-.rbolla{display:inline-flex;align-items:center;border:1.5px solid var(--salvia);color:var(--teal2);
-  background:var(--menta);border-radius:99px;padding:8px 12px;font-size:13px;font-weight:600;
-  transition:all .35s var(--ease)}
 /* Le bolle del secondo giro sono DOMANDE da toccare, non etichette di
    stato: si vede che sono premibili, e si distinguono dalle prime. */
-.rbolla.g2{border-style:dashed;border-color:var(--zaff);color:var(--zafft);
-  background:var(--zaffbg);cursor:pointer;font-weight:600;text-align:left}
-.rbolla.g2:active{transform:scale(.97)}
 .rbolla.fatta{border-color:var(--linea);color:var(--grigio);background:var(--card);
   text-decoration:line-through;opacity:.65;transform:scale(.96)}
-.tundo{margin-left:12px;background:transparent;border:1px solid rgba(255,255,255,.45);color:inherit;
-  border-radius:99px;padding:4px 12px;font-size:13px;font-weight:700;cursor:pointer;min-height:32px}
-.tundo:active{background:rgba(255,255,255,.15)}
 /* ── IL TOAST STA IN ALTO (founder, 24/08) ───────────────────────
    In basso si accavallava con la barra delle schede, con la spia
    dell'AI e col riquadro della generazione: quattro cose nella stessa
@@ -1175,10 +1145,6 @@ html[data-theme="dark"] #zoomOv img{background:#11201E}
 #toast.on{opacity:1;transform:translateY(0);pointer-events:auto}
 /* La X non compete col messaggio: sta in fondo alla riga, grigia, e
    ha comunque i suoi 44px di area toccabile. */
-.tclose{margin-left:auto;flex:0 0 auto;border:0;background:none;color:var(--grigio);
-  font-size:20px;line-height:1;cursor:pointer;padding:0 4px;min-width:44px;min-height:44px;
-  display:flex;align-items:center;justify-content:center;transition:color .2s}
-.tclose:hover{color:var(--ink)}
 #confetti{position:fixed;inset:0;pointer-events:none;z-index:97;overflow:hidden}
 #confetti span{position:absolute;width:9px;height:9px;border-radius:4px;top:-12px}
 /* ══ MODALI ══ */
@@ -1215,7 +1181,6 @@ table.rules .rout{font-family:inherit;font-weight:700;color:var(--salvia);font-s
 .optbtn:hover{border-color:var(--salvia);transform:translateX(3px)}
 .optbtn.sel{border-color:var(--salvia);background:var(--menta);box-shadow:0 4px 14px -6px rgba(22,163,74,.4)}
 .optbtn b{color:var(--bosco)}
-
 
 button:focus-visible,select:focus-visible,input:focus-visible,.chk:focus-visible{outline:2.5px solid var(--mensa);outline-offset:2px}
 @media(prefers-reduced-motion:reduce){*,*::before,*::after{transition:none!important}#confetti{display:none}}
@@ -1339,6 +1304,36 @@ body.onb{padding-bottom:0}
 .o2seg i{display:block;height:100%;background:var(--azione);border-radius:99px;
   transition:width .45s var(--ease)}
 .o2wrap{padding:8px 0 0;animation:o2in .32s var(--ease) both}
+/* Il percorso dentro la carta, come le pagine dell'app (26/08). Il
+   titolo dentro la carta scala un gradino: dentro un riquadro un
+   clamp da 29px urlava. */
+.o2card{padding:16px}
+.o2card .o2q{font-size:clamp(20px,5vw,24px)}
+.o2card .o2sub{margin-bottom:16px}
+/* Intolleranze e allergie: la testata delle due colonne e le righe.
+   Le caselle sono 28px dentro una riga da 44: l'area del tocco la dà
+   la riga, la casella è il segno. */
+.o2itesta{display:grid;grid-template-columns:1fr 84px 84px;gap:4px;
+  font-size:12px;color:var(--grigio);margin-bottom:4px}
+.o2itesta b{text-align:center;font-weight:600}
+.o2intoll{gap:4px}
+.o2irow{display:grid;grid-template-columns:1fr 84px 84px;gap:4px;align-items:center;
+  min-height:44px;padding:4px 0;border-bottom:1px solid var(--linea)}
+.o2irow:last-child{border-bottom:0}
+.o2inome{font-size:14px;color:var(--ink)}
+.o2ibox{width:28px;height:28px;margin:0 auto;border-radius:8px;border:1.5px solid var(--linea);
+  background:var(--card);color:#fff;font-size:14px;line-height:1;cursor:pointer;position:relative}
+.o2ibox::after{content:"";position:absolute;left:50%;top:50%;width:44px;height:44px;transform:translate(-50%,-50%)}
+.o2ibox.on{background:var(--azione);border-color:var(--azione)}
+.o2ibox-a.on{background:var(--zaff);border-color:var(--zaff)}
+/* Integratori: la voce e la sua tendina sulla stessa riga */
+.o2irowi{display:flex;gap:8px;align-items:stretch}
+.o2irowi .o2op{flex:1 1 auto}
+.o2ifreq{flex:0 0 auto;max-width:44vw;border:1.5px solid var(--linea);border-radius:12px;
+  background:var(--card);color:var(--ink);font-size:13px;padding:0 8px}
+/* Le giornate: due gruppi, un titolo per gruppo */
+.o2gr{margin-bottom:16px}
+.o2grt{display:block;font-size:14px;color:var(--bosco);margin-bottom:8px}
 @keyframes o2in{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
 .o2q{font-family:'Fraunces',Georgia,serif;font-size:clamp(23px,6vw,29px);line-height:1.14;
   letter-spacing:-.02em;margin:4px 0 8px}
@@ -1432,8 +1427,6 @@ body.onb{padding-bottom:0}
 .acc-gicona{flex:0 0 auto}
 /* «Più tardi» è una scelta legittima, non un ripiego: si vede, ma
    non compete con le altre due. */
-.acc-dopo{border-color:transparent;color:var(--grigio);font-weight:600}
-.acc-dopo:hover{border-color:var(--linea);background:transparent}
 /* L'esito della prova delle chiavi: tre stati, e si distinguono
    dalla PRIMA PAROLA della frase prima ancora che dal colore: chi
    non distingue i colori legge «AI:» e «Drive:» come tutti. */
@@ -1456,22 +1449,25 @@ body.onb{padding-bottom:0}
    v13.61 è il LOGOTIPO ufficiale, non più il simbolo con la parola
    ricomposta accanto in un serif qualsiasi. Un marchio si presenta
    con le sue lettere. */
-.saluto{padding:32px 0 40px}
+.saluto{padding:4px 0 32px}
 /* Il marchio del saluto (v13.88): l'asset è stato RIPULITO (le
    striature nelle lettere erano variazioni di luminosità, ora i
    pixel sono piatti sui due colori del marchio) e a schermo è più
    piccolo: con min(56vw,210px) «Comincia» finiva sotto la piega. */
-.saluto-marchio{display:flex;justify-content:center;margin-bottom:16px}
-.saluto-marchio img{width:min(38vw,150px);height:auto}
-.saluto .primo-t{font-size:24px;margin-bottom:32px}
-.saluto-p{margin:20px 0}
-.saluto-p b{display:block;font-size:16px;color:var(--bosco);margin-bottom:4px}
-.saluto-p span{display:block;font-size:15px;line-height:1.55;color:var(--ink)}
+/* Stretto apposta (founder, 26/08): il marchio era «posizionato male»
+   e «Comincia» finiva sotto la piega. Marchio più piccolo, spazi
+   dimezzati, e i quattro punti in una carta sola. */
+.saluto-marchio{display:flex;justify-content:center;margin-bottom:4px}
+.saluto-marchio img{width:min(26vw,96px);height:auto}
+.saluto .primo-t{font-size:21px;margin-bottom:12px}
+.saluto-card{padding:16px}
+.saluto-p{margin:0 0 12px}
+.saluto-p:last-child{margin-bottom:0}
+.saluto-p b{display:block;font-size:15px;color:var(--bosco);margin-bottom:4px}
+.saluto-p span{display:block;font-size:14px;line-height:1.5;color:var(--ink)}
 /* La riga sul tono sta su fondo menta e non in grigio piccolo: è la
    promessa che distingue Nuvia, non una nota a piè di pagina. */
-.saluto-tono{background:var(--menta);border-radius:16px;padding:16px;
-  font-size:14.5px;line-height:1.5;color:var(--bosco);margin:32px 0 0}
-.saluto-via{width:100%;margin-top:24px}
+.saluto-via{width:100%;margin-top:16px}
 .primo-tec summary{cursor:pointer;font-size:13.5px;color:var(--grigio)}
 .o2nav{display:flex;align-items:center;gap:8px;margin-top:16px;flex-wrap:nowrap}
 .o2nav .o2back{margin-right:auto}
@@ -1556,7 +1552,6 @@ body.onb{padding-bottom:0}
 /* La spiegazione dell'alfabeto: paragrafi leggibili, non un muro. */
 .card .hint p{margin:0 0 8px}
 .card .hint p:last-child{margin-bottom:0}
-.zenCard{border:2px solid var(--azione)}
 /* Modalità Zen: i numeri vanno via, i colori restano. */
 body.zen .kcalNum,body.zen .macroNum{opacity:0;pointer-events:none}
 /* Primo avvio: le azioni stanno in riga, non incolonnate. */

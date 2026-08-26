@@ -41,7 +41,8 @@ window._noChart=(typeof Chart==="undefined")?1:0;</script>
 <!-- Il lettore di codici a barre vive QUI DENTRO, non su una rete altrui:
      nessuna richiesta a terzi, nessun blocco in aereo o dietro un firewall,
      nessun giorno in cui una CDN cambia idea. Licenza in vendor/. -->
-<script src="vendor/html5-qrcode.min.js" defer onerror="window._noScan=1"></script>
+<!-- html5-qrcode NON si carica più qui: 366 KB per tutti, anche per chi
+     non scansiona mai. Lo carica scanStart() al primo uso (18_9). -->
 
 
 <link rel="manifest" href="manifest.webmanifest">
