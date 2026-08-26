@@ -527,36 +527,22 @@ header h1{font-size:18px;font-weight:700;letter-spacing:.2px}
 @keyframes sheetGiu{to{transform:translateY(100%)}}
 
 /* ── figure esercizi animate ─────────────────────────────────────
-   La figura respira il gesto, la freccia lo indica pulsando.
-   Solo transform/opacity; chi chiede reduced-motion vede le pose
-   ferme (questo blocco vive dentro no-preference). */
-.esfig-corpo,.esfig-gesto{transform-box:fill-box;transform-origin:center}
+   Tre movimenti soli, uno per tipo di dose: chi conta ripetizioni
+   respira su e giù, chi tiene una posizione pulsa appena, chi cammina
+   ondeggia. Solo transform; chi chiede quiete vede le figure ferme
+   (questo blocco vive dentro no-preference).
+   PERCHÉ SONO TRE E NON QUATTORDICI (v13.92): il disegno vecchio aveva
+   due gruppi separati — il corpo e la freccia corallo — e a ognuno si
+   poteva dare un gesto diverso. Un'illustrazione è un blocco solo: non
+   ha le spalle come pezzo staccato e non ha nessuna freccia da far
+   pulsare. Le altre undici classi non le chiamava più nessuno. */
+.esfig{transform-origin:center bottom}
 .mo-su{animation:esSu 1.6s ease-in-out infinite}
-.mo-giu{animation:esGiu 1.6s ease-in-out infinite}
-.mo-lato{animation:esLato 1.7s ease-in-out infinite}
-.mo-ruota{animation:esRuota 2s ease-in-out infinite}
 .mo-tieni{animation:esTieni 2.4s ease-in-out infinite}
 .mo-passo{animation:esPasso .9s ease-in-out infinite}
-.mo-passo2{animation:esPasso .55s ease-in-out infinite}
-.mo-pedala{animation:esPedala 1.1s linear infinite}
-.mo-a-su{animation:esFrecciaSu 1.6s ease-in-out infinite}
-.mo-a-giu{animation:esFrecciaGiu 1.6s ease-in-out infinite}
-.mo-a-lato{animation:esFrecciaLato 1.7s ease-in-out infinite}
-.mo-a-ruota{animation:esFrecciaRuota 2s ease-in-out infinite}
-.mo-a-tieni{animation:esFrecciaTieni 2.4s ease-in-out infinite}
-.mo-a-passo,.mo-a-passo2,.mo-a-pedala{animation:esFrecciaTieni 1.2s ease-in-out infinite}
 @keyframes esSu{0%,100%{transform:translateY(0)}50%{transform:translateY(-3px)}}
-@keyframes esGiu{0%,100%{transform:translateY(0)}50%{transform:translateY(3px)}}
-@keyframes esLato{0%,100%{transform:translateX(0)}50%{transform:translateX(3px)}}
-@keyframes esRuota{0%,100%{transform:rotate(-3deg)}50%{transform:rotate(3deg)}}
 @keyframes esTieni{0%,100%{transform:scale(1)}50%{transform:scale(1.025)}}
 @keyframes esPasso{0%,100%{transform:translateY(0) rotate(-1.5deg)}50%{transform:translateY(-2px) rotate(1.5deg)}}
-@keyframes esPedala{0%,100%{transform:translateY(0)}25%{transform:translateY(-1.5px)}75%{transform:translateY(1.5px)}}
-@keyframes esFrecciaSu{0%,100%{transform:translateY(2px);opacity:.55}50%{transform:translateY(-3px);opacity:1}}
-@keyframes esFrecciaGiu{0%,100%{transform:translateY(-2px);opacity:.55}50%{transform:translateY(3px);opacity:1}}
-@keyframes esFrecciaLato{0%,100%{transform:translateX(-2px);opacity:.55}50%{transform:translateX(4px);opacity:1}}
-@keyframes esFrecciaRuota{0%,100%{transform:rotate(-6deg);opacity:.6}50%{transform:rotate(6deg);opacity:1}}
-@keyframes esFrecciaTieni{0%,100%{opacity:.5}50%{opacity:1}}
 
   .fabpulse{animation:fabp 3.4s var(--ease) infinite}
   @keyframes fabp{
@@ -1146,11 +1132,18 @@ html[data-theme="dark"] #zoomOv img{background:#11201E}
 #obMic.on{background:var(--zaffbg);border-color:var(--zaff);color:var(--zafft)}
 .esgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:8px;margin:8px 0}
 .escard{border:1px solid var(--linea);border-radius:12px;padding:8px;background:var(--card);text-align:center}
-.esfig{color:var(--teal2);display:flex;justify-content:center;margin-bottom:4px}
+/* La figura è un'immagine, non più un disegno vettoriale scritto a mano:
+   il riquadro le dà un fondo tenue perché le illustrazioni hanno lo sfondo
+   trasparente e in tema scuro galleggerebbero sul nero. */
+.esfig{display:block;margin:0 auto 8px;width:100%;max-width:120px;height:auto;
+  aspect-ratio:1;object-fit:contain;background:var(--menta);border-radius:8px;padding:4px}
 .esnome{font-size:13px;font-weight:700;color:var(--ink)}
 .esdose{font-size:13px;color:var(--salvia);font-weight:700;margin:4px 0}
+/* Due righe, due ruoli: «a cosa serve» in colore pieno, «come si fa»
+   in grigio. Se avessero lo stesso peso si leggerebbero come un blocco
+   unico e la seconda, che è quella operativa, sparirebbe nella prima. */
+.esscopo{font-size:13px;color:var(--ink);line-height:1.45;text-align:left;margin-bottom:4px}
 .escome{font-size:13px;color:var(--grigio);line-height:1.45;text-align:left}
-.eserr{font-size:12.5px;color:var(--zaff);margin-top:4px;line-height:1.45}
 .rbolle{display:flex;flex-wrap:wrap;gap:8px;margin:0 0 12px}
 .rbolla{display:inline-flex;align-items:center;border:1.5px solid var(--salvia);color:var(--teal2);
   background:var(--menta);border-radius:99px;padding:8px 12px;font-size:13px;font-weight:600;
@@ -1252,7 +1245,11 @@ button:focus-visible,select:focus-visible,input:focus-visible,.chk:focus-visible
 .ck input{width:18px;height:18px;margin:0;accent-color:var(--salvia)}
 .ckmensa-w{margin:8px 0 12px}
 .ckmensa{display:flex;align-items:center;gap:12px;margin-bottom:8px}
-.ckmensa .ck{flex:1;justify-content:flex-start}
+/* Riscontro del founder (25/08): giorno, pranzo e cena non erano
+   allineati fra le righe — le due caselle hanno larghezza FISSA e
+   uguale, così formano due colonne vere, centrate verticalmente
+   sul nome del giorno. */
+.ckmensa .ck{flex:0 0 108px;justify-content:flex-start;align-items:center}
 .ckmensa select{width:118px;flex:none;padding:8px 12px;font-size:13px;border:1.5px solid var(--linea);border-radius:12px;background:var(--card);color:var(--ink);margin:0}
 .wkhead{display:flex;gap:8px;margin:4px 0 4px;font-size:11.5px;font-weight:700;letter-spacing:.03em;text-transform:uppercase;color:var(--grigio)}
 .wkhead span{min-width:0}
@@ -1317,6 +1314,14 @@ button:focus-visible,select:focus-visible,input:focus-visible,.chk:focus-visible
 .hungry{display:inline-flex;gap:4px;align-items:center;margin-top:8px}
 .hungry b{font-size:11.5px;color:var(--grigio);font-weight:700;margin-right:4px}
 .hungry span{width:19px;height:19px;border-radius:50%;border:1.5px solid var(--linea);cursor:pointer;background:var(--card);transition:.15s}
+/* ── STESSA TAGLIA (riscontro del founder, 25/08 sera: «i pallini di
+   fame ed energia hanno grandezze diverse»). Il 26px scritto più in
+   alto veniva sovrascritto da questo 19px per la sola fame, e i
+   fulmini restavano a 26: due file di pallini diversi nella stessa
+   card. La regola qui sotto, DOPO entrambe, chiude la partita: 26px
+   tutti e due, che è la taglia che si tocca col pollice. */
+.hungry span,.energy span{width:26px;height:26px}
+.energy span svg{width:15px;height:15px}
 .hungry span.on{background:var(--zaff);border-color:var(--zafft)}
 body.onb .tabs{display:none}
 body.onb{padding-bottom:0}
@@ -1441,6 +1446,9 @@ body.onb{padding-bottom:0}
 .primo-esito .att{color:var(--grigio)}
 .primo-ok{display:flex;gap:8px;align-items:center;color:var(--bosco);font-weight:600;margin-top:16px}
 .primo-tec{margin-top:24px;border:1px dashed var(--linea);border-radius:12px;padding:16px}
+/* percentuale e orologio della generazione (v13.88) */
+.o2genperc{font-size:13px;color:var(--grigio);margin:4px 0 0;text-align:right}
+.o2genperc b{color:var(--bosco)}
 /* ══ IL SALUTO: la pagina che dice a cosa serve Nuvia ══════════
    Niente card, niente riquadri: è una pagina che si legge in
    quindici secondi, non un modulo da compilare. Il marchio col nome
@@ -1449,8 +1457,12 @@ body.onb{padding-bottom:0}
    ricomposta accanto in un serif qualsiasi. Un marchio si presenta
    con le sue lettere. */
 .saluto{padding:32px 0 40px}
-.saluto-marchio{display:flex;justify-content:center;margin-bottom:24px}
-.saluto-marchio img{width:min(56vw,210px);height:auto}
+/* Il marchio del saluto (v13.88): l'asset è stato RIPULITO (le
+   striature nelle lettere erano variazioni di luminosità, ora i
+   pixel sono piatti sui due colori del marchio) e a schermo è più
+   piccolo: con min(56vw,210px) «Comincia» finiva sotto la piega. */
+.saluto-marchio{display:flex;justify-content:center;margin-bottom:16px}
+.saluto-marchio img{width:min(38vw,150px);height:auto}
 .saluto .primo-t{font-size:24px;margin-bottom:32px}
 .saluto-p{margin:20px 0}
 .saluto-p b{display:block;font-size:16px;color:var(--bosco);margin-bottom:4px}
@@ -1499,6 +1511,16 @@ body.onb{padding-bottom:0}
 .o2genl li.ora{color:var(--ink);font-weight:600}
 .o2genl li.ora:before{content:"›";font-weight:700}
 .o2genl li.attesa:before{content:"·"}
+/* La riga attiva respira (riscontro del founder, 25/08 sera: «i tre
+   puntini non si muovono neanche, sembra proprio fermo»). I puntini
+   scritti nel testo erano statici; questi tre sono disegnati e
+   pulsano — la prova a colpo d'occhio che si sta lavorando. Sotto
+   `prefers-reduced-motion` stanno fermi, come tutto il resto. */
+.o2genl li.ora:after{content:"";display:inline-block;width:4px;height:4px;border-radius:50%;
+  background:currentColor;margin-left:8px;vertical-align:middle;
+  animation:o2puls 1s infinite ease-in-out;box-shadow:8px 0 0 currentColor,16px 0 0 currentColor}
+@keyframes o2puls{0%,100%{opacity:.25}50%{opacity:1}}
+@media (prefers-reduced-motion:reduce){.o2genl li.ora:after{animation:none}}
 
 /* ── LA RUOTA (v13.47) ───────────────────────────────────────────
    Nessun raggio verso il centro, segni dritti e distanziati, due
