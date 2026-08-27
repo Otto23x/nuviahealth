@@ -459,7 +459,16 @@ header h1{font-size:18px;font-weight:700;letter-spacing:.2px}
 /* ══ OGGI: LA RISPOSTA ══════════════════════════════════════════
    Il blocco che apre la giornata. Nessun bordo, nessuna card: il testo
    sta sulla pagina e respira. È l'unica cosa che deve saltare all'occhio. */
-.today{padding:8px 4px 4px;margin-bottom:8px}
+/* -- ANCHE LA RISPOSTA STA IN UN RIQUADRO (founder, 27/08) --------
+   «"Non hai ancora un piano" e la generazione del piano nella
+   schermata principale dovrebbero essere dentro i riquadri bianchi
+   come tutte le altre cose.»
+   Era l'unico blocco della pagina appoggiato sullo sfondo: la frase
+   piu' importante dell'app sembrava scritta a margine invece che
+   dentro. Stessa carta, stesso raggio, stessa ombra del resto. */
+.today{background:var(--card);border-radius:var(--r-lg);
+  padding:20px 16px;margin-bottom:12px;
+  box-shadow:0 1px 2px rgba(12,31,23,.04),0 8px 24px -18px rgba(12,31,23,.10)}
 .tanswer{
   font-family:'Fraunces',Georgia,'Noto Serif',serif;
   font-size:clamp(23px,6.6vw,29px);font-weight:700;line-height:1.16;
@@ -1053,6 +1062,16 @@ details.why>summary{padding:8px 0;margin:-6px 0}
 details.why[open]>summary::after{content:" ▾"}
 details.why>div{margin-top:4px;padding-left:8px;border-left:2px solid var(--linea)}
 .aibox{background:var(--crema);border:0;border-radius:16px;padding:16px 16px;margin-top:12px;font-size:14.5px;line-height:1.55;white-space:pre-wrap}
+/* -- ANCHE LA GENERAZIONE STA IN UN RIQUADRO (founder, 27/08) -----
+   «La generazione del piano nella schermata principale dovrebbe
+   essere dentro i riquadri bianchi come tutte le altre cose.»
+   Il riquadro dell'avanzamento nasce `.aibox`, che e' color crema e
+   senza ombra: appoggiato sullo sfondo sembrava un foglietto caduto
+   li'. `.genout` e' lo stesso riquadro con la carta delle altre
+   schede — stessa ombra, stesso raggio, stesso margine. */
+.aibox.genout{background:var(--card);border-radius:var(--r-lg);padding:20px 16px;
+  margin-bottom:12px;white-space:normal;
+  box-shadow:0 1px 2px rgba(12,31,23,.04),0 8px 24px -18px rgba(12,31,23,.10)}
 .histweek{border:1px solid var(--linea);border-radius:16px;background:var(--card);margin-bottom:12px;overflow:hidden;box-shadow:var(--shadow);transition:box-shadow .3s}
 .histweek:hover{box-shadow:var(--shadow-lift)}
 .histweek .hh{padding:12px 16px;display:flex;justify-content:space-between;cursor:pointer;font-weight:700;color:var(--bosco);font-size:14.5px;transition:background .2s}
@@ -1345,7 +1364,18 @@ body.onb{padding-bottom:0}
 .o2irowi .o2op{min-width:0}
 .o2ifreq{width:100%;border:1.5px solid var(--linea);border-radius:12px;
   background:var(--card);color:var(--ink);font-size:13px;padding:0 8px}
+/* -- LE TENDINE SONO ATTIVE DA SUBITO (founder, 27/08) ------------
+   Erano spente finche' la voce non era spuntata, e accenderle voleva
+   dire RIDISEGNARE la schermata a ogni clic: «si vede il rerender con
+   un effetto fastidioso dove la pagina scompare e riappare per un
+   attimo». Adesso nascono attive: la struttura non cambia mai, quindi
+   non c'e' niente da ridisegnare. La riga qui sotto resta per le
+   tendine spente altrove. */
 .o2ifreq:disabled{opacity:.4;background:transparent}
+/* la tendina di una voce non ancora spuntata si vede, ma non si
+   impone: e' una colonna in attesa, non un campo da compilare */
+.o2irowi:not(.scelta-riga) .o2ifreq{color:var(--grigio)}
+.o2irowi.scelta-riga .o2ifreq{color:var(--ink);border-color:var(--salvia)}
 .o2ifreq-vuota{display:block}
 /* Il confine medico: si legge PRIMA del campo, non dopo. */
 .o2conf{background:var(--menta);border-left:4px solid var(--salvia);border-radius:12px;
@@ -1371,6 +1401,17 @@ body.onb{padding-bottom:0}
   transition:border-color .18s,transform .18s var(--ease),background .18s}
 .o2op b{display:block;font-size:16px;font-weight:700;margin-bottom:0px}
 .o2op span{display:block;font-size:var(--t-sm);color:var(--grigio);line-height:1.4}
+/* -- LE RISPOSTE MULTIPLE ERANO GRIGIE (founder, 27/08) ------------
+   «Nell'onboarding quando ci sono le domande a risposta multipla, i
+   testi delle risposte sono in grigetto invece che in nero come tutte
+   le altre.»
+   Misurato nel browser: #5A7571 contro #0D2422 delle altre. Il motivo
+   e' la riga qui sopra: `.o2op span` era scritta per la DESCRIZIONE
+   sotto l'etichetta, ma nelle multiple l'etichetta `<b>` vive dentro
+   `<span class="o2opt">` — e il grigio le arrivava per eredita'.
+   La descrizione resta grigia (e' una didascalia); l'etichetta torna
+   nera, che e' quello che si legge. */
+.o2op .o2opt b{color:var(--ink)}
 .o2op:hover{border-color:var(--salvia)}
 .o2op:active{transform:scale(.985)}
 .o2op.scelta{border-color:var(--azione);background:var(--menta)}
@@ -1526,6 +1567,11 @@ body.onb{padding-bottom:0}
 .o2opm.scelta .o2box{background:var(--azione);border-color:var(--azione)}
 .o2opm .o2opt{display:block}
 /* La pausa: la mascotte e basta. */
+/* La barra dell'avanzamento nella scheda della generazione: e' la
+   stessa dell'onboarding, perche' e' la stessa attesa. */
+.genbar{height:8px;border-radius:99px;background:var(--linea);overflow:hidden;margin:0 0 12px}
+.genbar i{display:block;height:100%;background:var(--azione);border-radius:99px;
+  transition:width .35s var(--ease)}
 .o2pausa{display:flex;justify-content:center;padding:12px 0 4px}
 .o2entra{width:100%;margin-top:20px}
 /* Lo stato del piano: cosa è fatto, cosa manca. */
