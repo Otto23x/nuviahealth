@@ -1349,6 +1349,8 @@ const I18N={en:{
  "Sto usando gli strumenti dello studio (pliche, impedenziometro)":"I'm using the studio's tools (calipers, body composition scale)",
   "Stress e fame nervosa: 1 = per niente · 5 = tantissimo.":"Stress and emotional hunger: 1 = not at all · 5 = a great deal.",
  "Stretching":"Stretching",
+ "Ultimo guasto: {v1} su {v2} ({v3} caratteri arrivati)":"Last failure: {v1} on {v2} ({v3} characters received)",
+ "Risposte tagliate a metà e recuperate finora: {v1}":"Responses cut short and recovered so far: {v1}",
  "Ho adattato qualche piatto ai tuoi vincoli:":"I adapted a few dishes to your constraints:",
  "{v1} → {v2}":"{v1} → {v2}",
  "{v1}: tolto, non c'era un'alternativa sicura":"{v1}: removed, there was no safe alternative",

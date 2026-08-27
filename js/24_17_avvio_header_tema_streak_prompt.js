@@ -586,6 +586,17 @@ window.addEventListener("error",function(ev){
 /* Avvio protetto: se qualcosa esplode, l'app resta comunque utilizzabile
    e mostra come recuperare. */
 (function boot(){
+  /* ── L'APP SI APRE IN CIMA, SEMPRE (founder, 27/08) ──────────────
+     «La prima volta che avvio l'app non mi porta esattamente in testa
+     alla schermata: vedi che il logo è tagliato?»
+     Non era l'ancora: era il browser. Chrome RIPRISTINA da solo la
+     posizione di scorrimento quando una pagina si riapre o si
+     ricarica, e lo fa DOPO che il documento ha preso la sua altezza —
+     cioè dopo il nostro show(), che lo scrollTo(0,0) lo faceva già.
+     Vinceva sempre lui, e il marchio finiva mezzo sopra il bordo.
+     Una sola riga glielo toglie di mano: da qui in poi la posizione
+     la decidiamo noi, e ogni show() parte davvero dall'alto. */
+  try{if("scrollRestoration" in history)history.scrollRestoration="manual";}catch(e){}
   try{snapSave("giornaliera");}catch(e){}
   try{telTouch();}catch(e){}
   try{setTimeout(()=>{try{telSend();}catch(e){}},4000);}catch(e){}

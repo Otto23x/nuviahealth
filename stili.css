@@ -1294,7 +1294,16 @@ body.onb{padding-bottom:0}
 /* ══ ONBOARDING CONVERSAZIONALE (Sprint 1) ═══════════════════════
    Una domanda per schermata. Niente decorazioni: il contenuto è la
    domanda, e la risposta deve stare sotto il pollice. */
-#pg-onb2{padding:0 4px 40px}
+/* ── LO STESSO MARGINE DI TUTTE LE ALTRE PAGINE (founder, 27/08) ──
+   «Per tutto l'onboarding la distanza tra i bordi dello schermo e il
+   riquadro bianco è diversa da quella che poi c'è nelle altre parti
+   dell'app.» Misurato: 4 px nel percorso, 16 px ovunque altrove.
+   Il commento poco più su dichiarava già la regola giusta — «il
+   margine lo dà .page e basta» — e questa riga era proprio quella che
+   la violava, con un override che nessuno aveva più guardato.
+   Adesso si tocca SOLO il fondo: sopra e ai lati comanda .page, e se
+   un domani quel margine cambia, cambia anche qui da solo. */
+#pg-onb2{padding-bottom:40px}
 .o2top{position:sticky;top:0;z-index:5;background:var(--crema);padding:12px 4px 12px}
 .o2chip{display:inline-block;background:var(--zaffbg);color:var(--zafft);font-weight:700;
   font-size:var(--t-xs);padding:4px 12px;border-radius:99px;margin-bottom:8px}
@@ -1458,7 +1467,10 @@ body.onb{padding-bottom:0}
    e «Comincia» finiva sotto la piega. Marchio più piccolo, spazi
    dimezzati, e i quattro punti in una carta sola. */
 .saluto-marchio{display:flex;justify-content:center;margin-bottom:4px}
-.saluto-marchio img{width:min(26vw,96px);height:auto}
+/* 20% più grande su richiesta del founder (27/08): 96 → 115 px.
+   Misurato dopo il cambio che «Comincia» resta sopra la piega, che è
+   il motivo per cui era stato rimpicciolito. */
+.saluto-marchio img{width:min(31vw,115px);height:auto}
 .saluto .primo-t{font-size:21px;margin-bottom:12px}
 .saluto-card{padding:16px}
 .saluto-p{margin:0 0 12px}

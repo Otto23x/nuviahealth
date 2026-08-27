@@ -556,7 +556,10 @@ function gemSSETutto(testo){
   const st={txt:"",usage:0,finish:null,blocked:false,buf:""};
   gemSSEPezzo(String(testo||""),st,null);
   if(st.buf.trim())gemSSERiga(st.buf.trim(),st,null);
-  return {candidates:[{content:{parts:[{text:st.txt}]},finishReason:st.finish||"STOP"}],
+  /* NIENTE «STOP» inventato: se lo stream non ha detto perché è
+     finito, non lo sappiamo — e fingere che sia andato tutto bene è
+     esattamente come si consegnava un piano tagliato a metà. */
+  return {candidates:[{content:{parts:[{text:st.txt}]},finishReason:st.finish||null}],
     usageMetadata:{totalTokenCount:st.usage},
     promptFeedback:st.blocked?{blockReason:"BLOCKED"}:undefined};}
 
@@ -678,6 +681,18 @@ async function geminiCall(prompt,imgs,pilastro){
           if(es.finish==="MAX_TOKENS"){lastErr=new Error("troncata");await wait(600);continue;}
           trackUsage(es.usage||0,false);
           if(!es.txt.trim()){lastErr=new Error("vuota");await wait(600);continue;}
+          /* ── UNO STREAM CHE FINISCE SENZA DIRE PERCHÉ È TAGLIATO ──
+             Un flusso completo si chiude SEMPRE con un finishReason.
+             Se non c'è, la connessione è caduta a metà — succede su
+             rete mobile — e quello che abbiamo in mano è mezzo piano.
+             Prima lo si consegnava come buono: da lì il «Unexpected
+             end of JSON input» che il founder ha visto tre volte di
+             fila. Ora si riprova; e all'ultimo tentativo si restituisce
+             lo stesso quello che è arrivato, perché parseAIJSON sa
+             chiuderlo e i giorni mancanti si rifanno. */
+          if(!es.finish){
+            aiAnnota(m,"stream interrotto senza finishReason",es.txt.length);
+            if(attempt<2){lastErr=new Error("troncata");await wait(500);continue;}}
           return aiConfine(es.txt);
         }
         /* Ripiego senza lettura a pezzi: un server vero risponde SSE
@@ -696,6 +711,9 @@ async function geminiCall(prompt,imgs,pilastro){
         /* Una risposta troncata arriva senza parti utilizzabili: va
            riconosciuta, altrimenti diventa un errore incomprensibile. */
         if(cand&&cand.finishReason==="MAX_TOKENS"){lastErr=new Error("troncata");await wait(600);continue;}
+        if(cand&&!cand.finishReason&&streamOn){
+          aiAnnota(m,"risposta interrotta senza finishReason",JSON.stringify(j||"").length);
+          if(attempt<2){lastErr=new Error("troncata");await wait(500);continue;}}
         if(cand&&(cand.finishReason==="SAFETY"||cand.finishReason==="RECITATION"))throw new Error("blocked");
         const pz=(cand&&cand.content&&cand.content.parts)||[];
         const txt=pz.map(p=>p.text||"").join("");
@@ -1241,6 +1259,48 @@ function compNote(t){
   if(t.sur>50)return " ATTENZIONE: oggi ho già accumulato circa +"+t.sur+" kcal rispetto al piano, quindi per compensare punta a circa "+t.kAdj+" kcal MANTENENDO le proteine ("+t.p+" g).";
   if(t.sur<-150)return " NOTA: oggi sono circa "+Math.abs(Math.round(t.sur))+" kcal SOTTO il piano (pasti saltati o ridotti): il piatto può essere più generoso, punta a circa "+t.kAdj+" kcal privilegiando proteine e volume.";
   return "";}
+/* ═══ IL RECUPERO DI UN JSON TAGLIATO A METÀ ══════════════════════
+   PERCHÉ ESISTE (27/08, dal telefono del founder)
+   «Il piano non è arrivato (Unexpected end of JSON input)» — tre
+   modelli su tre, in cinque secondi, mentre la prova di connessione
+   diceva che rispondevano tutti. Quel messaggio è la firma esatta di
+   `JSON.parse` su un testo TRONCATO: la risposta arrivava, cominciava
+   bene, e finiva a metà di un piatto.
+   Fin qui bastava per buttare via tutto: sette giorni di lavoro persi
+   perché l'ultimo giorno era incompleto. È lo stesso errore di
+   impostazione della v13.98 — si blocca invece di recuperare — solo
+   un piano più in basso.
+   Adesso un JSON tagliato si CHIUDE: si torna indietro all'ultimo
+   elemento completo, si buttano le parentesi rimaste aperte, e quello
+   che era arrivato si tiene. Se dei sette giorni ne sono arrivati
+   cinque, i cinque restano e i due mancanti li rifà la macchina che
+   già esiste (validaSettimana li segna «il giorno non è arrivato»,
+   che è GRAVE, e chiediSettimana li richiede uno per uno).
+   Non è una toppa: è la differenza fra «riprova da capo» e «ci sono
+   quasi». */
+function jsonRipara(t){
+  let dentroStringa=false,fuga=false;
+  const pila=[];            /* le chiusure ancora attese */
+  let taglio=-1,pilaAlTaglio=null;
+  for(let i=0;i<t.length;i++){
+    const c=t[i];
+    if(dentroStringa){
+      if(fuga)fuga=false;
+      else if(c==="\\")fuga=true;
+      else if(c==='"')dentroStringa=false;
+      continue;}
+    if(c==='"'){dentroStringa=true;continue;}
+    if(c==="{"||c==="["){pila.push(c==="{"?"}":"]");continue;}
+    if(c==="}"||c==="]"){
+      pila.pop();
+      /* un elemento completo DENTRO un contenitore: da qui si può
+         tagliare senza perdere niente di intero */
+      if(pila.length){taglio=i+1;pilaAlTaglio=pila.slice();}
+    }}
+  if(taglio<0||!pilaAlTaglio)return null;
+  return t.slice(0,taglio)+pilaAlTaglio.reverse().join("");}
+window.jsonRipara=jsonRipara;
+
 function parseAIJSON(t){
   /* NIENTE regex greedy qui: su risposte lunghe (es. un piano intero) faceva
      esplodere lo stack del motore regex ("maximum call stack size exceeded",
@@ -1250,8 +1310,22 @@ function parseAIJSON(t){
   let s=-1,e=-1;
   if(ia>-1&&(io_===-1||ia<io_)){s=ia;e=t.lastIndexOf("]");}
   else if(io_>-1){s=io_;e=t.lastIndexOf("}");}
+  const dalPrimo=(s>-1)?t.slice(s):t;
   if(s>-1&&e>s)t=t.slice(s,e+1);
-  return JSON.parse(t);}
+  try{return JSON.parse(t);}
+  catch(err){
+    /* ── SECONDA STRADA: chiudere quello che è arrivato ─────────────
+       Si riparte dal PRIMO carattere utile e non dalla fetta di prima:
+       su un testo troncato «fino all'ultima graffa» taglia in mezzo a
+       un oggetto, ed è proprio quello che rendeva il testo illeggibile. */
+    const chiuso=jsonRipara(dalPrimo);
+    if(chiuso){
+      try{
+        const o=JSON.parse(chiuso);
+        try{S.ai=S.ai||{};S.ai.recuperi=(S.ai.recuperi|0)+1;}catch(_){}
+        return o;
+      }catch(_){}}
+    throw err;}}
 /* ══ SICUREZZA: escaping HTML per OGNI testo dinamico (utente/AI/scanner)
    e whitelist http/https per i link salvati (blocca javascript: ecc.) ══ */
 /* Riga breve sempre visibile + il resto dietro un tocco: chi vuole solo
@@ -1504,6 +1578,19 @@ function aiReason(e){const m=String(e&&e.message||e);
     badkey:"chiave non valida",blocked:"risposta bloccata dai filtri",nokey:"chiave mancante",
     livello:"livello di ragionamento non accettato dal modello",
     troncata:"risposta troppo lunga, tagliata a metà",vuota:"risposta vuota"}[m]||m;}
+/* ═══ COSA È ANDATO STORTO, SCRITTO ═════════════════════════════════
+   Il founder manda una schermata e noi indoviniamo: è successo tre
+   volte oggi. Un guasto che non lascia traccia costa un giro di
+   messaggi ogni volta. Qui si scrive l'ultimo, con modello, motivo,
+   quanto testo era arrivato e quando — e la prova di connessione lo
+   mostra. Nessun dato della persona: solo la meccanica. */
+function aiAnnota(modello,motivo,quanto){
+  try{S.ai=S.ai||{};
+    S.ai.ultimoGuasto={modello:modello,motivo:motivo,quanto:+quanto||0,
+      at:new Date().toISOString()};
+    save();}catch(e){}}
+window.aiAnnota=aiAnnota;
+
 /* ═══ DIAGNOSI ══════════════════════════════════════════════════════
    Quando qualcosa non funziona, indovinare costa tempo a tutti. Questa
    prova ogni modello uno per uno e dice esattamente cosa succede. */
@@ -1560,7 +1647,15 @@ window.aiDiagnosi=async()=>{
     }
   }
   const ok=righe.filter(r=>r.startsWith("✓")).length;
-  box.innerHTML="<b>"+ok+" modelli su "+modelli.length+" rispondono</b><br>"+righe.join("<br>")+
+  /* l'ultimo guasto vero, se c'è: è quello che spiega perché il piano
+     non arriva anche quando i modelli rispondono tutti */
+  const g=(S.ai&&S.ai.ultimoGuasto)||null;
+  const rigaG=g?("<div class=\"hint\" style=\"margin-top:8px\">"+
+    esc(trh("Ultimo guasto: {v1} su {v2} ({v3} caratteri arrivati)",
+      {v1:g.motivo,v2:g.modello,v3:g.quanto}))+"</div>"):"";
+  const rec=(S.ai&&S.ai.recuperi)?("<div class=\"hint\">"+
+    esc(trh("Risposte tagliate a metà e recuperate finora: {v1}",{v1:S.ai.recuperi}))+"</div>"):"";
+  box.innerHTML="<b>"+ok+" modelli su "+modelli.length+" rispondono</b><br>"+righe.join("<br>")+rigaG+rec+
     "<div class=\"hint\" style=\"margin-top:8px\">"+(ok
       ? "La connessione funziona. Se il piano non arriva, il problema è nella lunghezza della risposta: scrivimelo e lo accorcio."
       : "Nessun modello risponde: la chiave è sbagliata, scaduta, o il limite gratuito è esaurito. Prova a crearne una nuova.")+"</div>";};
