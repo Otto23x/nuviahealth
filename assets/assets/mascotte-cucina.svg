@@ -1,0 +1,76 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 300 300" role="img" aria-label="Nuvia">
+  <style>
+    @keyframes float-cucina { 0%, 100% { transform: translateY(0px); } 50% { transform: translateY(-5px); } }
+    @keyframes lick-cucina { 0%, 100% { transform: translateX(0px); } 50% { transform: translateX(4px); } }
+    .mascot-body-cucina { animation: float-cucina 3s ease-in-out infinite; }
+    .tongue-cucina { animation: lick-cucina 2s ease-in-out infinite; }
+  
+    /* IL RESPIRO — 1,5%: sotto la soglia di ciò che si nota, sopra
+       quella di ciò che si sente. È questo che separa un
+       personaggio da un disegno. */
+    @keyframes respiro-cucina{0%,100%{transform:scale(1,1)}50%{transform:scale(1.015,0.99)}}
+    .respira-cucina{animation:respiro-cucina 4.1s ease-in-out infinite;transform-origin:150px 280px}
+    /* L'AMMICCO — due periodi non multipli (4,3 e 7,1 s) così
+       l'occhio non trova mai il ritmo: un blink regolare è la cosa
+       più inquietante che si possa fare a una faccia. */
+    @keyframes ammicco-cucina{0%,92%,100%{transform:scaleY(1)}95%{transform:scaleY(0.08)}}
+    @keyframes ammicco2-cucina{0%,96%,100%{transform:scaleY(1)}98%{transform:scaleY(0.12)}}
+    .occhi-cucina{animation:ammicco-cucina 4.3s infinite,ammicco2-cucina 7.1s infinite;
+      transform-origin:150px 185px}
+
+    /* l'assaggio: si sporge in avanti e torna, come chi prova il sugo */
+    @keyframes assaggia-cucina{0%,70%,100%{transform:translateY(0) rotate(0)}
+      80%{transform:translateY(3px) rotate(-3deg)}}
+    .corpo-cucina{animation:assaggia-cucina 5.3s ease-in-out infinite;transform-origin:150px 220px}
+    /* LO SGUARDO — sinistra, pausa, destra, pausa. È la pausa a fare
+       la differenza fra guardarsi intorno e agitarsi. Le sopracciglia
+       girano sullo STESSO periodo e nella stessa direzione: senza di
+       loro le pupille scivolano e la faccia resta inespressiva. */
+    @keyframes sguardo-cucina{0%,16%{transform:translateX(0)}28%,42%{transform:translateX(-4px)}54%,68%{transform:translateX(4px)}80%,100%{transform:translateX(0)}}
+    .pupille-cucina{animation:sguardo-cucina 7.8s ease-in-out infinite}
+    @keyframes so-cucina{0%,16%{transform:translate(0,0) rotate(0)}28%,42%{transform:translate(-2px,-2px) rotate(-2deg)}54%,68%{transform:translate(2px,-2px) rotate(2deg)}80%,100%{transform:translate(0,0) rotate(0)}}
+    .sopracciglia-cucina{animation:so-cucina 7.8s ease-in-out infinite;transform-origin:150px 159px}
+    /* LA BOCCA si muove POCO e con un periodo diverso da tutto
+       il resto: se battesse a tempo col respiro sembrerebbe un
+       meccanismo, non una creatura. */
+    @keyframes bocca-cucina{0%,100%{transform:scale(1,1)}50%{transform:scale(1.06,1.1)}}
+    .bocca-cucina{animation:bocca-cucina 5.3s ease-in-out infinite;transform-origin:150px 223px}
+    /* IL DONDOLIO — un grado e mezzo, lentissimo: nessuno lo nota
+       guardando, tutti lo notano se manca. */
+    @keyframes ondeggio-cucina{0%,100%{transform:rotate(-1.2deg)}50%{transform:rotate(1.2deg)}}
+    .ondeggia-cucina{animation:ondeggio-cucina 6.7s ease-in-out infinite;transform-origin:150px 280px}
+    /* IL VAPORE sale ondeggiando: due scie con periodi diversi,
+       perché il vapore vero non sale mai in colonna. */
+    /* LE POSATE si alzano e si abbassano IN CONTROTEMPO: quando sale
+       la forchetta scende il coltello. Due cose che salgono insieme
+       sono un ascensore; due che si alternano sono qualcuno che sta
+       mangiando. Il coltello riceve il doppio dello spostamento per
+       annullare quello comune e invertirlo. */
+    @keyframes posate-cucina{0%,100%{transform:translateY(5px)}50%{transform:translateY(-9px)}}
+    .posate-cucina{animation:posate-cucina 2.3s ease-in-out infinite}
+    @keyframes coltello-cucina{0%,100%{transform:translateY(-10px)}50%{transform:translateY(18px)}}
+    .coltello-cucina{animation:coltello-cucina 2.3s ease-in-out infinite}
+  @media (prefers-reduced-motion: reduce){*{animation:none!important}}</style>
+  <defs>
+    <linearGradient id="tealGrad-cucina" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="#00E0C6" /><stop offset="100%" stop-color="#00AFA3" /></linearGradient>
+    <linearGradient id="coralGrad-cucina" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="#FFA07A" /><stop offset="100%" stop-color="#FF7F50" /></linearGradient>
+  </defs>
+  <g class="ondeggia-cucina"><g class="respira-cucina"><g class="corpo-cucina"><g class="mascot-body-cucina">
+    <path d="M 150,140 C 170,70 220,70 220,120 C 220,150 170,160 150,140" fill="url(#coralGrad-cucina)"/>
+    <path d="M 70,230 C 70,140 110,130 150,130 C 190,130 230,140 230,230 C 230,280 190,280 150,280 C 110,280 70,280 70,230" fill="url(#tealGrad-cucina)"/>
+    <g class="occhi-cucina"><circle cx="120" cy="185" r="8" fill="#1A4D40"/><circle cx="180" cy="185" r="8" fill="#1A4D40"/><g class="pupille-cucina"><circle cx="120" cy="183" r="3" fill="#FFFFFF"/><circle cx="180" cy="183" r="3" fill="#FFFFFF"/></g></g>
+    
+      <g class="sopracciglia-cucina" opacity=".85"><path d="M 111 159 q 9 -5 18 0" stroke="#1A4D40" stroke-width="4" stroke-linecap="round" fill="none"/><path d="M 171 159 q 9 -5 18 0" stroke="#1A4D40" stroke-width="4" stroke-linecap="round" fill="none"/></g>
+    <path class="bocca-cucina" d="M 138 223 q 12 10 24 0" stroke="#1A4D40" stroke-width="4.5" stroke-linecap="round" fill="none"/>
+  </g></g></g></g>
+  <g class="posate-cucina" fill="#1A4D40" stroke="#1A4D40" stroke-linecap="round">
+    <g class="forchetta-cucina">
+      <path d="M 40 160 L 40 181" stroke-width="4.5" fill="none"/>
+      <path d="M 48 158 L 48 181" stroke-width="4.5" fill="none"/>
+      <path d="M 56 160 L 56 181" stroke-width="4.5" fill="none"/>
+      <path d="M 38 178 L 58 178 L 53 191 L 43 191 Z" stroke="none"/>
+      <path d="M 48 188 L 48 234" stroke-width="6" fill="none"/></g>
+    <g class="coltello-cucina">
+      <path d="M 243 197 L 243 166 L 247 159 Q 255 172 255 187 L 255 197 Z" stroke="none"/>
+      <path d="M 249 193 L 249 234" stroke-width="6" fill="none"/></g></g>
+</svg>
