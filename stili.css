@@ -1335,17 +1335,35 @@ body.onb{padding-bottom:0}
 .o2ibox::after{content:"";position:absolute;left:50%;top:50%;width:44px;height:44px;transform:translate(-50%,-50%)}
 .o2ibox.on{background:var(--azione);border-color:var(--azione)}
 .o2ibox-a.on{background:var(--zaff);border-color:var(--zaff)}
-/* Integratori: la voce e la sua tendina sulla stessa riga */
-.o2irowi{display:flex;gap:8px;align-items:stretch}
-.o2irowi .o2op{flex:1 1 auto}
-.o2ifreq{flex:0 0 auto;max-width:44vw;border:1.5px solid var(--linea);border-radius:12px;
+/* Integratori: due colonne vere, come una tabella. La tendina c'è
+   SEMPRE (founder, 27/08: «non deve essere a scomparsa»): spenta
+   finché la voce non è segnata, così la riga non salta mentre leggi e
+   si capisce da subito che la frequenza si sceglie. */
+.o2irowi{display:grid;grid-template-columns:1fr 128px;gap:8px;align-items:stretch}
+/* «Nessun integratore» prende la riga intera: non ha un «ogni quanto» */
+.o2irowi-piena{grid-template-columns:1fr}
+.o2irowi .o2op{min-width:0}
+.o2ifreq{width:100%;border:1.5px solid var(--linea);border-radius:12px;
   background:var(--card);color:var(--ink);font-size:13px;padding:0 8px}
+.o2ifreq:disabled{opacity:.4;background:transparent}
+.o2ifreq-vuota{display:block}
+/* Il confine medico: si legge PRIMA del campo, non dopo. */
+.o2conf{background:var(--menta);border-left:4px solid var(--salvia);border-radius:12px;
+  padding:12px;font-size:13.5px;line-height:1.5;color:var(--ink);margin-bottom:16px}
+.o2form textarea{width:100%;border:1.5px solid var(--linea);border-radius:12px;
+  background:var(--card);color:var(--ink);font:inherit;font-size:15px;padding:12px;resize:vertical}
 /* Le giornate: due gruppi, un titolo per gruppo */
 .o2gr{margin-bottom:16px}
-.o2grt{display:block;font-size:14px;color:var(--bosco);margin-bottom:8px}
+.o2grt{display:block;font-size:15px;font-weight:700;color:var(--ink);margin-bottom:8px}
 @keyframes o2in{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
+/* ── LE DOMANDE HANNO UN COLORE SOLO (founder, 27/08) ─────────────
+   «Alcune schermate hanno il testo delle domande in nero, altre in
+   grigio: si può uniformare tutto a nero?» Il titolo della schermata
+   non aveva colore dichiarato (ereditava) e i titoli dei GRUPPI erano
+   verdi: due domande sulla stessa pagina, due colori. Adesso tutto
+   quello che è una domanda è dell'inchiostro dell'app. */
 .o2q{font-family:'Fraunces',Georgia,serif;font-size:clamp(23px,6vw,29px);line-height:1.14;
-  letter-spacing:-.02em;margin:4px 0 8px}
+  letter-spacing:-.02em;margin:4px 0 8px;color:var(--ink)}
 .o2sub{color:var(--grigio);font-size:var(--t-md);line-height:1.5;margin:0 0 20px}
 .o2ops{display:flex;flex-direction:column;gap:8px;margin-bottom:16px}
 .o2op{width:100%;text-align:left;background:var(--card);border:1.5px solid var(--linea);
