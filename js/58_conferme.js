@@ -130,24 +130,17 @@ window.confMostra=confMostra;
 window.confAzzera=()=>{try{localStorage.removeItem(CONF_DETTE);}catch(e){}};
 
 
-/* ── LA FINE DEL PERCORSO ─────────────────────────────────────────
-   Qui il festeggiamento ci sta: è l'unico momento in cui qualcosa è
-   stato COMPLETATO davvero. Dieci schermate sono un investimento, e
-   arrivare in fondo merita più di un cambio di pagina.
-   Resta breve come tutto il resto: due secondi, e poi l'app. */
-window.confermaFine=()=>{
-  try{
-    const n=(S.profile&&S.profile.name)?String(S.profile.name).split(" ")[0]:"";
-    const el=document.createElement("div");
-    el.id="microconf";el.className="microconf grande";
-    el.setAttribute("role","status");
-    el.textContent=n?tr("Ci siamo, {n}. Il piano è tuo.",{n:n})
-                    :tr("Ci siamo. Il piano è tuo.");
-    document.body.appendChild(el);
-    requestAnimationFrame(()=>el.classList.add("on"));
-    /* i coriandoli del festone: la stessa animazione della spunta di
-       un pasto, perché è la stessa cosa — una cosa portata a termine */
-    if(typeof festone==="function")festone(null,innerHeight*0.4);
-    setTimeout(()=>el.classList.remove("on"),2000);
-    setTimeout(()=>el.remove(),2400);
-  }catch(e){}};
+/* ── LA FINE DEL PERCORSO: NIENTE CARTELLINO (founder, 27/08) ────
+   «Esce ancora il messaggio di stato pop-up "Ciao Alberto ci siamo,
+   il piano è tuo", che deve essere rimosso.»
+   Qui c'era la conferma di fine percorso: coriandoli e una frase
+   grande sopra lo schermo, per due secondi, nell'istante in cui la
+   persona entra nell'app. La schermata sotto dice già se il piano
+   c'è e cosa fare;
+   ripeterlo con un cartellino che copre tutto è rumore, e chi entra
+   in un'app vuole vedere l'app.
+   Tolta la funzione, non solo la chiamata: una funzione che nessuno
+   chiama è peso morto che qualcuno un giorno rimette in uso per
+   sbaglio. Restano `confMostra` e le micro-conferme dei singoli
+   gesti, che sono un'altra cosa: piccole, in fondo allo schermo, e
+   legate a una cosa appena fatta. */

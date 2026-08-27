@@ -231,14 +231,6 @@ window.primoHTML=()=>{
       <input type="text" id="primoCid" value="${esc(cid)}" placeholder="…apps.googleusercontent.com">
       <label style="margin-top:12px">${esc(tr("Chiave AI"))}</label>
       <input type="password" id="primoKey" value="${esc(key)}" placeholder="${esc(tr("la tua chiave AI"))}" oninput="aiKeyVive(this.value)">
-      <!-- QUANTO DEVE PENSARE, PER IL PIANO E SOLO PER IL PIANO
-           (founder, 24/08). Qui non è un'impostazione: è uno strumento
-           di misura, e sparirà insieme al pannello.
-           Il comando è scritto una volta sola in pensieroHTML() perché
-           compare anche in Sistema → Motore AI: questo pannello si
-           vede SOLO al primo avvio, e chi ha già l'app installata non
-           avrebbe avuto nessuna strada per raggiungerlo. -->
-      ${pensieroHTML("primo")}
       <div class="mtools">
         <button class="btn ghost small" onclick="primoTecSalva()">${esc(tr("Salva le impostazioni"))}</button>
         <button class="btn ghost small" onclick="primoTecProva()">${esc(tr("Prova le chiavi"))}</button>

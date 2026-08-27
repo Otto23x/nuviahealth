@@ -307,7 +307,6 @@ header h1{font-size:18px;font-weight:700;letter-spacing:.2px}
   .microconf .mcpath{stroke-dasharray:24;stroke-dashoffset:24;
     transition:stroke-dashoffset .38s cubic-bezier(.22,1,.36,1) .08s}
   .microconf.on .mcpath{stroke-dashoffset:0}}
-.microconf.grande{font-size:17px;padding:16px 24px;font-family:'Fraunces',Georgia,serif}
 .microconf.on{opacity:1;transform:translate(-50%,0)}
 .mcsegno path{stroke-dasharray:24;stroke-dashoffset:24}
 @media (prefers-reduced-motion:no-preference){

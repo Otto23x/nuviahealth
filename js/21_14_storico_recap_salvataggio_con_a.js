@@ -1093,6 +1093,32 @@ window.sendBug=()=>{
 /* ═══ CARATTERISTICHE ALIMENTARI ═══════════════════════════════════ */
 /* ══ COMPONENTI A SPUNTA (usati in Regole) ══ */
 function parseSlots(s){return String(s||"").split(",").map(x=>x.trim()).filter(Boolean);}
+/* ── I PASTI SI DICONO PER NOME (founder, 27/08) ───────────────────
+   «Il piano è uscito bene ma non vengono rispettati i pasti scelti
+   dall'utente: a me escono colazione, merenda, pranzo, spuntino,
+   cena. Ma i pasti selezionati sono Metà mattina, Pranzo, Primo
+   pomeriggio, Metà pomeriggio e Cena.»
+
+   Il percorso guidato diceva al modello soltanto QUANTI pasti
+   («pasti_al_giorno: 5»), e il modello faceva l'unica cosa che
+   poteva: inventava i cinque nomi più comuni in italiano. Poi il
+   controllo non se ne accorgeva, perché quella strada non gli
+   passava l'elenco dei nomi attesi — solo il numero — e cinque pasti
+   erano cinque pasti.
+
+   Chi salta la colazione e mangia alle 11 riceveva un piano che
+   comincia con la colazione: non è un dettaglio di forma, è il piano
+   di un'altra persona.
+
+   La riga vive QUI, in un posto solo, e la usano tutte e due le
+   strade: due frasi diverse sarebbero due piani diversi per la stessa
+   persona — è già successo con i farmaci e col medico. */
+function rigaPasti(slots){
+  const l=Array.isArray(slots)?slots:parseSlots(slots);
+  if(!l.length)return "";
+  return ' Pasti da prevedere ogni giorno, in questo ordine esatto e con QUESTI NOMI: '+l.join(", ")+
+    '. Non aggiungerne altri, non toglierne, non rinominarli: se la persona non ha la colazione, il giorno comincia dal primo pasto di questo elenco.';}
+window.rigaPasti=rigaPasti;
 function slotsChecksHTML(pre,cur){const on=parseSlots(cur);
   return `<div class="ckgrid">`+SLOTS.map((s,i)=>`<label class="ck"><input type="checkbox" id="${pre}S${i}" ${on.includes(s)?"checked":""}> ${esc(fascia(s))}</label>`).join("")+`</div>`;}
 function readSlotsChecks(pre){const out=[];SLOTS.forEach((s,i)=>{const e=document.getElementById(pre+"S"+i);if(e&&e.checked)out.push(s);});return out.join(", ");}
@@ -2581,7 +2607,10 @@ async function chiediSettimana(cfg){
     try{S.ai=S.ai||{};S.ai.genMs=Date.now()-t0;S.ai.genAt=new Date().toISOString();
       /* si registra anche CON QUALE livello: un tempo senza il livello
          che l'ha prodotto non si può confrontare con niente */
-      S.ai.genPens=S.ai.pensiero||"medium";save();}catch(e){}
+      /* si registra il livello VERO con cui è stata fatta (27/08: il
+         selettore non esiste più, quindi non c'è niente da tradurre) */
+      S.ai.genPens=(typeof pensieroDi==="function")?pensieroDi("piano"):"low";
+      save();}catch(e){}
     return Object.assign({ms:Date.now()-t0},out);};
 
   fase("settimana");
@@ -2655,6 +2684,24 @@ async function chiediSettimana(cfg){
     .concat((cfg.regole&&cfg.regole.allergeni)||[]);
   const adattati=vietatiTutti.length?riparaSettimana(grezzi,vietatiTutti):[];
   if(adattati.length)esito=validaSettimana(grezzi,cfg.regole);
+  /* ── ULTIMA RETE SUI NOMI DEI PASTI (27/08) ────────────────────
+     Il prompt li dice, e i giorni sbagliati si rifanno. Se dopo il
+     rifacimento i nomi sono ancora quelli del modello — succede: un
+     modello che ha in testa «colazione» ce la rimette — non si
+     consegna un piano con i pasti di un'altra persona: si RINOMINA.
+     Si fa solo quando il numero dei pasti è quello giusto, cioè
+     quando l'unica cosa sbagliata è l'etichetta: rinominare cinque
+     pasti in sei sposterebbe il cibo di posto, che è un'altra cosa e
+     molto peggiore. Il conto dei pasti resta un problema dichiarato,
+     non una cosa che si aggiusta di nascosto. */
+  const attesi=(cfg.regole&&cfg.regole.slots)||null;
+  if(attesi&&attesi.length){
+    grezzi.forEach(g=>{
+      if(!g||!Array.isArray(g.meals)||g.meals.length!==attesi.length)return;
+      const storti=g.meals.some((m,i)=>cibNorm(m&&m.n)!==cibNorm(attesi[i]));
+      if(!storti)return;
+      g.meals.forEach((m,i)=>{if(m)m.n=attesi[i];});});
+    esito=validaSettimana(grezzi,cfg.regole);}
   const plan=G.map((nome,i)=>normDayAI(nome,grezzi[i]||{meals:[]}));
   plan.adattati=adattati;
   fase("fatto");
@@ -2733,7 +2780,7 @@ window.genPlanAI=async()=>{
        piani diversi, e il rifacimento smetterebbe di somigliare al
        piano che sta riparando. */
     const comune=' Persona: '+age()+' anni, '+(p.gender==="m"?"uomo":"donna")+', '+p.h+' cm, '+p.w+' kg, obiettivo: '+goal+'. Target di OGNI giorno: circa '+target+' kcal (tolleranza ±5%) e almeno '+protG+' g di proteine, distribuiti sui pasti. '+rulesForPlan()+
-      ' Pasti da prevedere ogni giorno, in questo ordine esatto: '+slots.join(", ")+'.'+rigaFuori+
+      rigaPasti(slots)+rigaFuori+
       (D.patologie?' Le condizioni di salute dichiarate sopra sono VINCOLANTI nella scelta degli alimenti di ogni pasto.':'')+
       ' Regole: il piano si basa ESCLUSIVAMENTE su alimenti veri; NON inserire integratori (proteine in polvere, vitamine, barrette o pasti sostitutivi) a meno che i target siano davvero impossibili da coprire con il cibo: solo in quel caso indicali e scrivi nel campo ctx che l\'integrazione va concordata con un nutrizionista; porzioni in grammi sempre indicate; valori nutrizionali REALI per le quantità scritte; ingredienti reperibili in un supermercato italiano; stagione attuale: '+seasonNow()+', proponi piatti adatti alla stagione (niente piatti tipicamente invernali in estate e viceversa), restando generico su "verdura di stagione" e "frutta di stagione" dove sensato; rispetta il tempo di cucina dichiarato; nell\'arco della settimana devono alternarsi con equilibrio fonti proteiche compatibili con l\'impostazione dichiarata (per esempio carne bianca, pesce, uova, legumi, latticini SOLO se ammessi) più cereali integrali e abbondante verdura.'+rigaVar+rigaFarm+rigaMed+rigaInt;
     const regole={giorni:G,kcal:target,prot:protG,tollPct:5,slots:slots,nPasti:slots.length,

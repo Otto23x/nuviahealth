@@ -107,11 +107,19 @@ function wizTargets(){
    riceve anche `onFase`, che è il racconto vero. */
 async function wizGenDays(d,t,onStep,onFase){
   const DAYS=["Lunedì","Martedì","Mercoledì","Giovedì","Venerdì","Sabato","Domenica"];
-  const persona=JSON.stringify({eta:wizAge(),genere:d.gen,altezza:d.h,peso:d.w,bmi:t.bmi,
+  /* i pasti scelti dalla persona: nomi, non solo numero (v13.106) */
+  const slots=(typeof parseSlots==="function")?parseSlots(d.slots||""):[];
+  const nPasti=slots.length||(+d.nPasti||5);
+  const persona=JSON.stringify(Object.assign({eta:wizAge(),genere:d.gen,altezza:d.h,peso:d.w,bmi:t.bmi,
     massa_grassa_pct:d.fat,stile_di_vita:d.vita,sport:d.sport,intolleranze:d.intol,
     allergie_gravi:d.allergie||"",
     cibi_vietati:d.no,cibi_amati:d.si,preferenza_semplice_pronto:d.pronto,
-    pasti_al_giorno:d.nPasti,colazione:d.colaz,obiettivo:d.goal});
+    pasti_al_giorno:nPasti,
+    /* i nomi stanno nella riga dedicata; qui il campo «colazione»
+       compare solo se qualcuno l'ha davvero riempito — un campo vuoto
+       che si chiama «colazione» è comunque un suggerimento, e a chi la
+       colazione non la fa suggerisce la cosa sbagliata */
+    obiettivo:d.goal},d.colaz?{colazione:d.colaz}:{}));
   const liberi=+d.liberi||0;
   /* ── I PASTI FUORI CASA, DETTI PER NOME (v13.65) ────────────────
      Prima c'era una riga che tirava a indovinare: «se lo stile di
@@ -138,8 +146,16 @@ async function wizGenDays(d,t,onStep,onFase){
   const integFreq=(d.integratoriFreq==="saltuario")
     ?" Gli integratori NON sono quotidiani: non contarli nei target giornalieri."
     :(d.integratoriFreq==="quasi")?" Gli integratori ci sono quasi tutti i giorni: contali nei target con prudenza.":"";
+  /* -- I PASTI SCELTI, DETTI PER NOME (founder, 27/08) -------------
+     Qui si diceva solo QUANTI pasti, e il modello inventava i nomi:
+     colazione, merenda, pranzo, spuntino, cena. A chi aveva scelto
+     «Metà mattina, Pranzo, Primo pomeriggio, Metà pomeriggio, Cena»
+     arrivava il piano di un'altra persona. La riga e' la stessa che
+     usa la pagina Regole (rigaPasti), perche' due frasi diverse
+     sarebbero due piani diversi per la stessa persona. */
   const comune=' Persona: '+persona+
-    '. Target di OGNI giorno: circa '+t.kcal+' kcal (tolleranza ±5%) e almeno '+t.prot+' g di proteine, distribuiti sui '+(+d.nPasti||5)+' pasti.'+
+    '. Target di OGNI giorno: circa '+t.kcal+' kcal (tolleranza ±5%) e almeno '+t.prot+' g di proteine, distribuiti sui '+nPasti+' pasti.'+
+    ((typeof rigaPasti==="function")?rigaPasti(slots):"")+
     (d.allergie?' ATTENZIONE, ALLERGIE VERE: '+d.allergie+'. Per queste non esistono eccezioni né «tracce»: nessun derivato, nessun dubbio.':'')+
     /* PREVENIRE COSTA MENO CHE RIPARARE (v13.98): al modello si dice
        cosa usare INVECE di cosa. Un intollerante al lattosio non deve
@@ -183,7 +199,11 @@ async function wizGenDays(d,t,onStep,onFase){
       ' Ecco cosa NON andava, giorno per giorno — correggi esattamente questo: '+
       guasti.map(x=>x.giorno+" → "+x.motivi.join("; ")).join(" · ")+'.'+
       (usati.length?' Questi piatti sono già negli altri giorni della settimana e non vanno riproposti: '+usati.slice(-24).join("; ")+'.':''),
-    regole:{giorni:DAYS,kcal:t.kcal,prot:t.prot,tollPct:5,nPasti:+d.nPasti||5,
+    /* `slots` nel controllo: senza, la validazione guarda solo il
+       NUMERO dei pasti, e cinque nomi inventati sono cinque pasti.
+       E' il motivo per cui il difetto e' passato inosservato. */
+    regole:{giorni:DAYS,kcal:t.kcal,prot:t.prot,tollPct:5,
+      slots:slots,nPasti:nPasti,
       vietati:(d.vietatiLista&&d.vietatiLista.length)?d.vietatiLista:vietatiElenco(d.no,d.intol),
       /* gli allergeni viaggiano a parte: su di loro non vale nessuna
          esenzione, nemmeno «senza lattosio» */
@@ -1899,7 +1919,6 @@ function renderSistema(){const el=document.getElementById("pg-sistema");const p=
   <select id="gModel">${(function(){const d=gemDiscovered()||[];
     const list=["auto"].concat(d,GEM_ALL.filter(m=>m!=="auto"&&d.indexOf(m)<0));
     return list.map(m=>`<option ${S.ai.model===m?"selected":""}>${m}</option>`).join("");})()}</select>
-  ${pensieroHTML("sis")}
   <div class="mtools" style="margin-top:8px"><button class="btn ghost small" onclick="aiDiagnosi()">${tr("Prova la connessione")}</button><button class="btn ghost small" onclick="gemRefreshModels()">Cerca modelli nuovi</button></div>
   <div class="aibox" aria-live="polite" id="aiDiag" style="display:none"></div>
   <div class="hint">${tr("Con <b>auto</b> l'app usa sempre il modello più recente di Google, scendendo agli altri se non risponde. L'elenco si aggiorna da solo.")}${gemDiscovered()?" Ultimo controllo: "+new Date(S.ai.models.at).toLocaleDateString(dataLoc())+" · "+S.ai.models.list.length+" modelli.":""}</div>

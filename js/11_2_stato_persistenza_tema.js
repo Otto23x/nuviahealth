@@ -6,7 +6,7 @@ const KEY="diarioDieta_v2"; // NON cambiare mai: e' dove vivono i dati dell'uten
    apposta per verificare il deploy non verificava niente — e mentre si
    cercava un piano che «non arriva mai», non si poteva nemmeno sapere
    QUALE versione stesse girando sul telefono. Riallineata (25/08). */
-const APP_VER="13.104.0";        // aggiorna a ogni release: visibile in Io per verificare il deploy
+const APP_VER="13.107.0";        // aggiorna a ogni release: visibile in Io per verificare il deploy
 /*   SBLOCCO DI TEST — DA METTERE A false PRIMA DEL RILASCIO  
    Con true, ciclo/allattamento/gravidanza restano CLICCABILI anche sui
    profili maschili, per poterli provare senza cambiare genere. Con false
@@ -48,15 +48,15 @@ if(!S)S=defaultState();
 // retro-compatibilità morbida su tutti i rami
 S.ui=Object.assign({theme:"auto",vacanza:false,lastOpen:"",lastMorning:""},S.ui||{});
 S.drive=Object.assign({cid:"",on:false},S.drive||{});
-/* `pensiero` è il livello di ragionamento del PIANO — e solo di quello:
-   fast/medium/slow. Dal 27/08 le prime due dicono «low» e la terza
-   «medium»: sono i due soli livelli ammessi. Vive qui e non nelle
-   impostazioni normali perché è uno strumento di misura per la fase di
-   prova, non una scelta da scaricare addosso a chi vuole mangiare
-   meglio. `genMs` e `genAt` sono quanto è durata l'ultima generazione e
+/* Il campo `pensiero` (il selettore Fast/Medium/Slow) non c'è più dal
+   27/08: la misura è finita, il livello lo dice la tabella in
+   `15_6` e nessuna scelta dell'interfaccia lo scavalca.
+   `genMs` e `genAt` restano — quanto è durata l'ultima generazione e
    quando: senza quel numero il confronto fra i livelli sarebbe un
-   confronto fra sensazioni. */
-S.ai=Object.assign({key:"",model:"auto",pensiero:"medium",genMs:0,genAt:""},S.ai||{});
+   confronto fra sensazioni, e serve ancora il giorno in cui si
+   proverà «medium». Un `pensiero` rimasto scritto sui telefoni di chi
+   aggiorna non dà fastidio: non lo legge più nessuno. */
+S.ai=Object.assign({key:"",model:"auto",genMs:0,genAt:""},S.ai||{});
 S.usage=Object.assign({day:"",calls:0,tokens:0,errors:0,last:""},S.usage||{});
 /* Rete di compatibilità: qualunque stato salvato — anche di versioni vecchie,
    parziale o riparato a mano — viene completato con le chiavi mancanti prima

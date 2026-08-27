@@ -2008,8 +2008,6 @@ const I18N={en:{
 "Ciao {n}.":"Hi {n}.",
 "Nessuna esclusione, allora: campo libero.":"No exclusions then: open field.",
 "In {n}: le porzioni si regoleranno da sole.":"{n} of you: portions will adjust by themselves.",
-"Ci siamo, {n}. Il piano è tuo.":"Here we are, {n}. The plan is yours.",
-"Ci siamo. Il piano è tuo.":"Here we are. The plan is yours.",
 "Grazie di averlo scritto.":"Thank you for writing it.",
 "Bene, so da dove partire.":"Good, now I know where to start.",
 "Fatto: non te li chiedo più.":"Done: I won't ask again.",
@@ -3008,14 +3006,8 @@ const I18N={en:{
  /* Il selettore del livello di pensiero: sta dietro le «Impostazioni
     di prova» e sparirà con loro, ma finché c'è va letto anche in
     inglese come tutto il resto. */
- "Ragionamento per il piano":"Reasoning for the plan",
- "Fast — il più svelto":"Fast — the quickest",
- "Medium — predefinito":"Medium — default",
- "Slow — ci ragiona di più":"Slow — thinks it over more",
- "Tocca solo la generazione del piano: tutto il resto resta al minimo. Ultima generazione:":"Affects only plan generation: everything else stays at the minimum. Last generation:",
  "nessuna ancora":"none yet",
  "{v1} s ({v2})":"{v1} s ({v2})",
- "Piano: {v1}":"Plan: {v1}",
  "Puoi anche mettere via il telefono: il lavoro continua.":"You can put the phone away: the work carries on.",
  "Nel piano non entra mai. Quando capita, segnalo nel diario: così i conti restano veri. E tenerlo basso fa bene a sonno, fegato e bilancio.":"It never goes into the plan. When it happens, log it in the diary: that way the numbers stay true. And keeping it low is good for sleep, liver and balance.",
  /* ── v13.66 · le correzioni: «questo non mi va» diventa una regola ── */
@@ -3077,7 +3069,7 @@ const I18N={en:{
 "Nascondi":"Hide",
 "Aprine uno":"Open one",
 "Fotografa uno scontrino":"Snap a receipt",
-"Sto scrivendo tutta la settimana in un colpo solo: un paio di minuti.":"I'm writing the whole week in one go: a couple of minutes.",
+"Sto scrivendo la settimana intera: ci vuole un paio di minuti.":"I'm writing the whole week at once: it takes a couple of minutes.",
  /* v13.90 · R1: «che allenamento voglio fare» entra nel percorso */
  "Quali sport ti piacciono?":"Which sports do you like?",
  "Così il tuo allenatore propone cose che faresti davvero, non attività a caso. Puoi segnarne più di uno.":"That way your trainer suggests things you'd actually do, not random activities. You can pick more than one.",

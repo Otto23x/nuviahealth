@@ -114,49 +114,41 @@ const PENSIERO_PILASTRI={
 };
 const PENSIERO_RESTO="low";   /* tutto il resto, foto comprese */
 
-/* Il selettore delle «Impostazioni di prova» ha ancora tre posizioni,
-   ma due dicono «low»: sotto non si scende (minimal è escluso) e sopra
-   si arriva solo a «medium», che è il tetto. */
-const PENSIERO_LIV={fast:"low",medium:"low",slow:"medium"};
-const PENSIERO_DEF="medium";                      /* Medium = low, la decisione presa */
-function pensieroPiano(){
-  const v=(S.ai&&S.ai.pensiero)||PENSIERO_DEF;
-  return PENSIERO_LIV[v]||PENSIERO_LIV[PENSIERO_DEF];}
-const PENSIERO_NOMI={fast:"Fast",medium:"Medium",slow:"Slow"};
-window.pensieroSet=(v)=>{
-  S.ai=S.ai||{};
-  S.ai.pensiero=PENSIERO_LIV[v]?v:PENSIERO_DEF;
-  save();
-  /* si ridisegna: il comando compare in due punti, e devono dire la
-     stessa cosa anche se sono aperti tutti e due */
-  try{render(cur);}catch(e){}
-  toast(trh("Piano: {v1}",{v1:PENSIERO_NOMI[S.ai.pensiero]}));};
-/* Il tempo dell'ultima generazione, in secondi e col livello con cui è
-   stata fatta: senza il livello il numero non direbbe niente, perché
-   non si saprebbe cosa si sta confrontando. Finché non se n'è fatta
-   nemmeno una si dice che non ce n'è — non si scrive uno zero, che
-   sembrerebbe un tempo. */
+/* ── IL SELETTORE NON C'È PIÙ (founder, 27/08) ────────────────────
+   «Rimuovi il selettore, non serve più: adesso è fisso, con
+   l'automatismo del passaggio a medium.»
+
+   Era una leva di misura, e ha fatto il suo lavoro: serviva a
+   decidere con i numeri quale fosse il livello definitivo. La misura
+   è finita — il piano a «low» in 90 secondi e preciso — quindi il
+   livello lo dice la tabella e basta.
+
+   Con lui se ne vanno `PENSIERO_LIV`, `PENSIERO_DEF`, `pensieroPiano`
+   e `pensieroSet`: erano il modo in cui una scelta dell'interfaccia
+   poteva SCAVALCARE la tabella, ed è proprio la cosa che questa
+   consegna toglie. Adesso c'è una fonte sola.
+
+   «medium» resta raggiungibile, ma per merito e non per scelta: se un
+   modello rifiuta «low», `pensieroAlza` sale di un gradino per QUEL
+   modello e ci resta. E il giorno in cui i modelli saranno più veloci,
+   alzare tutti vuol dire cambiare la riga della tabella qui sopra
+   (e la gemella nel server, che la suite confronta). */
 function pensieroUltima(){
   const a=S.ai||{};
   if(!a.genMs)return tr("nessuna ancora");
+  /* il livello si dice com'è scritto nella tabella — «low», «medium» —
+     invece che col nome di un selettore che non esiste più */
   return trh("{v1} s ({v2})",{v1:Math.round(a.genMs/1000),
-    v2:PENSIERO_NOMI[a.genPens||a.pensiero||PENSIERO_DEF]||"Medium"});}
-/* Il livello si LEGGE dalla tabella, non si indovina. Il piano è
-   l'unico che passa dal selettore, perché è l'unico su cui il founder
-   sta misurando; gli altri pilastri prendono il valore dichiarato, e
-   chi non è in tabella prende PENSIERO_RESTO.
-   NB: le foto non hanno più un ramo loro. Prima `imgs` alzava il
+    v2:a.genPens||PENSIERO_PILASTRI.piano||"low"});}
+/* Il livello si LEGGE dalla tabella, non si indovina e non si sceglie
+   da nessun'altra parte: il piano non ha più un ramo suo, perché il
+   selettore che lo scavalcava non esiste più (27/08). Chi non è in
+   tabella prende PENSIERO_RESTO.
+   NB: nemmeno le foto hanno un ramo loro. Prima `imgs` alzava il
    livello per conto suo, e questo scavalcava la tabella senza che si
    vedesse: la presenza di un'immagine non è un pilastro, è un
    dettaglio della richiesta. */
 function pensieroDi(pilastro){
-  /* Il piano è l'unico che passa dal selettore: è l'unico su cui il
-     founder sta misurando. A riposo il selettore DEVE dare lo stesso
-     valore della tabella (PENSIERO_LIV[PENSIERO_DEF] === "low"), e
-     t_pensiero lo verifica — altrimenti la tabella direbbe una cosa
-     e l'app ne farebbe un'altra, che è il difetto da cui nasce
-     tutta questa consegna. */
-  if(pilastro==="piano")return pensieroPiano();
   return PENSIERO_PILASTRI[pilastro]||PENSIERO_RESTO;}
 /* ── OGNI MODELLO HA UN LIVELLO MINIMO, E LO SI IMPARA (v13.97) ───
    gemini-3.7-flash rifiuta «minimal» con un 400: «Thinking level
@@ -187,33 +179,10 @@ function gemPensiero(modello,prompt,imgs,pilastro){
   return {thinkingConfig:{thinkingLevel:liv}};}
 window.pensieroAlza=pensieroAlza;
 
-/* ═══ IL COMANDO, SCRITTO UNA VOLTA SOLA ═════════════════════════
-   Compare in DUE posti — le «Impostazioni di prova» del primo avvio e
-   la scheda «Motore AI» in Sistema — e per questo vive qui, in mezzo,
-   invece che in uno dei due: due copie sarebbero due comandi, e prima
-   o poi uno dei due direbbe una cosa diversa dall'altro.
-
-   PERCHÉ ANCHE IN SISTEMA, visto che la richiesta diceva «nel pannello
-   del primo avvio»: quel pannello si vede SOLO al primo avvio. Chi ha
-   già l'app installata non ha nessuna strada per tornarci, se non
-   cancellando tutto. Il comando esisteva e non si poteva raggiungere —
-   che è il modo più preciso di non esistere.
-   E Sistema → «Motore AI» non sono le impostazioni normali: è la
-   scheda dove stanno già la chiave API, la scelta del modello, la
-   prova della connessione e il contatore dei token. Chi arriva lì sa
-   cosa sta guardando; chi vuole solo mangiare meglio non ci passa.
-   `idPrefix` tiene distinti i due campi: due elementi con lo stesso id
-   nella stessa pagina sono un guasto che si manifesta a caso. */
-function pensieroHTML(idPrefix){
-  const v=(S.ai&&S.ai.pensiero)||PENSIERO_DEF;
-  const op=(k,t)=>`<option value="${k}"${v===k?" selected":""}>${esc(t)}</option>`;
-  return `<label style="margin-top:12px">${esc(tr("Ragionamento per il piano"))}</label>
-    <select id="${idPrefix}Pens" onchange="pensieroSet(this.value)">
-      ${op("fast",tr("Fast — il più svelto"))}
-      ${op("medium",tr("Medium — predefinito"))}
-      ${op("slow",tr("Slow — ci ragiona di più"))}
-    </select>
-    <div class="hint">${esc(tr("Tocca solo la generazione del piano: tutto il resto resta al minimo. Ultima generazione:"))} ${esc(pensieroUltima())}</div>`;}
+/* Il comando del ragionamento (il selettore Fast/Medium/Slow) stava
+   qui, e compariva in due punti: le «Impostazioni di prova» del primo
+   avvio e la scheda «Motore AI» in Sistema. Tolto il 27/08 insieme
+   alla sua meccanica: il livello è uno e lo dice la tabella. */
 
 function gemDiscovered(){const d=(S.ai&&S.ai.models)||null;
   return (d&&Array.isArray(d.list)&&d.list.length)?d.list:null;}
@@ -500,6 +469,11 @@ function aiTimeoutFor(prompt,imgs,pilastro){
      sempre — e scadere non costa 90 secondi: costa 3 tentativi per
      modello su 3 modelli, cioè un'attesa PEGGIORE di quella che
      stiamo togliendo. */
+  /* La PROVA di contatto ha il tempo che le ha dato il founder: cinque
+     secondi. Va messo QUI e non solo fuori, in una corsa contro il
+     tempo: fuori si abbandona la promessa e la richiesta continua a
+     vivere di là: qui la fetch viene ABORTITA per davvero. */
+  if(pilastro==="prova")return (typeof PROVA_MS==="number")?PROVA_MS:5000;
   if(pilastro==="piano")return 180000;
   if(n>0)return 120000;                  /* foto: analisi più lenta */
   if(len>1800)return 90000;              /* ribilanci, report */
@@ -637,8 +611,20 @@ async function geminiCall(prompt,imgs,pilastro){
   aiBusy();
   try{
   let lastErr=null;
+  /* -- LA PROVA NON INSISTE (27/08) ------------------------------
+     Le richieste vere riprovano tre volte per modello: una risposta
+     tagliata o un server occupato meritano un secondo tentativo.
+     La prova no: serve a sapere IN FRETTA se qualcuno risponde, e
+     tre tentativi per tre modelli sono nove chiamate — misurate:
+     ventisette contando il rilancio. La catena dei modelli invece
+     resta, perche' se il primo modello e' spento la risposta giusta
+     e' «il secondo risponde», non «nessuno risponde».
+     Il 400 sul livello di ragionamento continua a insegnare
+     (pensieroAlza scrive prima di uscire): il rilancio di aiProva
+     riparte gia' dal livello imparato. */
+  const soloProva=(pilastro==="prova");
   for(const m of gemModels()){
-    for(let attempt=0;attempt<3;attempt++){
+    for(let attempt=0;attempt<(soloProva?1:3);attempt++){
       /* dichiarato QUI e non dentro il try: il catch deve poterlo leggere,
          altrimenti ogni errore diventa un ReferenceError e la logica di
          riprova non parte mai */
@@ -809,9 +795,33 @@ async function aiAsk(prompt,pilastro){return geminiCall(prompt+aiLingua(),null,p
    3. SCALDA LA CATENA. Se il primo modello rifiuta il livello di
       ragionamento, `pensieroAlza` impara qui — e il piano parte già
       col livello giusto invece di sprecarci sopra il primo tentativo. */
-const PROVA_MS=25000;
-async function aiProva(){
-  if(typeof aiOn==="function"&&!aiOn())return {ok:false,motivo:aiReason(new Error("nokey"))};
+/* ── CINQUE SECONDI, NON VENTICINQUE (founder, 27/08) ─────────────
+   «25 secondi sono decisamente troppi, considerando che il tempo di
+   risposta è in ms ti direi 5 o 10 sec massimo, non di più, starei
+   più sui 5.»
+
+   Ha ragione, e il numero di prima era prudenza mal riposta: una
+   domanda da due parole torna in qualche centinaio di millisecondi.
+   Aspettarne venticinque non rende la prova più affidabile — rende
+   solo più lunga l'attesa che questa prova doveva togliere.
+
+   Ma un tetto secco a 5 secondi ha un rischio suo, e va detto: una
+   rete lenta per un momento — un ascensore, un treno, un modello che
+   si sveglia — verrebbe scambiata per un modello morto, e la persona
+   riceverebbe il piano di base al posto del suo. Un falso allarme
+   costa quanto il guasto che stiamo prevenendo.
+
+   Quindi: CINQUE SECONDI, e un solo secondo tentativo — ma soltanto
+   quando il primo è scaduto o la rete è caduta, cioè quando riprovare
+   può cambiare qualcosa. Una chiave sbagliata, una quota finita o una
+   risposta vuota sono risposte DEFINITIVE: si fallisce subito, senza
+   far aspettare per un esito che si conosce già.
+
+   Il caso peggiore resta dentro il tetto che hai dato: 10 secondi. */
+const PROVA_MS=5000;
+/* i guasti su cui vale la pena riprovare: sono momenti, non stati */
+const PROVA_RITENTA=["timeout","rete","busy","livello"];
+async function aiProvaUna(){
   let orologio=null;
   try{
     const risposta=await Promise.race([
@@ -819,11 +829,17 @@ async function aiProva(){
       new Promise((_,no)=>{orologio=setTimeout(()=>no(new Error("timeout")),PROVA_MS);})]);
     /* una risposta vuota è un no: il modello ha risposto alla porta e
        non ha detto niente, ed è lo stesso guasto di un silenzio */
-    if(!String(risposta||"").trim())return {ok:false,motivo:aiReason(new Error("vuota"))};
+    if(!String(risposta||"").trim())return {ok:false,causa:"vuota"};
     return {ok:true};
   }catch(e){
-    return {ok:false,motivo:aiReason(e)};
+    return {ok:false,causa:String((e&&e.message)||e||"errore")};
   }finally{if(orologio)clearTimeout(orologio);}}
+async function aiProva(){
+  if(typeof aiOn==="function"&&!aiOn())return {ok:false,motivo:aiReason(new Error("nokey"))};
+  let esito=await aiProvaUna();
+  if(!esito.ok&&PROVA_RITENTA.indexOf(esito.causa)>-1)esito=await aiProvaUna();
+  if(esito.ok)return {ok:true};
+  return {ok:false,motivo:aiReason(new Error(esito.causa))};}
 window.aiProva=aiProva;
 
 async function aiAskVision(prompt,imgs,pilastro){return geminiCall(prompt+aiLingua(),imgs,pilastro||"foto");}

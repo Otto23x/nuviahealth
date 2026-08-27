@@ -1029,7 +1029,9 @@ const O2GIORNI=["Lunedì","Martedì","Mercoledì","Giovedì","Venerdì","Sabato"
 function onb2GenRighe(fatti,stato){
   const g=onb2Gen();
   if(stato==="lavoro"&&!g.streamOk)
-    return [{t:tr("Sto scrivendo tutta la settimana in un colpo solo: un paio di minuti."),s:"ora"}];
+    /* «in un colpo solo» non e' un modo professionale di parlare
+       (founder, 27/08): la frase dice la stessa cosa in italiano. */
+    return [{t:tr("Sto scrivendo la settimana intera: ci vuole un paio di minuti."),s:"ora"}];
   /* Le frasi stanno dentro tr() LETTERALI, non costruite con un
      ternario: così il controllo delle traduzioni le vede davvero.
      L'AVANZAMENTO È QUELLO VERO (25/08): il piano arriva in streaming
@@ -1454,6 +1456,12 @@ function onb2DatiPiano(){
     integrareOk:S.diet.integrareOk||"chiedi",
     varieta:(S.diet.varieta||"media"),
     pronto:(o.ris.cucina==="veloce")?"pronto":"semplice",
+    /* -- I NOMI DEI PASTI, NON SOLO IL NUMERO (27/08) -------------
+       `S.diet.slots` esiste da sempre (lo scrive il travaso, con le
+       spunte della schermata «Quali pasti fai»), ma da qui non usciva
+       e il generatore riceveva solo `nPasti`. Da lì il piano con la
+       colazione a chi la colazione non la fa. */
+    slots:S.diet.slots||"",
     nPasti:S.diet.nPasti||5,colaz:"",liberi:(S.diet.pastiLiberi!=null?+S.diet.pastiLiberi:1),
     /* ── LE RISPOSTE NUOVE ARRIVANO AL PIANO ──────────────────────
        `note` era una stringa vuota scritta a mano: adesso porta quello
@@ -2271,9 +2279,15 @@ window.onb2Chiudi=async(modo)=>{
        finito resta una cosa buona - ma la frase che si canta e' su
        una cosa che non c'e'. Quindi: coriandoli col piano in mano,
        un saluto normale senza. */
-    const gg2=onb2Gen();
-    const conPiano=!!(gg2.piano||(S.genPronto&&S.genPronto.piano)||S.customPlan);
-    try{if(conPiano&&typeof confermaFine==="function")confermaFine();}catch(e){}
+    /* -- IL CARTELLINO SE N'E' ANDATO DEL TUTTO (founder, 27/08) --
+       «Esce ancora il messaggio di stato pop-up "Ciao Alberto ci
+       siamo, il piano è tuo", che deve essere rimosso.»
+       Ieri l'avevo reso condizionale — coriandoli solo col piano in
+       mano — ma la richiesta e' un'altra: quel messaggio non deve
+       esserci. E ha ragione: la schermata sotto dice gia' se il piano
+       c'e' e cosa fare, e un cartellino che copre lo schermo per
+       ripetere la stessa cosa e' rumore. Chi entra in un'app vuole
+       vedere l'app. */
     const b=o.ris.bio||{};
     if(b.w>0){try{S.profile.weights.push({d:iso(new Date()),w:b.w,fat:null,mus:null,pa:null,spo2:null});}catch(e){}}
     /* Si atterra sul PUNTO, non su Oggi: è il riepilogo di quello che
