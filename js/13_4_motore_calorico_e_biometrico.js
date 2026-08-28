@@ -226,8 +226,10 @@ function waterExplain(){
   /* Frase intera con i numeri come segnaposto: in inglese l'ordine delle
      parti cambia («total need», «of which»), e con i pezzi concatenati
      la traduzione sarebbe impossibile. */
-  return trh("Fabbisogno totale ~{v1} L ({v2} ml per kg), di cui ~{v3} L arriva già dal cibo → <b>~{v4} L da bere</b> ({v5} bicchieri)",
-    {v1:n(tot),v2:waterMlPerKg(),v3:n(food),v4:n(drink),v5:Math.round(drink*4)});}
+  return trh("Fabbisogno totale ~{v1} ({v2} per {v6}), di cui ~{v3} arriva già dal cibo → <b>~{v4} da bere</b> ({v5} bicchieri)",
+    {v1:((typeof litriTxt==="function")?litriTxt(tot,2):n(tot)+" L"),v2:(typeof volPerPesoTxt==="function")?volPerPesoTxt(waterMlPerKg()):waterMlPerKg()+" ml",
+     v3:((typeof litriTxt==="function")?litriTxt(food,2):n(food)+" L"),v4:((typeof litriTxt==="function")?litriTxt(drink,2):n(drink)+" L"),v5:Math.round(drink*4),
+     v6:(typeof unitaPeso==="function")?unitaPeso():"kg"});}
 /* Obiettivo acqua: l'utente lo sceglie in IO (litri/giorno); se non impostato
    si usa la proposta in base al peso. +2 bicchieri se allenamento intenso o >45'.
    1 bicchiere = 200 ml. */

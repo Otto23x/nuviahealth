@@ -6,7 +6,7 @@ const KEY="diarioDieta_v2"; // NON cambiare mai: e' dove vivono i dati dell'uten
    apposta per verificare il deploy non verificava niente — e mentre si
    cercava un piano che «non arriva mai», non si poteva nemmeno sapere
    QUALE versione stesse girando sul telefono. Riallineata (25/08). */
-const APP_VER="14.3.0";        // aggiorna a ogni release: visibile in Io per verificare il deploy
+const APP_VER="15.1.0";        // aggiorna a ogni release: visibile in Io per verificare il deploy
 /*   SBLOCCO DI TEST — DA METTERE A false PRIMA DEL RILASCIO  
    Con true, ciclo/allattamento/gravidanza restano CLICCABILI anche sui
    profili maschili, per poterli provare senza cambiare genere. Con false
@@ -146,6 +146,15 @@ if(S.profile.gender!=="f"&&!PHYS_TEST_UNLOCK){S.phys.cycleOn=false;S.phys.cycleS
    Solo sesso e data di nascita: la categoria e il coefficiente li calcola
    l'app. Servono a cucinare per tutti (dosi in pentola) e a fare la spesa
    per il numero giusto di persone. */
+/* ── DOVE VIVI (v15.0.0) ────────────────────────────────────────
+   Tre campi nel profilo, e una regola sola sopra di loro: **i numeri
+   restano metrici**, sempre. `unita` decide come si SCRIVONO peso e
+   altezza sullo schermo e in che unità parla il modello, non come
+   sono salvati. Chi apre l'app per la prima volta trova il paese che
+   il telefono suggerisce; da lì valuta e unità arrivano da sole. */
+if(!S.profile.paese)S.profile.paese=(typeof paeseSuggerito==="function")?paeseSuggerito():"IT";
+if(!S.profile.valuta)S.profile.valuta=(typeof paeseDi==="function")?paeseDi(S.profile.paese)[2]:"EUR";
+if(!S.profile.unita)S.profile.unita=(typeof paeseDi==="function")?paeseDi(S.profile.paese)[3]:"metrico";
 S.family=Array.isArray(S.family)?S.family:[];
 /* Cucinare per tutti è una scelta, non una conseguenza dell'avere una
    famiglia: c'è chi prepara il proprio piatto a parte. Di norma è

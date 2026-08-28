@@ -61,8 +61,10 @@ window.pattoTappa=pattoTappa;
 function pattoTappaTesto(t){
   if(!t)return null;
   return t.ultima
-    ? tr("Da {a} a {b} kg: l'ultimo tratto.",{a:t.da,b:t.a})
-    : tr("Da {a} a {b} kg in tre mesi. Poi si guarda avanti.",{a:t.da,b:t.a});}
+    /* «Da 176 a 165 lb»: l'unità una volta sola, sull'arrivo, che è
+       come si dice a voce — non «da 176 lb a 165 lb» */
+    ? tr("Da {a} a {b}: l'ultimo tratto.",{a:pesoNum(t.da,1),b:pesoTxt(t.a,1)})
+    : tr("Da {a} a {b} in tre mesi. Poi si guarda avanti.",{a:pesoNum(t.da,1),b:pesoTxt(t.a,1)});}
 window.pattoTappaTesto=pattoTappaTesto;
 
 function patto(){

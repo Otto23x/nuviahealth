@@ -1681,7 +1681,7 @@ window.reverseStep=async()=>{
   const a=W[0].w,b=W[W.length-1].w,d=Math.round((b-a)*10)/10;
   const su=d>0.4;
   const msg=" "+tr("Uscita morbida · settimana {n}",{n:((S.reverse.step||0)+1)})+"\n\n"+
-    tr("Peso: {a} kg → {b} kg ({d} kg)",{a:a,b:b,d:(d>=0?"+":"")+d})+"\n"+
+    tr("Peso: {a} → {b} ({d})",{a:((typeof pesoNum==="function")?pesoNum(a,1):a),b:((typeof pesoTxt==="function")?pesoTxt(b,1):b+" kg"),d:(d>=0?"+":"")+((typeof pesoTxt==="function")?pesoTxt(d,1):d+" kg")})+"\n"+
     tr("Calorie già risalite: +{k} kcal al giorno",{k:reverseBonus()})+"\n\n"+
     (su?tr("Il peso sta salendo: conviene fermarsi qui. Hai trovato il tuo tetto.")
        :tr("Il peso è stabile: possiamo salire ancora di 60 kcal e vedere cosa succede."));

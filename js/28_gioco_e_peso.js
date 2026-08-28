@@ -184,15 +184,22 @@ function pesoHeroHTML(){
   const d=pesoDati();
   if(!d.attuale)return "";
   const delta=Math.round((d.attuale-d.partenza)*10)/10;
-  return `<div class="card" data-pesohero="1"><h2>${esc(tr("Il tuo peso"))}</h2>
+  /* I TRE NUMERONI PORTANO L'UNITÀ NEL TITOLO, NON ACCANTO (28/08).
+     Prima non ce l'avevano affatto: chi vive in libbre leggeva «80» e
+     capiva ottanta libbre. Ripeterla tre volte in tre caselle strette
+     però non si può, quindi la dice il titolo una volta sola e i
+     numeri restano numeri. */
+  const uP=(typeof unitaPeso==="function")?unitaPeso():"kg";
+  const vP=(x)=>(x==null)?null:((typeof pesoNum==="function")?pesoNum(x,1):x);
+  return `<div class="card" data-pesohero="1"><h2>${esc(trh("Il tuo peso ({v1})",{v1:uP}))}</h2>
     <div class="p3">
-      <div><div class="pv">${d.partenza||"—"}</div><div class="pl">${esc(tr("partenza"))}</div></div>
-      <div><div class="pv ora">${d.attuale||"—"}</div><div class="pl">${esc(tr("oggi"))}</div></div>
-      <div><div class="pv">${d.obiettivo||"—"}</div><div class="pl">${esc(tr("obiettivo"))}</div></div>
+      <div><div class="pv">${vP(d.partenza)||"—"}</div><div class="pl">${esc(tr("partenza"))}</div></div>
+      <div><div class="pv ora">${vP(d.attuale)||"—"}</div><div class="pl">${esc(tr("oggi"))}</div></div>
+      <div><div class="pv">${vP(d.obiettivo)||"—"}</div><div class="pl">${esc(tr("obiettivo"))}</div></div>
     </div>
     ${d.n>1&&delta!==0?`<div class="hint" style="text-align:center">${esc(delta<0
-      ? tr("{n} kg dalla partenza.",{n:delta})
-      : tr("{n} kg dalla partenza: i pesi oscillano, conta la direzione nel tempo.",{n:"+"+delta}))}</div>`:""}
+      ? tr("{n} dalla partenza.",{n:(typeof pesoTxt==="function")?pesoTxt(delta,1):delta+" kg"})
+      : tr("{n} dalla partenza: i pesi oscillano, conta la direzione nel tempo.",{n:"+"+((typeof pesoTxt==="function")?pesoTxt(delta,1):delta+" kg")}))}</div>`:""}
     <button class="btn" type="button" onclick="pesataRapida()">${esc(tr("Aggiungi una pesata"))}</button>
   </div>`;}
 window.pesoHeroHTML=pesoHeroHTML;
@@ -220,7 +227,7 @@ function pesataSalva(kg){
   S.profile.weights.sort((a,b)=>String(a.d).localeCompare(String(b.d)));
   save();
   traguardiControlla();
-  try{toast(tr("Segnato: {n} kg",{n:S.profile.w}));}catch(e){}
+  try{toast(tr("Segnato: {n}",{n:(typeof pesoTxt==="function")?pesoTxt(S.profile.w,1):S.profile.w+" kg"}));}catch(e){}
   try{render(cur);}catch(e){}
   return S.profile.w;}
 window.pesataSalva=pesataSalva;

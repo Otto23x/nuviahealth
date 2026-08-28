@@ -55,7 +55,10 @@ function wg(id){const e=document.getElementById(id);return e?e.value.trim():"";}
 function wizNext(to){
   if(WIZ.step===1){
     WIZ.d.nome=wg("wzNome");WIZ.d.gen=wg("wzGen");WIZ.d.dob=wg("wzDob");
-    WIZ.d.h=+wg("wzH")||0;WIZ.d.w=+wg("wzW")||0;WIZ.d.fat=parseFloat(wg("wzFat"))||null;WIZ.d.mus=parseFloat(wg("wzMus"))||null;
+    /* letti nelle unità della persona e tenuti in metrico: qui si
+       scriveva `+wg(...)` e basta, e in libbre entrava il numero nudo */
+    WIZ.d.h=Math.round(((typeof altIn==="function")?altIn(wg("wzH")):+wg("wzH"))||0);
+    WIZ.d.w=Math.round((((typeof pesoIn==="function")?pesoIn(wg("wzW")):+wg("wzW"))||0)*10)/10;WIZ.d.fat=parseFloat(wg("wzFat"))||null;WIZ.d.mus=parseFloat(wg("wzMus"))||null;
     WIZ.d.act=+wg("wzAct")||1.3;WIZ.d.vita=wg("wzVita");WIZ.d.sport=wg("wzSport");
     if(!WIZ.d.dob||!WIZ.d.h||!WIZ.d.w)return dlgAlert(tr("Servono almeno data di nascita, altezza e peso."));}
   if(WIZ.step===2){
@@ -414,8 +417,8 @@ function rateNote(){
   if(!rateCapped())return "";
   const n=x=>String(x).replace(".",",");
   const su=/massa|aument/i.test(S.profile.goal||"");
-  return trh("il ritmo richiesto ({v1} kg a settimana) supera il tetto di sicurezza",{v1:n(ratePerWeek())})+
-    (su?" del surplus":" del 30% del fabbisogno")+trh(": il piano lavora a ~{v1} kg a settimana",{v1:n(rateEffective())});}
+  return trh("il ritmo richiesto ({v1} a settimana) supera il tetto di sicurezza",{v1:((typeof pesoTxt==="function")?pesoTxt(ratePerWeek(),1):ratePerWeek()+" kg")})+
+    (su?" del surplus":" del 30% del fabbisogno")+trh(": il piano lavora a ~{v1} a settimana",{v1:((typeof pesoTxt==="function")?pesoTxt(rateEffective(),1):rateEffective()+" kg")});}
 /* Fabbisogno usato per i TARGET del piano. Il moltiplicatore di attività è
    una stima: se i tuoi giorni sono più fermi di quanto dichiarato, il
    fabbisogno risulta gonfiato e il target troppo alto. La "prudenza" lo
@@ -672,6 +675,14 @@ window.famAdd=()=>{
   S.family.push({nome:"",gender:"f",dob:""});save();render(cur);};
 window.famDel=(i)=>{S.family.splice(i,1);save();render(cur);};
 window.famSet=(i,k,v)=>{if(!S.family[i])return;
+  /* la data arriva scritta «gg/mm/aaaa»: si converte, e se è scritta
+     a metà non si salva niente invece di salvare una data sbagliata */
+  if(k==="dob"){const t=String(v||"").trim();
+    const d=t?((typeof dobParse==="function")?dobParse(t):""):"";
+    if(t&&!d)return;
+    if(d){S.family[i].dob=d;delete S.family[i].eta;}
+    else{delete S.family[i].dob;}
+    save();render(cur);return;}
   if(k==="eta"){                       /* l'età si salva come data, non come numero */
     const dob=etaToDob(v);
     if(dob){S.family[i].dob=dob;delete S.family[i].eta;}
@@ -696,8 +707,13 @@ function famRowsHTML(){
       <select class="fsex" onchange="famSet(${i},'gender',this.value)" aria-label="Sesso">
         <option value="f" ${m.gender!=="m"?"selected":""}>F</option>
         <option value="m" ${m.gender==="m"?"selected":""}>M</option></select>
-      ${(!m.dob||FAMEDIT[i])
-        ? `<input type="date" class="fdob" value="${esc(m.dob||"")}" onchange="famSet(${i},'dob',this.value)" aria-label="${tr("Data di nascita")}">`
+      ${/* SI SCRIVE, NON SI SFOGLIA (28/08): stessa regola della
+            propria data di nascita. Il calendario per il 2016, su un
+            telefono, sono decine di tocchi. */
+        (!m.dob||FAMEDIT[i])
+        ? `<input type="text" class="fdob" inputmode="numeric" maxlength="10" placeholder="${tr("gg/mm/aaaa")}"
+             value="${esc(m.dob?dobPretty(m.dob):"")}" oninput="dateMask(this)"
+             onchange="famSet(${i},'dob',this.value)" aria-label="${tr("Data di nascita")}">`
         : `<button class="feta" onclick="famEdit(${i})" title="${tr("Tocca per correggere la data")}">${b.age!==null?b.age+" a":"—"}</button>`}
       <span class="fbadge" title="${esc(b.l)}${m.dob?" · nato nel "+String(m.dob).slice(0,4):""}">${b.ico}${b.age!==null?" ×"+b.c:""}</span>
       <button class="ibtn" title="${tr("Togli")}" onclick="famDel(${i})">✕</button></div>`;});
@@ -896,11 +912,11 @@ function refWeightWhy(){
      l'ultima cosa che restava italiana in inglese. */
   const p=S.profile,fat=parseFloat(p.fatp);
   const gw=goalWeightSet();
-  if(gw&&gw<p.w)return trh("il peso obiettivo che hai impostato tu ({v1} kg)",{v1:gw});
+  if(gw&&gw<p.w)return trh("il peso obiettivo che hai impostato tu ({v1})",{v1:((typeof pesoTxt==="function")?pesoTxt(gw,1):gw+" kg")});
   if(fat>0)return trh("massa magra stimata dal {v1}% di grasso, +15% di margine",{v1:fat});
   const h=+p.h||0;
   if(h>0){const ideal=(p.gender==="f"?21.5:22.5)*Math.pow(h/100,2);
-    if(p.w>ideal)return trh("peso corretto: ideale per l'altezza ({v1} kg) più un quarto dell'eccesso",{v1:Math.round(ideal)});}
+    if(p.w>ideal)return trh("peso corretto: ideale per l'altezza ({v1}) più un quarto dell'eccesso",{v1:((typeof pesoTxt==="function")?pesoTxt(Math.round(ideal),1):Math.round(ideal)+" kg")});}
   return tr("il tuo peso attuale");}
 /* ═══ L'OBIETTIVO DI PESO: UNA VARIABILE, UN PORTONE ══════════════
    IL DIFETTO, ricostruito col founder il 23/08: «l'utente scriveva un
@@ -926,6 +942,11 @@ function setGoalWeight(v,opts){
   opts=opts||{};
   const attuale=goalWeightSet()||null;
   const esito=(motivo,messaggio)=>({ok:false,valore:attuale,motivo,messaggio:messaggio||""});
+  /* `v` È IN CHILI, SEMPRE. Questo è il portone dei dati, non un campo
+     di testo: chi chiama converte prima, alla sua schermata, dove sa
+     in che unità ha scritto la persona. I limiti qui sotto (20 e 350)
+     sono chili, e leggere libbre con quel metro lascerebbe passare un
+     obiettivo di 180 kg scambiato per 180 lb. */
   const n=parseFloat(String(v==null?"":v).replace(",","."));
 
   if(String(v==null?"":v).trim()==="")return esito("vuoto");
@@ -966,13 +987,13 @@ window.goalWeightApplica=(v,opts)=>{
   if(r.ok){
     save();
     if(r.messaggio)toast(r.messaggio);              /* avviso: passa, ma si dice */
-    else if(!(opts&&opts.zitto))toast(tr("Obiettivo impostato: {n} kg ✓",{n:r.valore}));
+    else if(!(opts&&opts.zitto))toast(tr("Obiettivo impostato: {n} ✓",{n:((typeof pesoTxt==="function")?pesoTxt(r.valore,1):r.valore+" kg")}));
     return true;}
   if(r.motivo==="vuoto")return false;               /* niente scritto, niente da dire */
   /* Un rifiuto si dice sempre, e si dice PERCHÉ. Il vecchio valore
      resta, e la persona deve sapere che è rimasto quello. */
   const coda=r.valore
-    ? "\n\n"+tr("L'obiettivo resta {n} kg.",{n:r.valore})
+    ? "\n\n"+tr("L'obiettivo resta {n}.",{n:((typeof pesoTxt==="function")?pesoTxt(r.valore,1):r.valore+" kg")})
     : "\n\n"+tr("L'obiettivo resta vuoto.");
   dlgAlert((r.messaggio||tr("Quel peso non sembra plausibile."))+coda,tr("Non posso impostarlo"));
   return false;};
@@ -1236,14 +1257,14 @@ function renderSetup(){const el=document.getElementById("pg-setup");let h="";
     <div class="row2"><div><label>${tr("Nome")}</label><input type="text" id="wzNome" value="${esc(WIZ.d.nome||S.profile.name||"")}"></div>
     <div><label>Genere</label><select id="wzGen"><option value="m">Uomo</option><option value="f" ${WIZ.d.gen==="f"?"selected":""}>Donna</option></select></div></div>
     <div class="row2"><div><label>${tr("Data di nascita")}</label><input type="date" id="wzDob" value="${WIZ.d.dob||S.profile.dob||""}"></div>
-    <div><label>Altezza (cm)</label><input type="number" id="wzH" value="${WIZ.d.h||S.profile.h||""}"></div></div>
-    <div class="row3"><div><label>${tr("Peso (kg)")}</label><input type="number" step="0.1" id="wzW" value="${WIZ.d.w||S.profile.w||""}"></div>
+    <div><label>${trh("Altezza ({v1})",{v1:(typeof unitaAlt==="function")?unitaAlt():"cm"})}</label><input type="${(typeof imperiale==="function"&&imperiale())?"text":"number"}" id="wzH" value="${((typeof imperiale==="function"&&imperiale())?altTxt(WIZ.d.h||S.profile.h):(WIZ.d.h||S.profile.h))||""}"></div></div>
+    <div class="row3"><div><label>${trh("Peso ({v1})",{v1:((typeof unitaPeso==="function")?unitaPeso():"kg")})}</label><input type="number" step="0.1" id="wzW" value="${((typeof pesoNum==="function")?pesoNum(WIZ.d.w||S.profile.w,1):(WIZ.d.w||S.profile.w))||""}"></div>
     <div><label>M. grassa %*</label><input type="number" step="0.1" id="wzFat" value="${WIZ.d.fat||S.profile.fatp||""}"></div>
     <div><label>M. muscolare %*</label><input type="number" step="0.1" id="wzMus" value="${WIZ.d.mus||S.profile.musp||""}"></div></div>
     <label>${tr("Attività di base (sport escluso)")}</label>
     <select id="wzAct">${[["1.2",tr("Molto sedentario")],["1.3",tr("Sedentario, lavoro al PC")],["1.35",tr("Poco attivo")],["1.4",tr("Moderatamente attivo")],["1.45",tr("Attivo")],["1.55",tr("Molto attivo (lavoro fisico)")]].map(o=>`<option value="${o[0]}" ${String(WIZ.d.act||S.profile.act||1.3)===o[0]?"selected":""}>${o[1]}</option>`).join("")}</select>
     <label>${tr("Stile di vita (giorni in ufficio, mensa, smart, famiglia…)")}</label><textarea id="wzVita" placeholder="${tr("es. 2 giorni in ufficio con mensa, 3 in smart; 2 figli")}">${esc(WIZ.d.vita||"")}</textarea>
-    <label>${tr("Sport abituali")}</label><input type="text" id="wzSport" value="${esc(WIZ.d.sport||"")}" placeholder="${tr("es. camminata 4 km quasi ogni giorno, tennis saltuario")}">
+    <label>${tr("Sport abituali")}</label><input type="text" id="wzSport" value="${esc(WIZ.d.sport||"")}" placeholder="${trh("es. camminata {v1} quasi ogni giorno, tennis saltuario",{v1:(typeof distTxt==="function")?distTxt(4):"4 km"})}">
     <button class="btn" onclick="wizNext(2)">Avanti →</button></div>`;}
   else if(WIZ.step===2){const dv=(f,def)=>WIZ.d[f]!==undefined?WIZ.d[f]:(S.diet[f]!==undefined?S.diet[f]:def);
     const sel=(f,val,def)=>dv(f,def)===val?" selected":"";
@@ -1270,7 +1291,7 @@ function renderSetup(){const el=document.getElementById("pg-setup");let h="";
     <select id="wzGoal"><option value="leggero">${tr("Dimagrire piano (−300 kcal/g)")}</option><option value="moderato" selected>Dimagrire (−500 kcal/g)</option><option value="deciso">Dimagrire deciso (−750 kcal/g)</option><option value="mantenimento">Mantenimento</option><option value="massa">Leggera massa (+200 kcal/g)</option></select>
     <div class="stat3" style="margin-top:12px"><div><div class="v">${t.bmi}</div><div class="l">BMI</div></div>
     <div><div class="v">${t.bmr}</div><div class="l">BMR</div></div><div><div class="v">${t.tdee}</div><div class="l">TDEE</div></div></div>
-    <div class="hint">${t.lbm?trh("Massa magra stimata: {v1} kg (dalla % di grasso). ",{v1:t.lbm}):""}${trh("Con l'obiettivo selezionato il piano punterà a {v1} kcal e {v2} di proteine al giorno (ricalcolati quando premi Genera).",{v1:'<b id="wzK">'+t.kcal+"</b>",v2:"<b>"+t.prot+"g</b>"})}</div>
+    <div class="hint">${t.lbm?trh("Massa magra stimata: {v1} (dalla % di grasso). ",{v1:((typeof pesoTxt==="function")?pesoTxt(t.lbm,1):t.lbm+" kg")}):""}${trh("Con l'obiettivo selezionato il piano punterà a {v1} kcal e {v2} di proteine al giorno (ricalcolati quando premi Genera).",{v1:'<b id="wzK">'+t.kcal+"</b>",v2:"<b>"+t.prot+"g</b>"})}</div>
     <label style="margin-top:12px"><input type="checkbox" id="wzWipe" style="width:auto"> ${tr("Azzera anche storico e pesate precedenti (ricomincio davvero da zero)")}</label>
     <label style="margin-top:8px"><input type="checkbox" id="wzOk" style="width:auto"> ${tr("Ho letto l'avvertenza: farò validare il piano da un nutrizionista/medico")}</label>
     <div class="mtools"><button class="btn ghost" onclick="wizNext(2)">← Indietro</button>
@@ -1444,7 +1465,7 @@ let NUVIA_FUNZIONI;
 <tr><td colspan="2"><b>${tr("Allenamenti e tempi dell'obiettivo")}</b> ${trh("— le calorie bruciate con gli allenamenti pianificati {b1}: il target dei pasti resta fabbisogno meno deficit. Servono a stimare {b2} arrivi all'obiettivo, e le usa la Stima risultati.",{b1:"<b>"+tr("non alzano le calorie da mangiare")+"</b>",b2:"<b>"+tr("in quanto tempo")+"</b>"})}</td></tr>
 <tr><td colspan="2"><b>${tr("Pasti fuori casa")}</b> — non più solo "mensa": segni i giorni in cui mangi fuori (mensa, trattoria, bar, menù fisso) e per ognuno se è <b>pranzo, cena o entrambi</b> ${tr("— utile a chi lavora in viaggio. Il totale settimanale si conta da sé, e per quei pasti il piano descrive come comporre il piatto invece di inventarne uno.")}</td></tr>
 <tr><td colspan="2"><b>${tr("Varietà a tre livelli")}</b> ${tr("— scegli tu se il piano deve girare su pochi ingredienti che tornano (spesa corta, poco da cucinare), stare in mezzo, o proporre piatti sempre diversi. L'AI costruisce la settimana di conseguenza.")}</td></tr>
-<tr><td colspan="2"><b>${tr("Il piano segue il tuo peso")}</b> ${tr("— quando cali (o sali) di oltre 3 kg rispetto a quando il piano è nato, l'app te lo dice, mostra come è cambiato il fabbisogno e propone di ritarare le grammature. Mai in automatico: decidi tu.")}</td></tr>
+<tr><td colspan="2"><b>${tr("Il piano segue il tuo peso")}</b> ${trh("— quando cali (o sali) di oltre {v1} rispetto a quando il piano è nato, l'app te lo dice, mostra come è cambiato il fabbisogno e propone di ritarare le grammature. Mai in automatico: decidi tu.",{v1:(typeof pesoTxt==="function")?pesoTxt(3,0):"3 kg"})}</td></tr>
 <tr><td colspan="2"><b>Mensa davvero generica</b> ${tr("— per i pasti in mensa il piano non inventa un piatto preciso, ma descrive come comporre il vassoio (fonte proteica, contorno, porzione di carboidrati). Quei pasti non finiscono mai nella lista della spesa.")}</td></tr>
 <tr><td colspan="2"><b>${tr("Obiettivo di peso, un valore solo")}</b> ${trh("— vive in un unico posto, visibile in {b} e usato ovunque (proteine, proiezione, grafici, stima). Lo cambi solo tu: se il campo resta vuoto l'app chiede conferma invece di cancellarlo, e quando l'AI propone una correzione puoi accettarla o riscriverla.",{b:"<b>Io → Obiettivi</b>"})}</td></tr>
 <tr><td colspan="2">${trh("<b>Caratteristiche alimentari a spunte</b> — pasti che fai davvero (tutti gli slot, Dopo cena compreso), {b2} con scelta pranzo/cena, {b1} a checkbox (lattosio, glutine, nichel, uova, frutta a guscio, pesce/crostacei, soia, basso FODMAP) più testo libero, <b>vegetariana con uova e pesce ammessi o esclusi</b>, vegana.",{b2:"<b>"+tr("mensa giorno per giorno")+"</b>",b1:"<b>intolleranze</b>"})}</td></tr>
@@ -1666,7 +1687,7 @@ GUIDA_IT.simboli=()=>`<div class="card guida-sec"><details class="gdet"><summary
 <tr><td colspan="2">${trh("<b>Evento</b> del giorno (Natale, compleanno, festa, cena fuori, lavoro/trasferta, giornata no, malattia…): il giorno resta tracciato ma {b1} e non spezza la serie .",{b1:"<b>escluso dalle medie</b>"})}</td></tr>
 <tr><td colspan="2">${tr("Barcode (dentro ogni pasto): scansiona PIÙ prodotti, correggi i grammi e conferma la somma — da Open Food Facts, senza consumare AI.")}</td></tr>
 <tr><td colspan="2"><b>${tr("La serie, in parole semplici")}</b>: conta i giorni "buoni" di fila. Ogni mattina l'app guarda com'è andata IERI e si fa 3 domande: hai spuntato i pasti? sei rimasto dentro le calorie? gli extra erano al massimo 300 kcal? <b>${tr("Tre sì = fiamma +1. Anche un solo no = si riparte da 0.")}</b> ${tr("Fa tutto da sola, non devi premere nulla; in Progressi vacanza si mette in pausa.")}</td></tr>
-<tr><td colspan="2">${trh("Acqua: l'obiettivo è l'acqua {b}, non il fabbisogno totale. Si parte da 35 ml per kg (32 se il BMI supera 25, 28 se supera 30: il tessuto adiposo contiene molta meno acqua del muscolo), poi si <b>sottrae il ~22% che arriva già dal cibo</b> — frutta, verdura, minestre, latte. Il risultato è in bicchieri da 200 ml, {b9} nei giorni con allenamento intenso o oltre 45 minuti. Puoi sempre scrivere il tuo valore in Io → Obiettivi.",{b:"<b>da bere</b>",b9:"<b>+2</b>"})}</td></tr>
+<tr><td colspan="2">${trh("Acqua: l'obiettivo è l'acqua {b}, non il fabbisogno totale. Si parte da {v1} per {v2} (32 se il BMI supera 25, 28 se supera 30: il tessuto adiposo contiene molta meno acqua del muscolo), poi si <b>sottrae il ~22% che arriva già dal cibo</b> — frutta, verdura, minestre, latte. Il risultato è in bicchieri da {v3}, {b9} nei giorni con allenamento intenso o oltre 45 minuti. Puoi sempre scrivere il tuo valore in Io → Obiettivi.",{b:"<b>da bere</b>",b9:"<b>+2</b>",v1:(typeof volPerPesoTxt==="function")?volPerPesoTxt(35):"35 ml",v2:(typeof unitaPeso==="function")?unitaPeso():"kg",v3:(typeof volumeTxt==="function")?volumeTxt(200):"200 ml"})}</td></tr>
 <tr><td>${ic("star",18)}</td><td>${tr("Sonno · Relax · Come ti senti: scala 1 basso → 5 alto. Alimentano le correlazioni AI di fine settimana.")}</td></tr>
 <tr><td colspan="2">${tr("Vacanza (in Io): congela deficit e ; l'app resta un diario senza giudizio.")}</td></tr>
 <tr><td colspan="2">Promemoria del mattino: "Ieri hai segnato tutti i Pasti, l'Acqua e lo Sport?" — appare se qualcosa manca e resta in alto finché non premi <b>Fatto</b> ${tr("(o apri ieri e sistemi).")}</td></tr>
@@ -1966,9 +1987,9 @@ function renderGuida(){document.getElementById("pg-guida").innerHTML=avvisoLingu
 function compLine(p){const fat=parseFloat(p.fatp),mus=parseFloat(p.musp);
   if(!(fat>0))return "";
   const gK=(p.w*fat/100),lbmK=p.w-gK;
-  let s=trh("La tua composizione: <b>magra {v1} kg</b> · <b>grasso {v2} kg</b>",{v1:lbmK.toFixed(1),v2:gK.toFixed(1)});
+  let s=trh("La tua composizione: <b>magra {v1}</b> · <b>grasso {v2}</b>",{v1:((typeof pesoTxt==="function")?pesoTxt(lbmK,1):lbmK+" kg"),v2:((typeof pesoTxt==="function")?pesoTxt(gK,1):gK+" kg")});
   if(mus>0){const mK=p.w*mus/100,rest=lbmK-mK;
-    s+=trh(" — della magra: muscolo {v1} kg, il resto ({v2} kg) è acqua extra-muscolare, ossa e organi",{v1:mK.toFixed(1),v2:rest.toFixed(1)});}
+    s+=trh(" — della magra: muscolo {v1}, il resto ({v2}) è acqua extra-muscolare, ossa e organi",{v1:((typeof pesoTxt==="function")?pesoTxt(mK,1):mK+" kg"),v2:((typeof pesoTxt==="function")?pesoTxt(rest,1):rest+" kg")});}
   return `<div class="hint" style="margin:4px 0 8px">${trh("{v1}. I calcoli (Katch-McArdle) usano la magra derivata dalla % di grasso.",{v1:s})}</div>`;}
 /* Proiezione verso l'obiettivo: regressione lineare sulle ultime pesate */
 function goalProj(){const p=S.profile,ws=p.weights.slice(-8);
@@ -1983,7 +2004,7 @@ function goalProj(){const p=S.profile,ws=p.weights.slice(-8);
   if(ys[ys.length-1]<=p.goalW)return " Obiettivo raggiunto!";
   const dLeft=(ys[ys.length-1]-p.goalW)/(-slope);
   const eta=new Date(Date.now()+dLeft*864e5);
-  return "Al ritmo attuale (~"+(slope*7).toFixed(1).replace("-","−")+trh(" kg/settimana) dovresti raggiungere <b>{v1} kg</b> intorno al <b>",{v1:p.goalW})+eta.toLocaleDateString(dataLoc(),{day:"numeric",month:"long",year:"numeric"})+"</b>. Stima indicativa: il ritmo rallenta man mano che scendi.";}
+  return "Al ritmo attuale (~"+String(((typeof pesoNum==="function")?pesoNum(slope*7,1):slope*7)).replace("-","−")+trh("{v0}/settimana) dovresti raggiungere <b>{v1}</b> intorno al <b>",{v0:" "+((typeof unitaPeso==="function")?unitaPeso():"kg"),v1:((typeof pesoTxt==="function")?pesoTxt(p.goalW,1):p.goalW+" kg")})+eta.toLocaleDateString(dataLoc(),{day:"numeric",month:"long",year:"numeric"})+"</b>. Stima indicativa: il ritmo rallenta man mano che scendi.";}
 function renderIo(){const el=document.getElementById("pg-io");const p=S.profile;
   /* Quattro schede distinte, ognuna con il suo salvataggio:
      1) anagrafica (cambia quasi mai) · 2) misurazioni (la pesata, il dato che
@@ -2013,7 +2034,8 @@ function renderIo(){const el=document.getElementById("pg-io");const p=S.profile;
   h+=`<div class="gsec">${tr("Chi sei")}</div>`;
   h+=`<div class="card pesata"><h2>Nuova pesata</h2>
   <div class="hint">${trh("I valori che cambiano nel tempo. Ogni salvataggio {b} allo storico, con la data di oggi: è così che nascono i grafici e le proiezioni.",{b:"<b>"+tr("aggiunge una riga")+"</b>"})}</div>
-  <div class="row3"><div><label>${tr("Peso (kg)")}</label><input type="number" step="0.1" id="pW" value="${p.w||""}" placeholder="es. 80"></div>
+  <div class="row3"><div><label>${trh("Peso ({v1})",{v1:(typeof unitaPeso==="function")?unitaPeso():"kg"})}</label>
+    <input type="number" step="0.1" id="pW" value="${p.w?((typeof imperiale==="function"&&imperiale())?(p.w*2.2046).toFixed(1):p.w):""}" placeholder="${(typeof imperiale==="function"&&imperiale())?"es. 175":"es. 80"}"></div>
   <div><label>M. grassa %</label><input type="number" step="0.1" id="pFat" value="${p.fatp||""}" placeholder="es. 28"></div>
   <div><label>M. muscolare %</label><input type="number" step="0.1" id="pMus" value="${p.musp||""}" placeholder="es. 42"></div></div>
   ${compLine(p)}
@@ -2029,12 +2051,17 @@ function renderIo(){const el=document.getElementById("pg-io");const p=S.profile;
 
   h+=`<div class="card"><h2>${tr("Obiettivi")}</h2>
   ${hint2(tr("Dove vuoi arrivare e con che ritmo."),tr("Da qui l'app calcola il deficit e la proiezione del peso."))}
-  <div class="row2"><div><label>${tr("Obiettivo peso (kg)")}</label><input type="number" step="0.1" id="pGoal" value="${goalWeightSet()||""}" placeholder="facoltativo"></div>
-  <div><label>${tr("Obiettivo acqua (L al giorno)")}</label><input type="number" step="0.25" id="pWater" value="${p.waterGoalL||""}" placeholder="proposto: ${waterSuggestL()}"></div></div>
+  <div class="row2"><div><label>${trh("Obiettivo peso ({v1})",{v1:(typeof unitaPeso==="function")?unitaPeso():"kg"})}</label>
+    <input type="number" step="0.1" id="pGoal" value="${goalWeightSet()?((typeof imperiale==="function"&&imperiale())?(goalWeightSet()*2.2046).toFixed(1):goalWeightSet()):""}" placeholder="${esc(tr("facoltativo"))}"></div>
+  <div><label>${/* «Acqua al giorno» e non «Obiettivo acqua … al giorno»: con
+         «fl oz» l'etichetta arrivava a sei parole e andava a capo
+         sul telefono (lo dice t_labels, e ha ragione). Più corta e
+         più chiara: il «per giorno» è la cosa che serve sapere. */
+        trh("Acqua al giorno ({v1})",{v1:(typeof unitaVol==="function")?unitaVol():"L"})}</label><input type="number" step="${(typeof imperiale==="function"&&imperiale())?"4":"0.25"}" id="pWater" value="${p.waterGoalL?((typeof imperiale==="function"&&imperiale())?Math.round(p.waterGoalL*33.814):p.waterGoalL):""}" placeholder="${esc(trh("proposto: {v1}",{v1:(typeof litriTxt==="function")?litriTxt(waterSuggestL()):waterSuggestL()}))}"></div></div>
   ${(()=>{if(!p.goalW||!p.h)return"";const b=bmiFor(p.goalW),cl=bmiClass(b);
     return `<div class="hint" style="color:${cl.ok?"var(--bosco)":"var(--rosso)"}">Obiettivo ${p.goalW} kg → BMI ${b} (${cl.label}).</div>`;})()}
   ${hint2(tr("Lascia vuoto e l'obiettivo lo calcola l'app su di te."),
- `${trh("{v1}, già al netto dell'acqua che arriva dal cibo. Un bicchiere vale 200 ml; con allenamenti intensi o oltre 45 minuti l'obiettivo sale di 2 bicchieri.",{v1:waterExplain()})}`)}
+ `${trh("{v1}, già al netto dell'acqua che arriva dal cibo. Un bicchiere vale {v2}; con allenamenti intensi o oltre 45 minuti l'obiettivo sale di 2 bicchieri.",{v1:waterExplain(),v2:(typeof volumeTxt==="function")?volumeTxt(ML_BICCHIERE):"200 ml"})}`)}
   <label>${tr("Allenamenti obiettivo a settimana")}</label>
   ${(p.goalWorkoutList||[]).length?`<div class="wkhead"><span style="flex:2">Sport</span><span style="flex:1">Minuti</span><span style="flex:1">${tr("Volte")}</span><span style="width:34px"></span></div>`:""}
   <div id="goalWkList">${(p.goalWorkoutList||[]).map((g,i)=>`<div style="display:flex;gap:8px;align-items:center;margin-bottom:4px">
@@ -2077,7 +2104,10 @@ function renderIo(){const el=document.getElementById("pg-io");const p=S.profile;
   <div class="row2"><div><label>${tr("Nome")}</label><input type="text" id="pName" value="${esc(p.name||"")}"></div>
   <div><label>Genere</label><select id="pGen"><option value="m" ${p.gender==="m"?"selected":""}>Uomo</option><option value="f" ${p.gender==="f"?"selected":""}>Donna</option></select></div></div>
   <div class="row2"><div><label>${tr("Data di nascita")}</label><input type="date" id="pDob" value="${p.dob||""}"></div>
-  <div><label>Altezza (cm)</label><input type="number" id="pH" value="${p.h||""}" placeholder="es. 175"></div></div>
+  <div><label>${trh("Altezza ({v1})",{v1:(typeof unitaAlt==="function")?unitaAlt():"cm"})}</label>
+    ${(typeof imperiale==="function"&&imperiale())
+      ? `<input type="text" id="pH" value="${p.h?altTxt(p.h):""}" placeholder="5'10&quot;">`
+      : `<input type="number" id="pH" value="${p.h||""}" placeholder="es. 175">`}</div></div>
   <button class="btn ghost" onclick="saveAnagrafica()">${tr("Salva anagrafica")}</button></div>`;
 
   h+=`<div class="card"><h2>${tr("Promemoria")}</h2>
@@ -2321,26 +2351,52 @@ window.setGoalWk=(i,f,v)=>{const g=(S.profile.goalWorkoutList||[])[i];if(!g)retu
 function _v(id){const e=document.getElementById(id);return e?String(e.value).trim():"";}
 window.saveAnagrafica=()=>{const p=S.profile;
   p.name=_v("pName");p.gender=_v("pGen")||"m";p.dob=_v("pDob");
-  p.h=+_v("pH")||p.h||"";
+  /* l'altezza si legge nelle unità della persona («5'10"» o «178») e
+     si salva in centimetri: vedi la nota in saveWeighIn */
+  {let hIn=(typeof altIn==="function")?altIn(_v("pH")):+_v("pH");
+   /* col fermo alla deriva: 178 cm si mostrano «5'10"», che riletti
+      fanno 177,8 — e a ogni salvataggio l'altezza calerebbe di due
+      millimetri senza che nessuno l'abbia toccata */
+   if(typeof senzaDeriva==="function"&&typeof altTxt==="function")
+     hIn=senzaDeriva(hIn,parseFloat(p.h),altTxt);
+   p.h=(hIn>0)?Math.round(hIn):(p.h||"");}
   /* Cambiando il nome cambia anche la prima voce della barra: senza
      questo, la barra restava col nome vecchio fino al ricaricamento. */
   save();try{if(typeof rifaiTabs==="function")rifaiTabs();}catch(e){}
   render("io");toast(tr("Anagrafica salvata ✓"));};
 window.saveObiettivi=async()=>{const p=S.profile;
-  const raw=String(_v("pGoal")||"").trim(),g=parseFloat(raw.replace(",","."));
+  const raw=String(_v("pGoal")||"").trim();
+  const g=(typeof pesoIn==="function")?pesoIn(raw):parseFloat(raw.replace(",","."));
   const prev=goalWeightSet();
   if(raw===""){
     /* campo vuoto: l'obiettivo NON si cancella da solo, si chiede */
-    if(prev&&!await dlgConfirm(tr("Il campo «Obiettivo peso» è vuoto ma hai un obiettivo impostato ({n} kg).",{n:prev})+"\n\nLo tolgo o lo lascio com'è?",
-      {ok:tr("Lascia {n} kg",{n:prev}),ko:tr("Togli l'obiettivo")}))clearGoalWeight();
+    if(prev&&!await dlgConfirm(tr("Il campo «Obiettivo peso» è vuoto ma hai un obiettivo impostato ({n}).",{n:((typeof pesoTxt==="function")?pesoTxt(prev,1):prev+" kg")})+"\n\nLo tolgo o lo lascio com'è?",
+      {ok:tr("Lascia {n}",{n:((typeof pesoTxt==="function")?pesoTxt(prev,1):prev+" kg")}),ko:tr("Togli l'obiettivo")}))clearGoalWeight();
   }else{
     /* La validazione NON si riscrive qui: la fa il portone, che è lo
        stesso per gli Obiettivi, per le Regole e per il percorso
        guidato. Prima questa pagina ricontrollava 20/350 per conto suo
-       e le altre no: tre porte, tre metri diversi. */
-    goalWeightApplica(raw,{zitto:true});
+       e le altre no: tre porte, tre metri diversi.
+
+       AL PORTONE SI PASSANO CHILI, NON IL TESTO DEL CAMPO (28/08).
+       Qui si passava `raw`: in libbre, chi scriveva «180» intendendo
+       180 lb (81,6 kg) si vedeva salvare un obiettivo di 180 CHILI —
+       e il guardrail lo lasciava passare, perché 180 sta dentro
+       20-350. `g` (la conversione in chili) era già calcolato due
+       righe sopra dalla v15.0.0, e non veniva usato da nessuno.
+       Il fermo alla deriva serve perché un obiettivo non toccato non
+       deve muoversi da solo a ogni salvataggio. */
+    let gg=g;
+    if(typeof senzaDeriva==="function"&&typeof pesoTxt==="function")
+      gg=senzaDeriva(gg,prev,(x)=>pesoTxt(x,1));
+    goalWeightApplica(Math.round(gg*10)/10,{zitto:true});
   }
-  const w=parseFloat(_v("pWater"));p.waterGoalL=w>0?w:null;
+  /* l'obiettivo acqua si scrive in fl oz e si salva in litri: il motore
+     del fabbisogno lavora in litri e non deve sapere dove vive la persona */
+  let w=(typeof litriIn==="function")?litriIn(_v("pWater")):parseFloat(_v("pWater"));
+  if(typeof senzaDeriva==="function"&&typeof litriTxt==="function")
+    w=senzaDeriva(w,p.waterGoalL,litriTxt);
+  p.waterGoalL=(w>0)?Math.round(w*1000)/1000:null;
   save();render("io");toast(tr("Obiettivi salvati ✓"));};
 window.saveAttivita=()=>{const p=S.profile;
   p.act=parseFloat(_v("pAct"))||1.3;
@@ -2386,8 +2442,8 @@ window.checkPlanAge=async()=>{
   const oldT=Math.round(bmrForWeight(+S.planW)*(+S.profile.act||1.3));
   const newT=tdee(),diff=oldT-newT;
   const giu=d>0;
-  const msg=" "+(giu?tr("Hai perso {d} kg da quando è stato costruito questo piano ({a} kg → {b} kg).",{d:d,a:S.planW,b:S.profile.w})
-         :tr("Sei salito di {d} kg da quando è stato costruito questo piano ({a} kg → {b} kg).",{d:Math.abs(d),a:S.planW,b:S.profile.w}))+
+  const msg=" "+(giu?tr("Hai perso {d} da quando è stato costruito questo piano ({a} → {b}).",{d:((typeof pesoTxt==="function")?pesoTxt(d,1):d+" kg"),a:((typeof pesoNum==="function")?pesoNum(S.planW,1):S.planW),b:((typeof pesoTxt==="function")?pesoTxt(S.profile.w,1):S.profile.w+" kg")})
+         :tr("Sei salito di {d} da quando è stato costruito questo piano ({a} → {b}).",{d:((typeof pesoTxt==="function")?pesoTxt(Math.abs(d),1):Math.abs(d)+" kg"),a:((typeof pesoNum==="function")?pesoNum(S.planW,1):S.planW),b:((typeof pesoTxt==="function")?pesoTxt(S.profile.w,1):S.profile.w+" kg")}))+
     "\n\n"+tr("Il fabbisogno cambia con il peso: adesso è di ~{n} kcal al giorno invece di ~{o} ({d} kcal).",{n:newT,o:oldT,d:(diff>0?"−":"+")+Math.abs(diff)})+" "+derivaFrase(giu)+
     "\n\n"+tr("Il target aggiornato sarebbe ~{k} kcal al giorno.",{k:dayTargetK()})+
     "\n\nPosso ritarare le grammature del piano attuale sui nuovi numeri, tenendo gli stessi piatti. Oppure lasci tutto com'è: i calcoli del diario usano comunque il peso di oggi.";
@@ -2446,7 +2502,19 @@ window.studioSalva=()=>{
     bmr:n("stBmr"),pa:t("stPa"),
     pliche:{},circ:{},note:t("stNote"),pro:t("stPro")};
   PLICHE.forEach(([k])=>{const v=n("stP_"+k);if(v)rec.pliche[k]=v;});
-  CIRCONF.forEach(([k])=>{const v=n("stC_"+k);if(v)rec.circ[k]=v;});
+  /* Le circonferenze si scrivono nelle unità della persona e si salvano
+     in centimetri. `senzaDeriva` confronta col valore dell'ultima visita:
+     se il numero a schermo non è cambiato, resta quello di prima invece
+     di essere riletto arrotondato (36 in riletti farebbero 91,4 cm da un
+     92 cm che nessuno ha toccato). */
+  const prec=(visite().slice(-1)[0]||{}).circ||{};
+  CIRCONF.forEach(([k])=>{
+    const grezzo=((document.getElementById("stC_"+k)||{}).value||"").trim();
+    if(!grezzo)return;
+    let v=(typeof lunghIn==="function")?lunghIn(grezzo):parseFloat(grezzo);
+    if(typeof senzaDeriva==="function"&&typeof lunghTxt==="function")
+      v=senzaDeriva(v,prec[k],lunghTxt);
+    if(isFinite(v)&&v>0)rec.circ[k]=Math.round(v*10)/10;});
   if(!misureRegistra(rec))
     return dlgAlert(tr("Non c'è niente da salvare: compila almeno una misura o una nota."));
   save();render(cur);
@@ -2475,6 +2543,11 @@ function studioCardHTML(){
   const num=(id,lab,unita,val)=>`<div><label>${tr(lab)}</label>
     <input type="number" inputmode="decimal" step="0.1" id="${id}" value="${val!=null?val:""}" placeholder="${unita}"></div>`;
   const u=v.length?v[v.length-1]:{};
+  /* le circonferenze sono centimetri nel dato e pollici a schermo per
+     chi vive in pollici: una sola riga qui, letta due volte sotto */
+  const uL=(typeof unitaLungh==="function")?unitaLungh():"cm";
+  const vestiC=(x)=>(x==null)?null
+    :((typeof imperiale==="function"&&imperiale())?Math.round(x*0.3937007874*10)/10:x);
   let h=`<div class="card"><h2>${tr("Misure dello studio")}</h2>
   ${hint2(tr("Le misure che prende un professionista — nutrizionista, centro dimagrimento, palestra — e le sue note."),tr("Entrano nell'analisi insieme al piano, agli allenamenti e a come stai."))}
   <label class="ckline"><input type="checkbox" ${modo==="pro"?"checked":""} onchange="S.ui.studioPro=this.checked;save();render(cur)"> ${tr("Sto usando gli strumenti dello studio (pliche, impedenziometro)")}</label>
@@ -2484,9 +2557,13 @@ function studioCardHTML(){
     ${num("stAcqua","Acqua corporea","%",u.acqua)}
     ${num("stBmr","Metabolismo misurato","kcal",u.bmr)}
   </div>
-  <label>${tr("Circonferenze")} <small style="font-weight:400;color:var(--grigio)">cm</small></label>
-  <div class="grid2">${CIRCONF.map(([k,lab])=>num("stC_"+k,lab,"cm",(u.circ||{})[k])).join("")}</div>`;
+  <label>${tr("Circonferenze")} <small style="font-weight:400;color:var(--grigio)">${uL}</small></label>
+  <div class="grid2">${CIRCONF.map(([k,lab])=>num("stC_"+k,lab,uL,vestiC((u.circ||{})[k]))).join("")}</div>`;
   if(modo==="pro"){
+    /* LE PLICHE RESTANO IN MILLIMETRI, ANCHE IN IMPERIALE: un plicometro
+       si legge in mm in tutto il mondo, americani compresi. Vestirle in
+       pollici darebbe «0,3 in» al posto di «8 mm»: un numero che nessun
+       professionista sa leggere. Non è una dimenticanza. */
     h+=`<label>${tr("Pliche")} <small style="font-weight:400;color:var(--grigio)">mm</small></label>
     <div class="grid2">${PLICHE.map(([k,lab])=>num("stP_"+k,lab,"mm",(u.pliche||{})[k])).join("")}</div>
     <div class="grid2">
@@ -2539,7 +2616,10 @@ function studioForAI(){
   const pl=Object.keys(u.pliche||{});
   if(pl.length)p.push("pliche (mm): "+pl.map(k=>k+" "+u.pliche[k]).join(", "));
   const ci=Object.keys(u.circ||{});
-  if(ci.length)p.push("circonferenze (cm): "+ci.map(k=>k+" "+u.circ[k]).join(", "));
+  /* nelle unità della persona, come tutto il resto di questo testo:
+     è un riassunto che il modello può citare parlando con lei */
+  if(ci.length)p.push("circonferenze ("+((typeof unitaLungh==="function")?unitaLungh():"cm")+"): "+
+    ci.map(k=>k+" "+((typeof lunghTxt==="function")?lunghTxt(u.circ[k],1).replace(/\s*(cm|in)$/,""):u.circ[k])).join(", "));
   if(u.pa)p.push("pressione "+u.pa);
   let t=trh(" MISURE DELLO STUDIO del {v1}: ",{v1:u.d})+p.join("; ")+".";
   if(u.note)t+=trh(" NOTE DEL PROFESSIONISTA: {v1} (sono indicazioni di chi la segue: rispettale, non contraddirle).",{v1:u.note});
@@ -2551,8 +2631,18 @@ function studioForAI(){
      dl.vita!=null?"vita "+(dl.vita>0?"+":"")+dl.vita+" cm":""].filter(Boolean).join(", ")+".";
   return t;}
 window.saveWeighIn=()=>{const p=S.profile;
-  const wIn=parseFloat(_v("pW"));
-  const nw=wIn>0?wIn:(parseFloat(p.w)>0?parseFloat(p.w):null);
+  /* IL CAMPO PARLA NELLE UNITÀ DELLA PERSONA, LO STATO NO (v15.0.0):
+     si legge quello che ha scritto e si salva sempre in chili. Un peso
+     in libbre salvato come chili sarebbe un errore del 120% dentro il
+     fabbisogno, e il numero resterebbe plausibile. */
+  let wIn=(typeof pesoIn==="function")?pesoIn(_v("pW")):parseFloat(_v("pW"));
+  /* E NON DEVE DERIVARE (28/08): il campo mostra «176,4 lb» per 80 kg,
+     e 176,4 lb riletti fanno 80,014 kg. Questa pesata si salva ogni
+     giorno: senza questo fermo, chi non tocca il campo vedrebbe il peso
+     muoversi da solo, un millesimo per volta, e il grafico con lui. */
+  if(typeof senzaDeriva==="function"&&typeof pesoTxt==="function")
+    wIn=senzaDeriva(wIn,parseFloat(p.w),(x)=>pesoTxt(x,1));
+  const nw=wIn>0?Math.round(wIn*1000)/1000:(parseFloat(p.w)>0?parseFloat(p.w):null);
   if(!nw)return dlgAlert(tr("Inserisci almeno il peso."));
   const fat=parseFloat(_v("pFat"))||null,mus=parseFloat(_v("pMus"))||null;
   const pa=_v("pPa")||null,spo2=parseInt(_v("pSpo2"))||null;
@@ -2578,7 +2668,7 @@ window.saveWeighIn=()=>{const p=S.profile;
     if(!notaCiclo&&prec&&typeof cicloNotaPeso==="function")notaCiclo=cicloNotaPeso(delta);
   }catch(e){}
   save();render("io");
-  toast(tr("Pesata registrata ✓ {n} kg",{n:nw}));
+  toast(tr("Pesata registrata ✓ {n}",{n:((typeof pesoTxt==="function")?pesoTxt(nw,1):nw+" kg")}));
   if(notaCiclo)setTimeout(()=>toast(notaCiclo),1800);
   setTimeout(()=>{try{checkPlanAge();}catch(e){}},600);};
    // compatibilità
@@ -2595,8 +2685,15 @@ window.editWeight=async i=>{
     if(t==="")return {keep:true};
     if(t==="-")return {val:null};
     return {val:t};};
-  const kg=await ask("peso","","kg");if(kg.abort)return;
-  if(kg.val!=null&&!kg.keep){const n=parseFloat(String(kg.val).replace(",","."));
+  /* IL PESO SI CHIEDE NELLE UNITÀ DELLA PERSONA (28/08). Qui si
+     chiedeva «peso (kg)» a tutti e si salvava il numero così com'era:
+     chi vive in libbre scriveva 176 e si ritrovava 176 kg nello
+     storico — dentro la validazione 20-400, quindi accettato senza
+     un fiato. Il controllo dei limiti va fatto DOPO la conversione,
+     perché 20 e 400 sono chili, non numeri. */
+  const kg=await ask("peso","",(typeof unitaPeso==="function")?unitaPeso():"kg");if(kg.abort)return;
+  if(kg.val!=null&&!kg.keep){
+    const n=(typeof pesoIn==="function")?pesoIn(kg.val):parseFloat(String(kg.val).replace(",","."));
     if(!(n>20&&n<400))return dlgAlert(tr("Peso non valido: la pesata resta come era."));
     x.w=Math.round(n*10)/10;}
   const fat=await ask("massa grassa",x.fat,"%");if(fat.abort)return;
@@ -2614,7 +2711,7 @@ window.editWeight=async i=>{
 window.delWeight=async i=>{
   const W=S.profile.weights||[],x=W[i];if(!x)return;
   const gg=giornoDa(x.d).toLocaleDateString(dataLoc());
-  if(!await dlgConfirm(tr("Elimino la pesata del {g} ({n} kg)?\n\nSparisce dai grafici e dai calcoli che la usano. Le altre pesate restano.",{g:gg,n:x.w}),
+  if(!await dlgConfirm(tr("Elimino la pesata del {g} ({n})?\n\nSparisce dai grafici e dai calcoli che la usano. Le altre pesate restano.",{g:gg,n:((typeof pesoTxt==="function")?pesoTxt(x.w,1):x.w+" kg")}),
     {ok:tr("Elimina"),ko:tr("No")}))return;
   W.splice(i,1);save();render("io");toast(tr("Pesata eliminata ✓"));};
 window.saveAI=()=>{

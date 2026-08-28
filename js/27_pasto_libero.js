@@ -294,9 +294,16 @@ window.fotoPasto=async(gal)=>{
   }catch(e){
     if(box)box.textContent=tr("Non sono riuscito a leggere la foto. Puoi scrivere il pasto a mano.");}};
 
+/* ── «g» VUOL DIRE GRAMMI, ANCHE A CHI COMPRA IN LIBBRE (28/08) ────
+   Da quando l'app esiste anche fuori dall'Italia, una persona può
+   raccontare «six ounces of chicken»: il modello legge once e deve
+   scrivere grammi, perché `g` finisce dritto nel conto delle calorie
+   (la tabella alimenti è per 100 g). Il nome del campo da solo non
+   basta a dirlo — costa una riga scriverlo, e vale 28 volte l'errore. */
+const G_SEMPRE_GRAMMI=' Il campo "g" e i valori nutrizionali sono SEMPRE in grammi, qualunque unità abbia usato la persona: se racconta once o libbre, convertile tu in grammi.';
 const FOTO_PROMPT='Guarda questo piatto e dimmi COSA contiene, senza giudicarlo e senza dare consigli. '+
-  'Se non c\'è cibo riconoscibile rispondi con alimenti vuoto. Non stimare età, peso o salute di eventuali persone. '+
-  'Rispondi SOLO con questo JSON: {"alimenti":[{"nome":"","quantita":null,"g":null,'+
+  'Se non c\'è cibo riconoscibile rispondi con alimenti vuoto. Non stimare età, peso o salute di eventuali persone. '+G_SEMPRE_GRAMMI+
+  ' Rispondi SOLO con questo JSON: {"alimenti":[{"nome":"","quantita":null,"g":null,'+
   '"gruppo":"proteina|carboidrato|verdura|frutta|grasso|latticino|dolce|bevanda|altro"}],'+
   '"kcal":0,"proteine":0,"carboidrati":0,"grassi":0,"fibre":null,"sicurezza":"alta|media|bassa"}';
 
@@ -417,8 +424,8 @@ window.vocePastoLeggi=async(testo)=>{
 
 const VOCE_PROMPT='Questa persona racconta cosa ha mangiato: """{T}""". '+
   'Estrai SOLO gli alimenti nominati: non aggiungere contorni o bevande che non ha detto. '+
-  'Se non dice le quantità, stima una porzione comune e lascia quantita a null. Non giudicare, non dare consigli. '+
-  'Rispondi SOLO con questo JSON: {"alimenti":[{"nome":"","quantita":null,"g":null,'+
+  'Se non dice le quantità, stima una porzione comune e lascia quantita a null. Non giudicare, non dare consigli. '+G_SEMPRE_GRAMMI+
+  ' Rispondi SOLO con questo JSON: {"alimenti":[{"nome":"","quantita":null,"g":null,'+
   '"gruppo":"proteina|carboidrato|verdura|frutta|grasso|latticino|dolce|bevanda|altro"}],'+
   '"kcal":0,"proteine":0,"carboidrati":0,"grassi":0,"fibre":null,"sicurezza":"alta|media|bassa",'+
   '"momento":"colazione|pranzo|cena|spuntino|null"}';

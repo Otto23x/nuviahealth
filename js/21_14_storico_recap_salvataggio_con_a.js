@@ -885,7 +885,7 @@ function rulesCardHTML(){
   <div class="card"><h2>${tr("Il tuo obiettivo")}</h2>
   ${hint2(tr("Quanto deficit, con che ritmo, e come si alternano le fasi."),tr("Il deficit non scende mai sotto il minimo calorico, che è calcolato sul tuo basale. Le fasi servono a non restare in deficit troppo a lungo di fila."))}
   <table class="rules">
-  ${row("Ritmo e deficit",tr("Il ritmo lo scegli nel percorso guidato; il deficit che ne deriva ha un tetto al 30% del fabbisogno."),out(ratePerWeek()+trh(" kg/sett · {v1} kcal/giorno",{v1:deficitTarget()})))}
+  ${row("Ritmo e deficit",tr("Il ritmo lo scegli nel percorso guidato; il deficit che ne deriva ha un tetto al 30% del fabbisogno."),out(((typeof pesoNum==="function")?pesoNum(ratePerWeek(),1):ratePerWeek())+trh("{v0}/sett · {v1} kcal/giorno",{v0:" "+((typeof unitaPeso==="function")?unitaPeso():"kg"),v1:deficitTarget()})))}
   ${row(tr("→ Target calorico del piano"),tr("Fabbisogno per i target meno il deficit, mai sotto il minimo."),out(dayTargetK()+" kcal")+(dayTargetK()<bmr()?`<br><small style="color:var(--zafft);font-size:14.5px">${trh("Sotto il basale ({v1}): sostenibile a periodi, con proteine alte",{v1:bmr()})}`:""))}
   ${row(tr("Fasi della dieta"),tr("Deficit e pause di mantenimento si alternano.")+(cycPhase()?trh(" <b>Ora: {v1}, giorno {v2} di {v3}.</b>",{v1:cycPhase(),v2:cycPhaseDay(),v3:cycPhaseLen()}):""),out(Math.round(cycDefDays()/7)+" + "+Math.round(cycMaintDays()/7)+" settimane"))}
   ${row("Allenamenti pianificati",tr("Stimano i tempi dell'obiettivo: non alzano le calorie da mangiare."),out(goalWkTotal()+" a sett. · ~"+wkForecastBurn()+" kcal/g"))}
@@ -909,7 +909,7 @@ function rulesCardHTML(){
   <div class="gsec">${tr("Proteine")}</div>
   <table class="rules">
   ${row(tr("Grammi per kg"),tr("Riferimenti: sedentari 0,8–1,0 · attivi e mantenimento 1,2–1,6 (media 1,3) · aumento massa 1,6–2,2. Se non lo tocchi, l'app usa il valore adatto al tuo obiettivo e alla tua attività."),num("rProtKg",r.obiettivo_proteine_g_kg,.1,.8,3,"g/kg"))}
-  ${row(tr("Proteine · quale peso"),tr("Le proteine si calcolano su <b>")+refWeight()+" kg</b> — "+refWeightWhy()+tr(" — non sul peso della bilancia: il grasso corporeo non richiede proteine, quindi in sovrappeso il peso pieno gonfierebbe il numero. Standard: <b>1,5 g/kg</b>."),out(dayTargetP()+trh(" g al giorno · {v1} g/kg",{v1:(S.profile.protKg!=null?+S.profile.protKg:protKgAuto())})))}
+  ${row(tr("Proteine · quale peso"),tr("Le proteine si calcolano su <b>")+((typeof pesoTxt==="function")?pesoTxt(refWeight(),1):refWeight()+" kg")+"</b> — "+refWeightWhy()+tr(" — non sul peso della bilancia: il grasso corporeo non richiede proteine, quindi in sovrappeso il peso pieno gonfierebbe il numero. Standard: <b>1,5 g/kg</b>."),out(dayTargetP()+trh(" g al giorno · {v1} g/kg",{v1:(S.profile.protKg!=null?+S.profile.protKg:protKgAuto())})))}
   ${row(tr("→ Target proteico del piano"),tr("Peso di riferimento × grammi per kg."),out(dayTargetP()+" g"))}
   ${row(tr("Proteine intoccabili"),tr("Ribilanciamenti e recuperi riducono solo carboidrati e grassi."),
      sel("rProtLock",p.protLock!==false?"si":"no",[["si",tr("Sì, mai ridotte")],["no","No, riducibili"]]))}
@@ -941,7 +941,7 @@ function rulesCardHTML(){
   ${row(tr("Intensità bassa"),tr("Moltiplicatore applicato al MET dichiarato dello sport."),num("rIntB",INT.bassa,.05,.3,2,"×"))}
   ${row(tr("Intensità media"),"",num("rIntM",INT.media,.05,.3,2,"×"))}
   ${row(tr("Intensità alta"),"",num("rIntA",INT.alta,.05,.3,2,"×"))}
-  ${row("Verifica",trh("Squash 45 minuti a bassa intensità con il tuo peso attuale ({v1} kg).",{v1:p.w}),out(workoutBurnFor("Squash",45,"bassa",p.w)+" kcal"))}
+  ${row("Verifica",trh("Squash 45 minuti a bassa intensità con il tuo peso attuale ({v1}).",{v1:((typeof pesoTxt==="function")?pesoTxt(p.w,1):p.w+" kg")}),out(workoutBurnFor("Squash",45,"bassa",p.w)+" kcal"))}
   </table>
   <div class="gsec">${tr("Recupero degli sfori")}</div>
   <table class="rules">
@@ -1683,8 +1683,8 @@ async function goalHealthCheck(){
   if(b>=18&&b<27)return true;
   const tooLow=b<18;
   const msg=(tooLow?" "+tr("L'obiettivo che hai impostato non sembra salutare."):tr("ℹ Nota sull'obiettivo."))+
-    "\n\n"+tr("Con {h} cm, un peso di {g} kg corrisponde a un BMI di {b} ({c}).",{h:h,g:gw,b:numLoc(b),c:cl.label})+
-    "\n\n"+tr("Per la tua altezza la fascia considerata sana (BMI 18,5–24,9) va da {min} a {max} kg.",{min:numLoc(r.min),max:numLoc(r.max)})+
+    "\n\n"+tr("Con {h}, un peso di {g} corrisponde a un BMI di {b} ({c}).",{h:((typeof altTxt==="function")?altTxt(h):h+" cm"),g:((typeof pesoTxt==="function")?pesoTxt(gw,1):gw+" kg"),b:numLoc(b),c:cl.label})+
+    "\n\n"+tr("Per la tua altezza la fascia considerata sana (BMI 18,5–24,9) va da {min} a {max}.",{min:numLoc(((typeof pesoNum==="function")?pesoNum(r.min,1):r.min)),max:((typeof pesoTxt==="function")?pesoTxt(r.max,1):r.max+" kg")})+
     "\n\n"+tr("Quella fascia è un riferimento statistico, non una regola: costituzione, massa muscolare e struttura ossea cambiano molto da persona a persona, e stare un po' sopra o un po' sotto può essere del tutto normale per te.")+
     (tooLow?("\n\nQui però il margine è ampio: scendere sotto "+String(r.min).replace(".",",")+" kg espone a perdita di massa muscolare, cali ormonali, "+
       "stanchezza e carenze. Un obiettivo intorno a "+Math.round(r.min+(r.max-r.min)*0.35)+"–"+Math.round(r.min+(r.max-r.min)*0.6)+
@@ -1694,14 +1694,14 @@ async function goalHealthCheck(){
   if(await dlgConfirm(msg,{ok:tr("Genera così"),ko:tr("Riscrivi obiettivo")}))return true;
   /* riscrittura in linea: si corregge il peso e si rianalizza, senza uscire */
   const nw=parseFloat(String(await dlgPrompt(
-    tr("Nuovo peso desiderato in kg (fascia sana per {h} cm: da {min}",{h:h,min:numLoc(r.min)})+
+    tr("Nuovo peso desiderato in {u} (fascia sana per {h}: da {min}",{u:((typeof unitaPeso==="function")?unitaPeso():"kg"),h:((typeof altTxt==="function")?altTxt(h):h+" cm"),min:numLoc(((typeof pesoNum==="function")?pesoNum(r.min,1):r.min))})+
     " a "+String(r.max).replace(".",",")+" kg).\n\nLascia vuoto per annullare la generazione.",
     String(Math.round((r.min+r.max)/2))||"")||"").replace(",","."));
   if(!(nw>0))return false;
   if(nw<25||nw>350)  {await dlgAlert(tr("Quel valore non sembra un peso plausibile: riprova."));return goalHealthCheck();}
   setGoalWeight(nw);save();
   const nb=bmiFor(nw);
-  await dlgAlert(tr("Obiettivo aggiornato a {n} kg (BMI {b} · {c}) ✓",{n:nw,b:numLoc(nb),c:bmiClass(nb).label})+
+  await dlgAlert(tr("Obiettivo aggiornato a {n} (BMI {b} · {c}) ✓",{n:((typeof pesoTxt==="function")?pesoTxt(nw,1):nw+" kg"),b:numLoc(nb),c:bmiClass(nb).label})+
     "\n\nLo trovi anche in Io → Obiettivi. Adesso rianalizzo.");
   return goalHealthCheck();          /* rianalisi immediata del nuovo obiettivo */
 }
@@ -2586,6 +2586,15 @@ function weekJSONContract(giorni,conSpesa){
     (conSpesa?',"spesa":[["Categoria",["prodotto con la quantità totale della settimana"]]]':'')+
     '} dove "days" contiene ESATTAMENTE sette oggetti, in quest\'ordine: '+giorni.join(", ")+
     '; type vale "norm", "mensa" oppure "free"; e ogni valore numerico è un NUMERO, senza unità di misura e senza parole intorno.'+
+    /* ── L'UNITÀ DEI CAMPI NUMERICI, DETTA QUI E NON ALTROVE (28/08) ─
+       Il contratto è il posto dove si dichiara l'unità di un campo:
+       chi legge questa riga sta per scrivere quei numeri. La riga
+       vale per tutti i paesi, imperiali compresi — `unitaForAI()`
+       dice la stessa cosa dal lato delle regole, e le due si
+       rinforzano invece di contraddirsi. Senza questa riga, un
+       modello a cui è stato appena chiesto di scrivere in once ha
+       una ragione per metterle anche qui. */
+    ' I campi numerici sono SEMPRE nelle stesse unità, in ogni paese: "k" in kcal; "p", "c", "f", "fib" e "z" in GRAMMI. Mai once, mai libbre, mai altre unità in questi campi, qualunque unità si usi nelle descrizioni.'+
     (conSpesa?' "spesa" è la lista della spesa ricavata da questi sette giorni, raggruppata in queste categorie, nell\'ordine dato e saltando quelle vuote: '+JSON.stringify(SHOP_CATS)+'. Ogni voce porta il nome del prodotto e la quantità totale della settimana, senza formati commerciali e senza numero di confezioni. I pasti di tipo "mensa" e "free" NON entrano nella spesa.':'');}
 
 /* ═══ LA DOMANDA ═════════════════════════════════════════════════
@@ -2964,9 +2973,9 @@ window.genPlanAI=async()=>{
   const wkN=goalWkTotal(),wkKcal=plannedActivityBurnFor(p.w||70);
   const slots=parseSlots(D.slots||"Colazione, Metà mattina, Pranzo, Metà pomeriggio, Cena");
   const mensa=parseMensa(D.mensaGiorni);
-  const defTxt=(defMode()==="ritmo")?(trh("dal ritmo di {v1} kg a settimana",{v1:ratePerWeek()})):"dalla percentuale impostata nelle Regole";
+  const defTxt=(defMode()==="ritmo")?(trh("dal ritmo di {v1} a settimana",{v1:((typeof pesoTxt==="function")?pesoTxt(ratePerWeek(),1):ratePerWeek()+" kg")})):"dalla percentuale impostata nelle Regole";
   const capTxt=rateCapped()?("\n•  "+rateNote()):"";
-  if(!await dlgConfirm(tr("Genero un piano settimanale completo: sette giorni e la lista della spesa, in una volta sola.")+"\n\n"+tr("• {a} anni, {w} kg, obiettivo: {g}",{a:age(),w:p.w,g:goal})+
+  if(!await dlgConfirm(tr("Genero un piano settimanale completo: sette giorni e la lista della spesa, in una volta sola.")+"\n\n"+tr("• {a} anni, {w}, obiettivo: {g}",{a:age(),w:((typeof pesoTxt==="function")?pesoTxt(p.w,1):p.w+" kg"),g:goal})+
     "\n"+tr("• fabbisogno {t} kcal → target ~{x} kcal al giorno ({d})",{t:t,x:target,d:defTxt})+capTxt+
     (wkN?"\n"+tr("• allenamenti previsti: {n} a settimana (~{k} kcal al giorno già contate)",{n:wkN,k:wkKcal}):"")+
     "\n"+tr("• impostazione: {t}",{t:(D.tipo||"mediterranea")})+
@@ -3029,11 +3038,16 @@ window.genPlanAI=async()=>{
        («ingredienti reperibili in un supermercato italiano», «rispetta
        il tempo di cucina dichiarato») se ne vanno con questa riga: le
        dice `dietStr()`, e le dice giuste. */
-    const comune=' Persona: '+age()+' anni, '+(p.gender==="m"?"uomo":"donna")+', '+p.h+' cm, '+p.w+' kg, obiettivo: '+goal+'. Target di OGNI giorno: circa '+target+' kcal (tolleranza ±5%) e almeno '+protG+' g di proteine, distribuiti sui '+slots.length+' pasti. '+
+    /* peso e altezza nelle unità della persona: se il modello le cita
+       nel contesto del giorno («i tuoi 95 kg»), deve citare il numero
+       che lei vede sullo schermo, non la sua traduzione metrica */
+    const comune=' Persona: '+age()+' anni, '+(p.gender==="m"?"uomo":"donna")+', '+
+      ((typeof altTxt==="function")?altTxt(p.h):p.h+" cm")+', '+
+      ((typeof pesoTxt==="function")?pesoTxt(p.w,1):p.w+" kg")+', obiettivo: '+goal+'. Target di OGNI giorno: circa '+target+' kcal (tolleranza ±5%) e almeno '+protG+' g di proteine, distribuiti sui '+slots.length+' pasti. '+
       dietStr()+' '+rulesForPlan()+
       rigaPasti(slots)+rigaPasto()+rigaFuori+
       (D.patologie?' Le condizioni di salute dichiarate sopra sono VINCOLANTI nella scelta degli alimenti di ogni pasto.':'')+
-      ' Regole: il piano si basa ESCLUSIVAMENTE su alimenti veri; NON inserire integratori (proteine in polvere, vitamine, barrette o pasti sostitutivi) a meno che i target siano davvero impossibili da coprire con il cibo: solo in quel caso indicali e scrivi nel campo ctx che l\'integrazione va concordata con un nutrizionista; porzioni in grammi sempre indicate; valori nutrizionali REALI per le quantità scritte; stagione attuale: '+seasonNow()+', proponi piatti adatti alla stagione (niente piatti tipicamente invernali in estate e viceversa), restando generico su "verdura di stagione" e "frutta di stagione" dove sensato; nell\'arco della settimana devono alternarsi con equilibrio fonti proteiche compatibili con l\'impostazione dichiarata (per esempio carne bianca, pesce, uova, legumi, latticini SOLO se ammessi) più cereali integrali e abbondante verdura.'+rigaVar+rigaFarm+rigaMed+rigaInt;
+      ' Regole: il piano si basa ESCLUSIVAMENTE su alimenti veri; NON inserire integratori (proteine in polvere, vitamine, barrette o pasti sostitutivi) a meno che i target siano davvero impossibili da coprire con il cibo: solo in quel caso indicali e scrivi nel campo ctx che l\'integrazione va concordata con un nutrizionista; le porzioni vanno SEMPRE indicate, nelle unità dette sopra; valori nutrizionali REALI per le quantità scritte; stagione attuale: '+seasonNow()+', proponi piatti adatti alla stagione (niente piatti tipicamente invernali in estate e viceversa), restando generico su "verdura di stagione" e "frutta di stagione" dove sensato; nell\'arco della settimana devono alternarsi con equilibrio fonti proteiche compatibili con l\'impostazione dichiarata (per esempio carne bianca, pesce, uova, legumi, latticini SOLO se ammessi) più cereali integrali e abbondante verdura.'+rigaVar+rigaFarm+rigaMed+rigaInt;
     const regole={giorni:G,kcal:target,prot:protG,tollPct:5,slots:slots,nPasti:slots.length,
       vietati:vietatiElenco(D.no,D.intol),
       allergeni:allergeniElenco(D.allergie||""),
@@ -3162,7 +3176,7 @@ async function importPlanPhotosCore(){
   const box=genBox();
   if(box){box.style.display="block";genBoxMostra(box);box.textContent=trh(" Sto leggendo il piano da {v1} foto…\n⏳ L'AI sta trascrivendo giorni, pasti e alternative: può volerci qualche minuto, abbi un po' di pazienza.",{v1:photos.length});}
   try{
-    const q='Queste '+photos.length+' FOTO mostrano un piano alimentare settimanale scritto (tabella, foglio o quaderno). TRASCRIVILO FEDELMENTE: per ogni giorno i pasti nell\'ordine in cui compaiono, con le grammature scritte; se un pasto ha più alternative (es. separate da "oppure", "o", righe alternative), riportale TUTTE come opzioni dello stesso pasto, prima quella principale. NON inventare piatti: se una parte non è leggibile, omettila. Stima kcal e macro REALI di ogni opzione dalle grammature scritte (porzioni tipiche italiane solo dove il peso manca). Se il piano copre meno di 7 giorni, completa la settimana ripetendo i giorni disponibili e segnalandolo nel ctx. Rispondi SOLO con un JSON array di 7 oggetti da Lunedì a Domenica: [{"day":"Lunedì","ctx":"","meals":[{"n":"Colazione","t":"","type":"norm","o":[{"d":"descrizione con grammature","k":numero,"p":numero,"c":numero,"f":numero,"fib":numero,"z":numero}]}]}] — "o" contiene una voce per OGNI alternativa del pasto; type vale "norm", "mensa" oppure "free".';
+    const q='Queste '+photos.length+' FOTO mostrano un piano alimentare settimanale scritto (tabella, foglio o quaderno). TRASCRIVILO FEDELMENTE: per ogni giorno i pasti nell\'ordine in cui compaiono, con le grammature scritte; se un pasto ha più alternative (es. separate da "oppure", "o", righe alternative), riportale TUTTE come opzioni dello stesso pasto, prima quella principale. NON inventare piatti: se una parte non è leggibile, omettila. Stima kcal e macro REALI di ogni opzione dalle grammature scritte (porzioni tipiche italiane solo dove il peso manca). Se il piano copre meno di 7 giorni, completa la settimana ripetendo i giorni disponibili e segnalandolo nel ctx. Rispondi SOLO con un JSON array di 7 oggetti da Lunedì a Domenica: [{"day":"Lunedì","ctx":"","meals":[{"n":"Colazione","t":"","type":"norm","o":[{"d":"descrizione con grammature","k":numero,"p":numero,"c":numero,"f":numero,"fib":numero,"z":numero}]}]}] — "o" contiene una voce per OGNI alternativa del pasto; type vale "norm", "mensa" oppure "free". I campi numerici sono SEMPRE metrici: "k" in kcal, "p", "c", "f", "fib" e "z" in GRAMMI — se il piano fotografato è scritto in once o libbre, converti tu nei numeri e lascia pure le once nella descrizione.';
     let arr=null;
     for(let att=0;att<2&&!arr;att++){
       try{const t=await aiAskVision(q,photos);const o=parseAIJSON(t);
@@ -3210,17 +3224,17 @@ window.planForecast=async(afterImport,noRetune)=>{
   const burn=wkForecastBurn();
   const defDay=t+burn-avg;
   const wk=defDay*7/7700;
-  let msg=" "+tr("Stima sul piano attuale")+"\n\n"+tr("• media del piano: ~{k} kcal al giorno",{k:avg})+"\n"+tr("• fabbisogno per i target: {t} kcal + ~{b} kcal di allenamenti pianificati ({n} a settimana)",{t:t,b:burn,n:goalWkTotal()})+"\n"+tr("• bilancio: {tipo} di ~{k} kcal al giorno → {segno}{kg} kg a settimana",{tipo:(defDay>=0?tr("deficit"):tr("surplus")),k:Math.abs(defDay),segno:(defDay>=0?tr("circa −"):tr("circa +")),kg:numLoc(Math.abs(wk).toFixed(2))});
+  let msg=" "+tr("Stima sul piano attuale")+"\n\n"+tr("• media del piano: ~{k} kcal al giorno",{k:avg})+"\n"+tr("• fabbisogno per i target: {t} kcal + ~{b} kcal di allenamenti pianificati ({n} a settimana)",{t:t,b:burn,n:goalWkTotal()})+"\n"+tr("• bilancio: {tipo} di ~{k} kcal al giorno → {segno}{kg} a settimana",{tipo:(defDay>=0?tr("deficit"):tr("surplus")),k:Math.abs(defDay),segno:(defDay>=0?tr("circa −"):tr("circa +")),kg:((typeof pesoTxt==="function")?pesoTxt(Math.abs(wk),1):Math.abs(wk)+" kg")});
   const goalW=goalWeightSet()||null;
   const needSurplus=!!(goalW&&p.w&&goalW>p.w);
   const reachable=(goalW&&p.w)?(needSurplus?defDay<0:defDay>0):null;
   if(reachable){
     const daysTo=Math.round(Math.abs(p.w-goalW)*7700/Math.abs(defDay));
     const eta=new Date(Date.now()+daysTo*864e5);
-    msg+="\n"+tr("• obiettivo {g} kg: circa {s} settimane, indicativamente entro {d}",{g:goalW,s:Math.round(daysTo/7),d:eta.toLocaleDateString(dataLoc(),{month:"long",year:"numeric"})})+(needSurplus?"":" "+tr("(il ritmo rallenta man mano che scendi)"));
+    msg+="\n"+tr("• obiettivo {g}: circa {s} settimane, indicativamente entro {d}",{g:((typeof pesoTxt==="function")?pesoTxt(goalW,1):goalW+" kg"),s:Math.round(daysTo/7),d:eta.toLocaleDateString(dataLoc(),{month:"long",year:"numeric"})})+(needSurplus?"":" "+tr("(il ritmo rallenta man mano che scendi)"));
   }
   if(defMode()==="ritmo"){
-    msg+="\n"+tr("• ritmo desiderato: {r} kg a settimana",{r:ratePerWeek()});
+    msg+="\n"+tr("• ritmo desiderato: {r} a settimana",{r:((typeof pesoTxt==="function")?pesoTxt(ratePerWeek(),1):ratePerWeek()+" kg")});
     if(rateCapped())msg+="\n•  "+rateNote();
     const rif=rateCapped()?rateEffective():ratePerWeek();
     if(reachable&&Math.abs(Math.abs(wk)-rif)>0.15)msg+="\n"+tr("• il piano viaggia a un ritmo diverso da quello impostato: valuta un ritocco delle porzioni o del ritmo");
@@ -3427,7 +3441,7 @@ function drawWeightsChart(){
     const goal=goalWeightSet()||null;
     PESCH=new Chart(cv,{type:"line",
       data:{labels:ws.map(x=>giornoDa(x.d).toLocaleDateString(dataLoc(),{day:"numeric",month:"short"})),
-        datasets:[{label:tr("Peso (kg)"),data:ws.map(x=>x.w),tension:.3,borderColor:"#00AFA3",pointRadius:2},
+        datasets:[{label:trh("Peso ({v1})",{v1:((typeof unitaPeso==="function")?unitaPeso():"kg")}),data:ws.map(x=>((x)=>((typeof pesoNum==="function")?pesoNum(x,1):x))(x.w)),tension:.3,borderColor:"#00AFA3",pointRadius:2},
           ...(goal?[{label:"Obiettivo",data:ws.map(()=>goal),borderColor:"#0A4E49",borderDash:[6,5],pointRadius:0}]:[]),
           ...(ws.some(x=>x.fat)?[{label:"Grasso %",data:ws.map(x=>x.fat||null),tension:.3,borderColor:"#E4632F",pointRadius:2,spanGaps:true,yAxisID:"y2"}]:[])]},
       options:{animation:false,plugins:{legend:{labels:{boxWidth:11,font:{size:10}}}},
@@ -4000,7 +4014,7 @@ function drawAnalysis(){
   const wEl=document.getElementById("chAnWeight");
   if(wEl)ANCH.weight=new Chart(wEl,{type:"line",
     data:{labels:wrows.map(r=>r.label),datasets:[
-      {label:tr("Peso (kg)"),data:wrows.map(r=>r.w),tension:.3,borderColor:"#00AFA3",pointRadius:2},
+      {label:trh("Peso ({v1})",{v1:((typeof unitaPeso==="function")?unitaPeso():"kg")}),data:wrows.map(r=>((x)=>((typeof pesoNum==="function")?pesoNum(x,1):x))(r.w)),tension:.3,borderColor:"#00AFA3",pointRadius:2},
       ...(S.profile.goalW?[{label:"Obiettivo",data:wrows.map(()=>S.profile.goalW),borderColor:"#0A4E49",borderDash:[6,5],pointRadius:0}]:[]),
       ...(wrows.some(r=>r.fat!=null)?[{label:"Grasso %",data:wrows.map(r=>r.fat),tension:.3,borderColor:"#E4632F",pointRadius:2,spanGaps:true,yAxisID:"y2"}]:[])]},
     options:{plugins:{legend:{labels:{boxWidth:11,font:{size:10}}}},scales:{x:{ticks:{font:{size:9}}},y2:{position:"right",grid:{drawOnChartArea:false}}}}});
@@ -4060,7 +4074,7 @@ function drawGoalProjection(){
     options:{plugins:{legend:{labels:{boxWidth:11,font:{size:10}}}},
       scales:{x:{ticks:{font:{size:9},maxTicksLimit:8}},y:{ticks:{font:{size:9}}}}}});
   if(txt){const parts=[];
-    if(simNow){if(simNow.stalled)parts.push(trh("Con dieta e obiettivi attuali il deficit si annulla prima di {v1} kg: servirebbe mangiare meno o muoversi di più.",{v1:p.goalW}));
+    if(simNow){if(simNow.stalled)parts.push(trh("Con dieta e obiettivi attuali il deficit si annulla prima di {v1}: servirebbe mangiare meno o muoversi di più.",{v1:((typeof pesoTxt==="function")?pesoTxt(p.goalW,1):p.goalW+" kg")}));
       else parts.push("Stima: <b>"+p.goalW+" kg</b> intorno al <b>"+simNow.etaDate.toLocaleDateString(dataLoc(),{day:"numeric",month:"long",year:"numeric"})+trh("</b> (~{v1} giorni), ritmo non lineare.",{v1:simNow.etaDays}));}
     else parts.push("Sei già all'obiettivo o sotto: nessuna discesa da proiettare.");
     if(simNow&&simNow.pausa>0)parts.push(trh("La curva comprende <b>{v1} settimane di mantenimento</b> ({v2} giorni di deficit + {v3} di pausa): nei tratti piatti il peso resta fermo apposta. Allungano il percorso ma lo rendono sostenibile — si cambia in Regole → Fasi della dieta.",{v1:Math.round(simNow.pausa/7),v2:cycDefDays(),v3:cycMaintDays()}));

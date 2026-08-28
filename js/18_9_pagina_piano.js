@@ -514,7 +514,7 @@ function renderPunto(){const el=document.getElementById("pg-punto");const di=vie
           "digiunoSet(this.checked)")
       +`</div>`;
     return g;})()}
-  ${(cycleDay()&&cycleDay()<=5)?`<div class="hint" style="background:var(--zaffbg);padding:12px 12px;border-radius:12px;margin-top:12px">${trh("Nei giorni del ciclo è normale pesare {b1}: è acqua, non grasso. Non toccare il piano per questo — passa da sé.",{b1:"<b>"+tr("1-2 kg in più")+"</b>"})}</div>`:""}
+  ${(cycleDay()&&cycleDay()<=5)?`<div class="hint" style="background:var(--zaffbg);padding:12px 12px;border-radius:12px;margin-top:12px">${trh("Nei giorni del ciclo è normale pesare {b1}: è acqua, non grasso. Non toccare il piano per questo — passa da sé.",{b1:"<b>"+trh("{v1} in più",{v1:(typeof pesoNum==="function")?(pesoNum(1,0)+"-"+pesoTxt(2,0)):"1-2 kg"})+"</b>"})}</div>`:""}
   ${physDurationNote()}
   ${tr("Se hai acceso o spento qualcosa, le grammature della settimana vanno ritarate.")}
   <div class="mtools">
@@ -621,8 +621,8 @@ function renderOggi(){const el=document.getElementById("pg-oggi");const di=viewI
   h+=(typeof invitoHTML==="function")?invitoHTML():"";
   h+=(typeof filmInvito==="function")?filmInvito():"";
   h+=`<div class="card"><h2>${tr("Acqua")}</h2>${acquaRiga(di,tr("Bicchieri di oggi"))}`;
-  h+=hint2(`${tr("Obiettivo:")} <b>${goal} ${tr("bicchieri")}</b> ${tr("da 200 ml")} (~${(goal*ML_BICCHIERE/1000).toFixed(1)} L)${(S.week.days[di].workouts||[]).some(w=>w.int==="alta"||w.min>45)?" · allenamento intenso: +2 bicchieri":""}.`,
-   `${(+S.profile.waterGoalL>0)?tr("È il valore che hai scelto in Io → Obiettivi."):tr("È proposto sul tuo peso: 35 ml per kg, meno il ~22% che arriva già dal cibo.")} ${tr("Nei giorni con allenamento intenso o oltre 45 minuti si aggiungono 2 bicchieri. Puoi sempre scrivere il tuo valore in Io → Obiettivi.")}`)+`</div>`;
+  h+=hint2(`${tr("Obiettivo:")} <b>${goal} ${tr("bicchieri")}</b> ${trh("da {v1}",{v1:(typeof volumeTxt==="function")?volumeTxt(ML_BICCHIERE):"200 ml"})} (~${(typeof litriTxt==="function")?litriTxt(goal*ML_BICCHIERE/1000,1):(goal*ML_BICCHIERE/1000).toFixed(1)+" L"})${(S.week.days[di].workouts||[]).some(w=>w.int==="alta"||w.min>45)?" · allenamento intenso: +2 bicchieri":""}.`,
+   `${(+S.profile.waterGoalL>0)?tr("È il valore che hai scelto in Io → Obiettivi."):trh("È proposto sul tuo peso: {v1} per {v2}, meno il ~22% che arriva già dal cibo.",{v1:(typeof volPerPesoTxt==="function")?volPerPesoTxt(35):"35 ml",v2:(typeof unitaPeso==="function")?unitaPeso():"kg"})} ${tr("Nei giorni con allenamento intenso o oltre 45 minuti si aggiungono 2 bicchieri. Puoi sempre scrivere il tuo valore in Io → Obiettivi.")}`)+`</div>`;
   // Sonno & Stress
   h+=`<div class="gsec">A tavola</div>`;
   h+=`<div class="card"><h2>${tr("I pasti")}</h2>${hint2(tr("Tocca il cerchio: ○ da fare · ✓ mangiato · ✗ saltato."),

@@ -1018,6 +1018,15 @@ function dietStr(){const D=S.diet;
   L.push("varietà desiderata: "+(D.varieta||"media"));
   L.push("complessità delle ricette: "+(D.pronto||"semplice"));
   if(D.budget)L.push("budget spesa: "+D.budget);
+  /* ── LA CIFRA, CON IL POSTO E L'ANNO (v15.0.0) ───────────────────
+     «50 euro o dollari o rupie: che cosa posso comprare?» — la
+     domanda vera di chi fa la spesa. Non serve una conversione: serve
+     che il modello sappia DOVE siamo e QUANDO, e ragioni sui prezzi
+     di quel posto. La cifra da sola, senza il paese, sarebbe un
+     numero che ognuno interpreta a modo suo. */
+  if(D.budgetCifra>0&&typeof laValuta==="function")
+    L.push("budget settimanale per la spesa: "+D.budgetCifra+" "+laValuta()[0]+
+      " (ragiona sui prezzi correnti del paese indicato, senza convertire in altre valute)");
   /* l'helper serve ancora al caffè, qui sotto: se la persona l'ha
      messo fra i vietati, l'abitudine non va passata al modello */
   const vietato=w=>new RegExp("(^|[,;\\s])"+w,"i").test(String(D.no||"")+" , "+String(D.intol||""));
@@ -1216,9 +1225,14 @@ function rulesForPlan(){const r=rulesSnapshot();
        famForAI(), che parla di porzioni per tutti, resta fuori di qui
        e vive in rulesForAI() e nella spesa. */
     ((typeof famPianoForAI==="function")?famPianoForAI():"")+
+    /* dove siamo, in che anno, con che valuta e che unità: senza
+       questo il piano parla in grammi a chi compra in libbre, e la
+       spesa cita prodotti che in quel paese non esistono */
+    ((typeof paeseForAI==="function")?paeseForAI():"")+
     (r.custom?(" Regole della persona: "+r.custom):"");}
 function rulesForAI(){const r=rulesSnapshot();
-  return " "+tr("QUALITÀ NUTRIZIONALE (vincolante):")+" "+nutriRules()+digiunoForAI()+" "+physForAI()+famForAI()+hungerForAI()+chronoForAI()+crashForAI()+
+  return " "+tr("QUALITÀ NUTRIZIONALE (vincolante):")+" "+nutriRules()+digiunoForAI()+" "+physForAI()+famForAI()+
+    ((typeof paeseForAI==="function")?paeseForAI():"")+hungerForAI()+chronoForAI()+crashForAI()+
     (Object.keys(parseMensa(outThisWeek())).length?" PASTI FUORI CASA questa settimana: "+outThisWeek()+
       (outTypeIsPorto()
         ? ". Questi pasti li prepara e li porta da casa: sono pasti NORMALI come tutti gli altri, con la stessa struttura e le stesse grammature, con l'unico vincolo di essere trasportabili in un contenitore e buoni anche freddi o riscaldati. I loro ingredienti vanno nella lista della spesa."
