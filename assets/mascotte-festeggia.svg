@@ -1,0 +1,137 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 300 300" role="img" aria-label="Nuvia">
+  <style>
+    @keyframes jump-festeggia { 0%, 100% { transform: translateY(0px); } 40%, 60% { transform: translateY(-12px); } }
+    .mascot-jump-festeggia { animation: jump-festeggia 0.8s cubic-bezier(0.28, 0.84, 0.42, 1) infinite; }
+  
+    /* IL RESPIRO — 1,5%: sotto la soglia di ciò che si nota, sopra
+       quella di ciò che si sente. È questo che separa un
+       personaggio da un disegno. */
+    @keyframes respiro-festeggia{0%,100%{transform:scale(1,1)}50%{transform:scale(1.015,0.99)}}
+    .respira-festeggia{animation:respiro-festeggia 4.1s ease-in-out infinite;transform-origin:150px 280px}
+    /* L'AMMICCO — due periodi non multipli (4,3 e 7,1 s) così
+       l'occhio non trova mai il ritmo: un blink regolare è la cosa
+       più inquietante che si possa fare a una faccia. */
+    @keyframes ammicco-festeggia{0%,92%,100%{transform:scaleY(1)}95%{transform:scaleY(0.08)}}
+    @keyframes ammicco2-festeggia{0%,96%,100%{transform:scaleY(1)}98%{transform:scaleY(0.12)}}
+    .occhi-festeggia{animation:ammicco-festeggia 4.3s infinite,ammicco2-festeggia 7.1s infinite;
+      transform-origin:150px 185px}
+
+    /* la festa: il salto c'è già, si aggiunge l'inclinazione */
+    @keyframes gioia-festeggia{0%,100%{transform:rotate(-3deg)}50%{transform:rotate(3deg)}}
+    .corpo-festeggia{animation:gioia-festeggia 1.1s ease-in-out infinite;transform-origin:150px 280px}
+    /* LE SOPRACCIGLIA — è qui che vive l'espressione. Due linee
+       corte che si alzano di due gradi cambiano l'umore di una
+       faccia più di qualunque altra cosa: il cinema d'animazione
+       lo sa da cent'anni. */
+    @keyframes so-festeggia{0%,88%,100%{transform:translateY(0)}92%{transform:translateY(-3px)}}
+    .sopracciglia-festeggia{animation:so-festeggia 5.7s ease-in-out infinite;transform-origin:150px 159px}
+    /* LA BOCCA si muove POCO e con un periodo diverso da tutto
+       il resto: se battesse a tempo col respiro sembrerebbe un
+       meccanismo, non una creatura. */
+    @keyframes bocca-festeggia{0%,100%{transform:scale(1,1)}50%{transform:scale(1.06,1.1)}}
+    .bocca-festeggia{animation:bocca-festeggia 5.3s ease-in-out infinite;transform-origin:150px 223px}
+    /* IL DONDOLIO — un grado e mezzo, lentissimo: nessuno lo nota
+       guardando, tutti lo notano se manca. */
+    @keyframes ondeggio-festeggia{0%,100%{transform:rotate(-1.2deg)}50%{transform:rotate(1.2deg)}}
+    .ondeggia-festeggia{animation:ondeggio-festeggia 6.7s ease-in-out infinite;transform-origin:150px 280px}
+    /* I CORIANDOLI cadono con velocità diverse: tre cose che si
+       muovono allo stesso ritmo sembrano un ingranaggio, tre che
+       si muovono a ritmi diversi sembrano una festa. */
+    /* APPARIZIONE E CADUTA. Prima comparivano già grandi e in
+       posizione: sembravano stampati sullo sfondo. Adesso ogni pezzo
+       SCHIOCCA — nasce a un quinto della sua misura, supera di poco
+       la grandezza giusta e si assesta — e solo dopo comincia a
+       cadere. È lo scarto fra un coriandolo e un rettangolo. */
+    /* NASCONO DAL NULLA E CADONO SUBITO. Prima comparivano già
+       grandi, restavano ferme in alto per due terzi del giro e
+       precipitavano solo alla fine: sembravano appiccicate lassù ad
+       aspettare. Adesso partono da `scale(0)` — dal nulla per davvero
+       — schioccano, e da lì in poi non si fermano più: la caduta è
+       distribuita su tutto il resto del giro, con gli intervalli che
+       si allargano perché è così che accelera una cosa che cade.
+       QUATTRO TRAIETTORIE, DUE PER PARTE: due a sinistra (-48 e -20)
+       e due a destra (+48 e +20), assegnate a giro. Prima le derive
+       pendevano da una parte sola e la festa cadeva di sbieco. */
+    /* NASCONO DAL NULLA E CADONO SUBITO. Prima comparivano già
+       grandi, restavano ferme in alto per due terzi del giro e
+       precipitavano solo alla fine: sembravano appiccicate lassù ad
+       aspettare. Adesso partono da `scale(0)` — dal nulla per davvero
+       — schioccano, e da lì in poi non si fermano più: la caduta è
+       distribuita su tutto il resto del giro, con gli intervalli che
+       si allargano perché è così che accelera una cosa che cade.
+       QUATTRO TRAIETTORIE, DUE PER PARTE: due a sinistra (-48 e -20)
+       e due a destra (+48 e +20), assegnate a giro. Prima le derive
+       pendevano da una parte sola e la festa cadeva di sbieco. */
+    @keyframes cor1-festeggia{
+      0%{transform:translate(0px,-10px) scale(0) rotate(0deg);opacity:0}
+      7%{transform:translate(-1.9px,-3px) scale(1.25) rotate(25deg);opacity:1}
+      13%{transform:translate(-3.4px,2px) scale(1) rotate(45deg);opacity:1}
+      40%{transform:translate(-14.4px,22px) scale(1) rotate(115deg);opacity:1}
+      70%{transform:translate(-28.8px,52px) scale(0.95) rotate(185deg);opacity:0.9}
+      100%{transform:translate(-48px,100px) scale(0.85) rotate(250deg);opacity:0}
+    }
+    @keyframes cor2-festeggia{
+      0%{transform:translate(0px,-10px) scale(0) rotate(0deg);opacity:0}
+      7%{transform:translate(1.9px,-3px) scale(1.25) rotate(-22deg);opacity:1}
+      13%{transform:translate(3.4px,2px) scale(1) rotate(-39deg);opacity:1}
+      40%{transform:translate(14.4px,23.8px) scale(1) rotate(-99deg);opacity:1}
+      70%{transform:translate(28.8px,56.2px) scale(0.95) rotate(-159deg);opacity:0.9}
+      100%{transform:translate(48px,108px) scale(0.85) rotate(-215deg);opacity:0}
+    }
+    @keyframes cor3-festeggia{
+      0%{transform:translate(0px,-10px) scale(0) rotate(0deg);opacity:0}
+      7%{transform:translate(-0.8px,-3px) scale(1.25) rotate(-28deg);opacity:1}
+      13%{transform:translate(-1.4px,2px) scale(1) rotate(-50deg);opacity:1}
+      40%{transform:translate(-6px,22.9px) scale(1) rotate(-129deg);opacity:1}
+      70%{transform:translate(-12px,54.1px) scale(0.95) rotate(-207deg);opacity:0.9}
+      100%{transform:translate(-20px,104px) scale(0.85) rotate(-280deg);opacity:0}
+    }
+    @keyframes cor4-festeggia{
+      0%{transform:translate(0px,-10px) scale(0) rotate(0deg);opacity:0}
+      7%{transform:translate(0.8px,-3px) scale(1.25) rotate(33deg);opacity:1}
+      13%{transform:translate(1.4px,2px) scale(1) rotate(59deg);opacity:1}
+      40%{transform:translate(6px,25.5px) scale(1) rotate(152deg);opacity:1}
+      70%{transform:translate(12px,60.3px) scale(0.95) rotate(244deg);opacity:0.9}
+      100%{transform:translate(20px,116px) scale(0.85) rotate(330deg);opacity:0}
+    }
+    .cor1-festeggia{animation:cor1-festeggia 2.3s linear infinite;transform-origin:145.5px 37.5px}
+    .cor2-festeggia{animation:cor2-festeggia 2.9s linear infinite 0.4s;transform-origin:161px 34px}
+    .cor3-festeggia{animation:cor3-festeggia 3.4s linear infinite 0.9s;transform-origin:153.5px 49px}
+    .cor4-festeggia{animation:cor4-festeggia 2.6s linear infinite 1.3s;transform-origin:135px 47px}
+    .cor5-festeggia{animation:cor1-festeggia 3.1s linear infinite 1.7s;transform-origin:171.5px 51.5px}
+    .cor6-festeggia{animation:cor2-festeggia 2.8s linear infinite 0.6s;transform-origin:179px 37px}
+    .cor7-festeggia{animation:cor3-festeggia 3.3s linear infinite 2.1s;transform-origin:125px 35.5px}
+    .cor8-festeggia{animation:cor4-festeggia 2.5s linear infinite 1.1s;transform-origin:117px 55px}
+    .cor9-festeggia{animation:cor1-festeggia 3.6s linear infinite 0.2s;transform-origin:185.5px 53.5px}
+    .cor10-festeggia{animation:cor2-festeggia 2.7s linear infinite 1.9s;transform-origin:167px 67px}
+    .cor11-festeggia{animation:cor3-festeggia 3.2s linear infinite 2.4s;transform-origin:139px 65.5px}
+    /* LE GUANCE si accendono nel momento buono, non sempre */
+    @keyframes guance-festeggia{0%,60%,100%{opacity:.25}80%{opacity:.6}}
+    .guance-festeggia{animation:guance-festeggia 3.1s ease-in-out infinite}
+  @media (prefers-reduced-motion: reduce){*{animation:none!important}}</style>
+  <defs>
+    <linearGradient id="tealGrad-festeggia" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="#00E0C6" /><stop offset="100%" stop-color="#00AFA3" /></linearGradient>
+    <linearGradient id="coralGrad-festeggia" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="#FFA07A" /><stop offset="100%" stop-color="#FF7F50" /></linearGradient>
+  </defs>
+  <g class="ondeggia-festeggia"><g class="respira-festeggia"><g class="corpo-festeggia"><g class="mascot-jump-festeggia">
+    <path d="M 150,140 C 170,70 220,70 220,120 C 220,150 170,160 150,140" fill="url(#coralGrad-festeggia)"/>
+    <path d="M 70,230 C 70,140 110,130 150,130 C 190,130 230,140 230,230 C 230,280 190,280 150,280 C 110,280 70,280 70,230" fill="url(#tealGrad-festeggia)"/>
+    <g class="occhi-festeggia"><path d="M 110,190 Q 120,175 130,190" fill="none" stroke="#1A4D40" stroke-width="6" stroke-linecap="round"/>
+    <path d="M 170,190 Q 180,175 190,190" fill="none" stroke="#1A4D40" stroke-width="6" stroke-linecap="round"/></g>
+    
+      <g class="sopracciglia-festeggia" opacity=".85"><path d="M 111 159 q 9 -5 18 0" stroke="#1A4D40" stroke-width="4" stroke-linecap="round" fill="none"/><path d="M 171 159 q 9 -5 18 0" stroke="#1A4D40" stroke-width="4" stroke-linecap="round" fill="none"/></g>
+    <path class="bocca-festeggia" d="M 132 223 q 18 16 36 0" stroke="#1A4D40" stroke-width="4.5" stroke-linecap="round" fill="none"/>
+    <g class="guance-festeggia" fill="#FF7F50" opacity=".25"><circle cx="103" cy="205" r="11"/><circle cx="197" cy="205" r="11"/></g>
+  </g></g></g></g>
+    <g fill="#FFA07A"><rect class="cor1-festeggia" x="140" y="30" width="11" height="15" rx="3"/></g>
+    <g fill="#00E0C6"><rect class="cor2-festeggia" x="156" y="26" width="10" height="16" rx="3"/></g>
+    <g fill="#FF7F50"><rect class="cor3-festeggia" x="148" y="42" width="11" height="14" rx="3"/></g>
+    <g fill="#00AFA3"><rect class="cor4-festeggia" x="130" y="40" width="10" height="14" rx="3"/></g>
+    <g fill="#FF7F50"><rect class="cor5-festeggia" x="166" y="44" width="11" height="15" rx="3"/></g>
+    <g fill="#FFA07A"><rect class="cor6-festeggia" x="174" y="30" width="10" height="14" rx="3"/></g>
+    <g fill="#00E0C6"><rect class="cor7-festeggia" x="120" y="28" width="10" height="15" rx="3"/></g>
+    <g fill="#FF7F50"><rect class="cor8-festeggia" x="112" y="48" width="10" height="14" rx="3"/></g>
+    <g fill="#00AFA3"><rect class="cor9-festeggia" x="180" y="46" width="11" height="15" rx="3"/></g>
+    <g fill="#FFA07A"><rect class="cor10-festeggia" x="162" y="60" width="10" height="14" rx="3"/></g>
+    <g fill="#00E0C6"><rect class="cor11-festeggia" x="134" y="58" width="10" height="15" rx="3"/></g>
+</svg>
