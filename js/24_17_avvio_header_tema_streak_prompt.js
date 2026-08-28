@@ -280,6 +280,10 @@ window.i18nDinamiche=function(){
    "Colazione","Metà mattina","Pranzo","Metà pomeriggio","Tardo pomeriggio",
    "Cena","Dopo cena","Spuntino","Intensità bassa","Intensità media",
    "Intensità alta"].forEach(agg);
+  /* le schede partner di esempio: i testi arrivano a tr() dentro una
+     variabile (sono dati, non frasi scritte nel codice), quindi una
+     ricerca testuale le darebbe per orfane (27/08) */
+  try{PARTNER_ESEMPI.forEach(x=>{agg(x.nome);agg(x.riga);agg(x.azione);});}catch(e){}
   /* i vincoli religiosi: etichette tradotte, valori salvati in italiano */
   try{REL_LIST.forEach(agg);}catch(e){}
   try{PLICHE.forEach(x=>agg(x[1]));}catch(e){}
@@ -485,15 +489,23 @@ async function checkAppUpdate(){
   }catch(_){}
 }
 setTimeout(checkAppUpdate,1200);
-/* Pulizia: rimuove un eventuale service worker registrato dal vecchio
-   esperimento (causava doppio download delle librerie = lentezza). Non ne
-   registriamo uno nuovo: niente offline, niente file separato. */
-(function(){
-  try{
-    if("serviceWorker" in navigator)navigator.serviceWorker.getRegistrations().then(regs=>regs.forEach(r=>r.unregister())).catch(()=>{});
-    if(window.caches&&caches.keys)caches.keys().then(keys=>keys.forEach(k=>caches.delete(k))).catch(()=>{});
-  }catch(e){}
-})();
+/* ══ QUI L'OFFLINE VENIVA SPENTO A OGNI AVVIO (audit 27/08) ═══════
+   C'era una «pulizia» che a ogni apertura disregistrava OGNI service
+   worker e svuotava TUTTE le cache, col commento «non ne registriamo
+   uno nuovo: niente offline». Era vero quando è stata scritta.
+
+   Nel frattempo `build.py` ha cominciato a generare `sw.js` e a
+   registrarlo — e le due cose convivevano senza sapere l'una
+   dell'altra: la pagina si apriva dalla cache, poi cancellava la
+   cache, poi provava a ricrearla scaricando dalla rete. In aereo
+   quella registrazione fallisce e la volta dopo non c'è più niente.
+   La guida intanto prometteva: «metti il telefono in aereo e riapri:
+   deve funzionare lo stesso».
+
+   Adesso l'offline è acceso per davvero e questa pulizia non c'è più.
+   La cache è versionata sull'impronta della build, quindi ogni
+   consegna nuova invalida da sola quella vecchia: nessuno resta
+   bloccato su una versione passata. */
 /* Manifest per "Aggiungi a schermata Home / Installa": generato qui dentro,
    tutto in un file solo, senza service worker (che dal 2021 Chrome non
    richiede più per l'installazione). Icone incorporate come immagini,

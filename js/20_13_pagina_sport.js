@@ -79,6 +79,11 @@ function renderSport(){const el=document.getElementById("pg-sport");const di=Mat
       h+=`<div class="wline"><span>${esc(cap(sportCorto(w.sport)))} · ${w.min} min · ${w.int}</span><span><b style="color:var(--salvia)">~${k} kcal</b><span class="del" onclick="delW(${di},${wi})">✕</span></span></div>`;});}});
   if(!anyw)h+=vuotoDi("sport");
   h+=`<div class="daytotal" style="margin-top:8px">${tr("Totale settimana:")} <span>~${tot} kcal bruciate</span></div></div>`;
+  /* Le schede partner stanno in FONDO, e solo qui: chi è arrivato a
+     leggere il totale della settimana ha un bisogno vero — un posto
+     dove allenarsi, o l'attrezzo che gli manca. In cima sarebbe una
+     vetrina; qui è una risposta (27/08). */
+  if(typeof partnerBlocco==="function")h+=partnerBlocco("allenamento",tr("Dove allenarsi"));
   el.innerHTML=h;}
 window.addW=()=>{const di=+document.getElementById("wDay").value;
   (S.week.days[di].workouts=S.week.days[di].workouts||[]).push({sport:document.getElementById("wSport").value,
@@ -578,6 +583,35 @@ window.sedutaAccetta=(i)=>{
   x.fatto=1;save();render(cur);
   toast(tr("Allenamento messo in conto: entra nel deficit di oggi."));};
 
+/* ══ «SEMPRE UN GIORNO DI RIPOSO VERO» ERA UNA PREGHIERA (27/08) ══
+   Lo dice la presentazione, e il prompt lo chiede: «i giorni senza
+   seduta scrivili come riposo». Ma se il modello riempiva tutti e
+   sette i giorni nessuno lo fermava, e la persona si ritrovava una
+   settimana senza un giorno libero — che e' la cosa che fa smettere di
+   allenarsi (ed e' gia' successo il 25/08 con la frequenza: «e' follia»).
+
+   Sta FUORI dalla funzione che chiama l'AI apposta: una rete che si
+   puo' provare solo generando un programma vero non si prova mai.
+
+   Come sceglie: diventa riposo il giorno con la seduta PIU' LEGGERA.
+   Togliere la piu' pesante vorrebbe dire togliere il lavoro che conta.
+   E si tocca UN giorno solo: il programma resta quello che il modello
+   ha pensato, gli si aggiunge la cosa che si era dimenticato. */
+function garantisciRiposo(piano){
+  const l=Array.isArray(piano)?piano.slice():[];
+  const riposo=(x)=>{
+    const t=String((x&&x.tipo)||"").toLowerCase();
+    return t.indexOf("riposo")>-1||(+((x&&x.minuti)||0)===0);};
+  /* sotto i cinque giorni il riposo c'e' gia' per costruzione */
+  if(l.length<5||l.some(riposo))return l;
+  let iLeggero=0;
+  l.forEach((x,i)=>{if((+x.minuti||0)<(+l[iLeggero].minuti||0))iLeggero=i;});
+  const g=l[iLeggero]||{};
+  l[iLeggero]={giorno:g.giorno,tipo:"riposo",minuti:0,
+    nota:tr("Riposo: fa parte del programma, non è un buco.")};
+  return l;}
+window.garantisciRiposo=garantisciRiposo;
+
 window.trainerAI=async()=>{
   if(!aiOn())return aiFail(new Error("nokey"));
   const box=document.getElementById("trainerOut");
@@ -630,8 +664,23 @@ window.trainerAI=async()=>{
     const arr=(j&&Array.isArray(j.settimana))?j.settimana:[];
     if(!arr.length)throw new Error("Non sono riuscito a costruire il programma");
     S.train=S.train||{};
+    /* ══ «SEMPRE UN GIORNO DI RIPOSO VERO» ERA UNA PREGHIERA ══════
+       Lo dice la presentazione, e nel prompt c'era l'istruzione: «i
+       giorni senza seduta scrivili come riposo». Ma se il modello
+       riempiva tutti e sette i giorni, nessuno lo fermava — e la
+       persona si ritrovava una settimana senza un giorno libero, che
+       è la cosa che fa smettere di allenarsi (e che il founder ha già
+       segnalato una volta, il 25/08, per la frequenza).
+
+       Adesso è una rete: se nella settimana non c'è nemmeno un giorno
+       di riposo, l'ULTIMO giorno con la seduta più leggera diventa
+       riposo. Si sceglie il più leggero perché togliere la seduta
+       pesante sarebbe togliere il lavoro che conta; e si tocca un
+       giorno solo, perché il programma resta quello che il modello ha
+       pensato — gli si aggiunge la cosa che si era dimenticato. */
+    const piano=garantisciRiposo(arr.slice(0,7));
     /* le sedute di forza ricevono qui gli esercizi veri, dalla libreria */
-    S.train.piano=arr.slice(0,7).map(x=>{
+    S.train.piano=piano.map(x=>{
       if(String(x.tipo||"").toLowerCase().indexOf("forza")>=0)
         x.esercizi=sedutaForza(x.minuti,liv,x.gruppi);
       return x;});

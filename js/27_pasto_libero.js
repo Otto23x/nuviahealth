@@ -59,16 +59,36 @@ const PAROLE_VIETATE=[
 window.PAROLE_VIETATE=PAROLE_VIETATE;
 
 /* ── I mattoni del commento ─────────────────────────────────────
-   Frasi separate per ruolo, così la struttura complimento →
-   suggerimento → incoraggiamento è garantita dalla forma dei dati e
-   non dalla buona volontà di chi scrive il prossimo pezzo. */
+   Frasi separate per ruolo, così la struttura osservazione →
+   suggerimento → chiusa è garantita dalla forma dei dati e non dalla
+   buona volontà di chi scrive il prossimo pezzo.
+
+   ── PERCHÉ NON SI CHIAMANO PIÙ «LODI» (audit 27/08) ───────────────
+   Il pilastro dice: «Non si loda una scelta. Niente bravo, ottima
+   scelta, complimenti: chi giudica le scelte giudicherà anche i
+   risultati.» E qui c'era scritto, testualmente, «**Ottima** la fonte
+   proteica», «**Bella** la parte di verdura», «**Mi piace** la varietà
+   di questo piatto».
+
+   Non è pignoleria: sono le stesse tre parole che il pilastro nomina,
+   e chi le riceve impara che un piatto può anche NON piacere a Nuvia.
+   Il giorno in cui mangia una piadina in stazione, quel giudizio se lo
+   aspetta — e Nuvia diventa una cosa da cui nascondersi.
+
+   Quello che resta è il FATTO: «c'è una fonte proteica» è la stessa
+   informazione senza il voto. La struttura non cambia, l'utilità
+   nemmeno; sparisce solo il giudizio, che è quello che il pilastro
+   chiedeva di togliere.
+
+   `tracciato` resta com'era, e non è una lode a una scelta: è un fatto
+   sul GESTO di aver segnato, che è quello che l'app chiede di fare. */
 const TONO={
   lode:{
     completo:"Piatto completo: c'è la proteina e c'è il colore della verdura.",
-    proteina:"Ottima la fonte proteica.",
-    verdura:"Bella la parte di verdura.",
-    frutta:"La frutta nel pasto è una buona abitudine.",
-    varieta:"Mi piace la varietà di questo piatto.",
+    proteina:"C'è una fonte proteica.",
+    verdura:"C'è la parte di verdura.",
+    frutta:"C'è la frutta nel pasto.",
+    varieta:"Il piatto è vario.",
     tracciato:"Hai segnato il pasto: è la cosa che conta di più."
   },
   spunto:{

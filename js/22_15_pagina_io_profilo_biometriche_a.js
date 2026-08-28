@@ -10,7 +10,46 @@ function usageHtml(){const u=S.usage,t=iso(new Date());  /* giorno locale, in co
    → generazione AI → editor modificabile → conferma (azzera settimana).
    ═══════════════════════════════════════════════════════════════ */
 let WIZ={step:0,d:{},plan:null,editOnly:false};
-window.wizStart=(full)=>{WIZ={step:1,d:{},plan:null,editOnly:false};show("setup");};
+/* ══ LA TERZA PORTA (audit delle promesse, 27/08) ══════════════════
+   Questo wizard è la CTA più visibile della pagina Piano vuota — «Il
+   tuo piano è una pagina bianca. Vuoi che ti prepari la settimana?» —
+   ed è la terza strada che genera un piano.
+
+   Partiva da `{}`: un foglio bianco. Il suo modulo chiede diciannove
+   campi, e fra quelli che NON chiede ci sono le **allergie**, i
+   farmaci, le indicazioni del medico, i nomi dei pasti scelti, la
+   varietà e i giorni fuori casa. Non chiedendoli, non li mandava — né
+   al modello, né al controllo di sicurezza: `regole.allergeni`
+   arrivava vuoto, e per una persona allergica il piano usciva senza
+   nessuna rete sotto.
+
+   Adesso parte da quello che l'app SA GIÀ della persona: `S.diet` e
+   `S.profile`, gli stessi dati che usano le altre due strade. Il
+   modulo modifica quello che mostra; tutto il resto passa intatto
+   invece di sparire. Una fonte sola, come per il contesto del piano.
+
+   NB: non basta `dietStr()` (che legge S.diet e quindi arrivava già
+   anche di qui). Le allergie hanno una riga tutta loro nel prompt e —
+   soprattutto — sono la lista che il controllo confronta in codice:
+   quella viaggia in `d`, e in `d` non c'era. */
+function wizDatiDaApp(){
+  const D=S.diet||{},p=S.profile||{};
+  return {
+    /* quello che il modulo chiederà e che qui serve solo come partenza */
+    nome:p.name||"",gen:p.gender||"m",dob:p.dob||"",h:+p.h||0,w:+p.w||0,
+    fat:(p.fatp!=null?p.fatp:null),mus:(p.musp!=null?p.musp:null),act:+p.act||1.375,
+    intol:D.intol||"",no:D.no||"",si:D.si||"",note:D.note||"",
+    liberi:D.liberi||"",pronto:D.pronto||"semplice",nPasti:+D.nPasti||5,colaz:D.colaz||"",
+    /* e tutto quello che il modulo NON chiede, e che prima si perdeva */
+    allergie:D.allergie||"",farmaci:D.farmaci||"",medico:D.medico||"",
+    integrareOk:D.integrareOk||"chiedi",integratori:D.integratori||"",
+    integratoriFreq:D.integratoriFreq||"",
+    slots:D.slots||"",varieta:D.varieta||"media",
+    mensaGiorni:D.mensaGiorni||"",outType:D.outType||"fuori",
+    vietatiLista:(typeof vietatiElenco==="function")?vietatiElenco([D.no,D.religiose].filter(Boolean).join("; "),D.intol||""):[],
+    allergeniLista:(typeof allergeniElenco==="function")?allergeniElenco(D.allergie||""):[]};}
+window.wizDatiDaApp=wizDatiDaApp;
+window.wizStart=(full)=>{WIZ={step:1,d:wizDatiDaApp(),plan:null,editOnly:false};show("setup");};
 window.wizEditCurrent=()=>{WIZ={step:4,d:{},plan:JSON.parse(JSON.stringify(PLAN)),editOnly:true};show("setup");};
 function wg(id){const e=document.getElementById(id);return e?e.value.trim():"";}
 function wizNext(to){
@@ -20,9 +59,14 @@ function wizNext(to){
     WIZ.d.act=+wg("wzAct")||1.3;WIZ.d.vita=wg("wzVita");WIZ.d.sport=wg("wzSport");
     if(!WIZ.d.dob||!WIZ.d.h||!WIZ.d.w)return dlgAlert(tr("Servono almeno data di nascita, altezza e peso."));}
   if(WIZ.step===2){
-    WIZ.d.intol=wg("wzIntol");WIZ.d.no=wg("wzNo");WIZ.d.si=wg("wzSi");WIZ.d.note=wg("wzNote");
+    WIZ.d.intol=wg("wzIntol");WIZ.d.allergie=wg("wzAllergie");WIZ.d.no=wg("wzNo");WIZ.d.si=wg("wzSi");WIZ.d.note=wg("wzNote");
+    /* le due liste che il CONTROLLO confronta si rifanno qui: se
+       restassero quelle di partenza, una allergia appena scritta non
+       proteggerebbe il piano che si sta per generare */
+    try{WIZ.d.vietatiLista=vietatiElenco([WIZ.d.no,S.diet.religiose].filter(Boolean).join("; "),WIZ.d.intol);
+        WIZ.d.allergeniLista=allergeniElenco(WIZ.d.allergie);}catch(e){}
     WIZ.d.liberi=wg("wzLiberi");WIZ.d.pronto=wg("wzPronto");WIZ.d.nPasti=+wg("wzNPasti")||5;WIZ.d.colaz=wg("wzColaz");
-    if(WIZ.mode==="diet"){Object.assign(S.diet,{intol:WIZ.d.intol,no:WIZ.d.no,si:WIZ.d.si,note:WIZ.d.note,liberi:WIZ.d.liberi,pronto:WIZ.d.pronto,nPasti:WIZ.d.nPasti,colaz:WIZ.d.colaz});save();
+    if(WIZ.mode==="diet"){Object.assign(S.diet,{intol:WIZ.d.intol,allergie:WIZ.d.allergie,no:WIZ.d.no,si:WIZ.d.si,note:WIZ.d.note,liberi:WIZ.d.liberi,pronto:WIZ.d.pronto,nPasti:WIZ.d.nPasti,colaz:WIZ.d.colaz});save();
       dlgAlert(tr("Caratteristiche aggiornate!"));show("io");return;}}
   if(WIZ.step===3){WIZ.d.goal=wg("wzGoal");}
   WIZ.step=to;renderSetup();}
@@ -155,7 +199,38 @@ async function wizGenDays(d,t,onStep,onFase){
      sarebbero due piani diversi per la stessa persona. */
   const comune=' Persona: '+persona+
     '. Target di OGNI giorno: circa '+t.kcal+' kcal (tolleranza ±5%) e almeno '+t.prot+' g di proteine, distribuiti sui '+nPasti+' pasti.'+
+    /* ══ LE LINEE GUIDA NON ARRIVAVANO AL PRIMO PIANO (27/08) ══════
+       Il difetto piu' grosso trovato oggi, e si vedeva senza saperlo:
+       `rulesForPlan()` — il blocco «QUALITÀ NUTRIZIONALE (vincolante)»
+       con le linee guida OMS compresse — lo mandava SOLO la pagina
+       Regole. Questa strada, che è quella del PRIMO piano di ogni
+       persona, non lo mandava affatto.
+
+       Quindi il piano che una persona riceve il primo giorno — l'unico
+       che molti vedranno mai — nasceva senza sapere che la verdura va
+       a pranzo e a cena, che gli zuccheri aggiunti stanno sotto il 10%
+       delle calorie, che la fibra vuole 25 g, che i cereali si
+       preferiscono integrali. Non era «il modello che sbaglia»: non
+       glielo avevamo detto.
+
+       È la stessa famiglia di difetti dei farmaci, del medico e dei
+       nomi dei pasti: una regola scritta bene, usata da una strada
+       sola. Qui si chiude, e la riga è la stessa in tutte e due.
+
+       STA PRIMA di `rigaPasto()` perche' viene prima anche per
+       importanza: la richiesta del founder e' esplicita — «l'importante
+       è che restino le linee guida OMS e che venga rispettata la
+       tradizione culinaria scelta; la precedenza devono averla quelle». */
+    /* la stessa fonte sola dell'altra strada (27/08): senza, il primo
+       piano non sapeva né che tipo di dieta segue la persona né in
+       che cucina vive. Vedi il commento lungo in 21_14. */
+    ((typeof dietStr==="function")?(" "+dietStr()):"")+
+    ((typeof rulesForPlan==="function")?rulesForPlan():"")+
     ((typeof rigaPasti==="function")?rigaPasti(slots):"")+
+    /* la forma del singolo pasto: la stessa riga della pagina Regole,
+       e sta DOPO le linee guida perche' viene dopo anche per
+       importanza — lo dice la riga stessa al modello */
+    ((typeof rigaPasto==="function")?rigaPasto():"")+
     (d.allergie?' ATTENZIONE, ALLERGIE VERE: '+d.allergie+'. Per queste non esistono eccezioni né «tracce»: nessun derivato, nessun dubbio.':'')+
     /* PREVENIRE COSTA MENO CHE RIPARARE (v13.98): al modello si dice
        cosa usare INVECE di cosa. Un intollerante al lattosio non deve
@@ -176,7 +251,7 @@ async function wizGenDays(d,t,onStep,onFase){
         ? ' Se i target non si coprono col cibo puoi indicare un integratore, scrivendolo nel campo ctx del giorno e ricordando che va concordato con un nutrizionista.'
         : ' Se i target non si coprono col cibo NON inserire integratori: scrivi nel campo ctx del giorno che varrebbe la pena parlarne con un nutrizionista.')+
     ' Rispetta intolleranze e cibi vietati; usa i cibi amati; piatti '+(d.pronto==="pronto"?"semplicissimi e in gran parte pronti":"semplici")+
-    ' con grammature sempre indicate e valori nutrizionali REALI; cucina italiana/mediterranea con componenti separate nel piatto;'+
+    ' con grammature sempre indicate e valori nutrizionali REALI; componenti separate nel piatto;'+
     ' NON inserire integratori nel piano.'+fuoriRiga+integRiga+integFreq+
     (d.note?' Note della persona, da rispettare: '+d.note+'.':'')+
     (liberi?' Nella settimana vanno collocati '+liberi+' pasti liberi in totale, nei giorni che si prestano (weekend, cena sociale): quei pasti hanno type "free".':' Nessun pasto libero.')+
@@ -568,7 +643,33 @@ function famForAI(){
     S.family.map(m=>{const b=famBand(m);const base=b.l.split(" (")[0].toLowerCase()+trh(" di {v1} anni",{v1:b.age});return (m.nome||"").trim()?m.nome.trim()+" ("+base+")":base;}).join(", ")+
     ". Quando serve, ragiona sulle quantità per tutti: in totale valgono "+
     (Math.round(famUnits()*100)/100)+" porzioni di riferimento (donna adulta = 1).";}
-window.famAdd=()=>{S.family.push({nome:"",gender:"f",dob:""});save();render(cur);};
+/* ── LA FAMIGLIA NEL PIANO: I PIATTI SÌ, LE GRAMMATURE NO ──────────
+   famForAI() dice all'AI di ragionare sulle QUANTITÀ per tutti: va
+   bene per la spesa e per le richieste brevi, non per il piano. Nel
+   piano le grammature sono il target calorico della persona: se il
+   modello le moltiplicasse per tre, il piano sbaglierebbe di tre
+   volte — e il difetto sarebbe invisibile, perché i piatti
+   resterebbero sensati.
+   Quello che serve nel piano è un'altra cosa: che il piatto si possa
+   cucinare in una pentola sola per tutti. Per questo la riga del
+   piano è separata, dice solo come SCEGLIERE i piatti, e ripete a
+   voce alta che le quantità restano personali.
+   Si accende solo se c'è qualcuno E se la persona l'ha chiesto. */
+function famPianoForAI(){
+  const n=(S.family||[]).length;
+  if(!n||!S.famPiano)return "";
+  return trh(" IN CASA: a tavola siete in {v1}.",{v1:n+1})+" "+
+    tr("Scegli piatti che si possano cucinare in un'unica preparazione per tutti, con ingredienti comuni e senza ricette separate.")+" "+
+    tr("LE GRAMMATURE CHE SCRIVI RESTANO QUELLE DELLA PERSONA: non moltiplicarle per il numero di persone e non scrivere le quantità degli altri.");}
+window.famPianoSet=(v)=>{S.famPiano=!!v;save();
+  /* cambia come vengono SCELTI i piatti, non le quantità: il piano si
+     rifà alla prossima generazione, non si tocca quello in corso. */
+  toast(v?tr("Cucinerò per tutti — dalla prossima generazione del piano"):tr("Piatti pensati solo per te — dalla prossima generazione del piano"));};
+window.famAdd=()=>{
+  /* la prima persona accende il «cucino per tutti»: è il caso comune,
+     e la spunta resta lì per chi invece si prepara il piatto a parte */
+  if(!S.family.length)S.famPiano=true;
+  S.family.push({nome:"",gender:"f",dob:""});save();render(cur);};
 window.famDel=(i)=>{S.family.splice(i,1);save();render(cur);};
 window.famSet=(i,k,v)=>{if(!S.family[i])return;
   if(k==="eta"){                       /* l'età si salva come data, non come numero */
@@ -696,6 +797,8 @@ function famCardHTML(pre){
   return `<label>${tr("Chi altro mangia a casa")}</label>
   <div id="famBox">${famRowsHTML()}</div>
   <button class="btn ghost small" onclick="famAdd()">${tr("+ Aggiungi una persona")}</button>
+  ${(S.family||[]).length?`<label class="ckline" style="margin-top:12px"><input type="checkbox" id="famPianoCk" ${S.famPiano?"checked":""}
+    onchange="famPianoSet(this.checked)"> ${tr("Nel piano, scegli piatti che posso cucinare per tutti")}</label>`:""}
   ${hint2(tr("Dai un <b>nome</b> a ciascuno e scrivi <b>sesso ed età</b>: al resto pensa l'app. L'età si aggiorna da sola con gli anni."),tr("Servono per cucinare in una pentola sola e per fare la spesa giusta. Le porzioni si calcolano così: donna adulta = 1, uomo = 1,25, adolescente = 1,10, bambino = 0,75, infante = 0,50."))}`;}
 /* ═══ MINIMO CALORICO ═══════════════════════════════════════════════
    Il pavimento segue il CORPO, non il sesso: 1200 per una donna e 1500 per
@@ -960,12 +1063,35 @@ function qKey(d){return String(d||"").toLowerCase().replace(/\s+/g," ").replace(
 /* Il punteggio si chiede all'AI una volta per descrizione e si tiene in cache:
    lo stesso piatto non viene rivalutato ogni volta che lo spunti. */
 const QUALITY_SCALE="0-20 = ultraprocessato, fritto, ricco di zuccheri e grassi saturi, povero di nutrienti; 21-40 = scarso, poco equilibrato; 41-60 = nella media, accettabile; 61-80 = buono, cibo vero e bilanciato; 81-100 = ottimo: ingredienti integrali, verdure, buone proteine, grassi buoni. Giudica la qualità degli alimenti, non le calorie.";
-async function foodQuality(desc){
+/* ── IL GIUDICE LEGGEVA SOLO LA FRASE (founder, 27/08) ────────────
+   «È una buona idea anche quella di passargli i macro: così facendo il
+   punteggio si aggiusterà da solo.»
+   Il voto si chiedeva sulla sola descrizione: il modello NON sapeva
+   che quel piatto aveva 11 g di proteine e 2 g di fibra — lo deduceva
+   dai nomi degli alimenti. Era un'impressione su un testo, e su un
+   testo si può sbagliare in tutte e due le direzioni: punire un piatto
+   sano che si legge male, e premiarne uno che si legge bene.
+   I numeri li abbiamo già calcolati e viaggiano insieme al piatto:
+   passarli non costa nessuna chiamata in più e trasforma
+   un'impressione in una misura. */
+function qMacroTxt(o){
+  if(!o||typeof o!=="object")return "";
+  const n=(x)=>(x==null||!isFinite(+x))?null:Math.round(+x);
+  const bit=[];
+  if(n(o.k)!=null)bit.push(n(o.k)+" kcal");
+  if(n(o.p)!=null)bit.push(n(o.p)+" g proteine");
+  if(n(o.c)!=null)bit.push(n(o.c)+" g carboidrati"+((n(o.z)!=null)?(" di cui "+n(o.z)+" g zuccheri"):""));
+  if(n(o.f)!=null)bit.push(n(o.f)+" g grassi");
+  if(n(o.fib)!=null)bit.push(n(o.fib)+" g fibra");
+  return bit.length?(" ("+bit.join(", ")+")"):"";}
+window.qMacroTxt=qMacroTxt;
+
+async function foodQuality(desc,macro){
   const k=qKey(desc);if(!k)return null;
   S.qCache=S.qCache||{};
   if(S.qCache[k]!=null)return S.qCache[k];
   if(!aiOn())return null;
-  const t=await aiAsk('Valuta la QUALITÀ NUTRIZIONALE di questo pasto: "'+String(desc).slice(0,300)+'". '+
+  const t=await aiAsk('Valuta la QUALITÀ NUTRIZIONALE di questo pasto: "'+String(desc).slice(0,300)+'"'+qMacroTxt(macro)+'. '+
     'Punteggio 0-100: '+QUALITY_SCALE+' Rispondi SOLO JSON: {"q":numero}');
   const j=parseAIJSON(t);
   const q=Math.max(0,Math.min(100,Math.round(+((j&&j.q)||0))));
@@ -1017,7 +1143,10 @@ function qPlanPrecompute(){
         [perm].concat(m.o||[]).forEach(o=>{
           if(!o||!o.d)return;const k=qKey(o.d);
           if(!k||S.qCache[k]!=null||seen[k])return;
-          seen[k]=1;miss.push({k,d:String(o.d).slice(0,200)});});}));
+          /* i macro viaggiano col piatto anche qui: è la stessa
+             valutazione, e due giudizi con informazioni diverse sullo
+             stesso piatto sarebbero due voti diversi */
+          seen[k]=1;miss.push({k,d:String(o.d).slice(0,200)+qMacroTxt(o)});});}));
       if(!miss.length)return;
       const batch=miss.slice(0,40); // un piano intero ci sta; il resto al giro dopo
       const t=await aiQuiet(()=>aiAsk('Valuta la QUALITÀ NUTRIZIONALE di ognuno di questi piatti con un punteggio 0-100 '+
@@ -1033,11 +1162,11 @@ function qPlanPrecompute(){
     }catch(e){/* silenzioso: al peggio i pallini arrivano alla spunta, come prima */}
   },1200);}
 let QPEND={},QFAIL={};      /* richieste in volo · descrizioni che l'AI non ha saputo valutare */
-function qAsk(obj,desc,tag){
+function qAsk(obj,desc,tag,macro){
   const k=qKey(desc);
   if(!k||QPEND[tag]||QFAIL[k])return;
   QPEND[tag]=1;
-  foodQuality(desc).then(q=>{
+  foodQuality(desc,macro).then(q=>{
     delete QPEND[tag];
     if(q==null){QFAIL[k]=1;return;}
     if(qKey(desc)!==k)return;            /* nel frattempo il pasto è cambiato */
@@ -1046,10 +1175,12 @@ function qAsk(obj,desc,tag){
 function qRefreshMeal(pdi,mi){
   const st=S.week.days[pdi]&&S.week.days[pdi].meals[mi];if(!st)return;
   const o=mealOpt(pdi,mi);if(!o||!o.d)return;
-  qAsk(st,o.d,"m"+pdi+"_"+mi);}
+  /* i macro del piatto viaggiano col voto: sono quelli che l'app ha
+     gia' calcolato, e senza il modello giudicherebbe solo la frase */
+  qAsk(st,o.d,"m"+pdi+"_"+mi,o);}
 function qRefreshExtra(di,ei){
   const e=S.week.days[di]&&S.week.days[di].extras[ei];if(!e||!e.d)return;
-  qAsk(e,e.d,"e"+di+"_"+ei);}
+  qAsk(e,e.d,"e"+di+"_"+ei,e);}
 /* Passata sul giorno mostrato: chiede il voto per tutto ciò che risulta
    mangiato e non ha (più) un punteggio valido. */
 function qSweep(di){
@@ -1117,7 +1248,14 @@ function renderSetup(){const el=document.getElementById("pg-setup");let h="";
   else if(WIZ.step===2){const dv=(f,def)=>WIZ.d[f]!==undefined?WIZ.d[f]:(S.diet[f]!==undefined?S.diet[f]:def);
     const sel=(f,val,def)=>dv(f,def)===val?" selected":"";
     h=`<div class="card"><h2>${tr("Passo 2 di 3 — Cosa mangi")}</h2>
-    <label>Intolleranze / allergie</label><input type="text" id="wzIntol" value="${esc(WIZ.d.intol!==undefined?WIZ.d.intol:S.diet.intol)}" placeholder="es. lattosio; colon irritabile">
+    <!-- DUE DOMANDE, NON UNA (audit 27/08). Qui c'era un campo solo,
+         «Intolleranze / allergie», e quello che ci si scriveva finiva
+         fra le INTOLLERANZE. Chi scriveva «latte» riceveva lo yogurt
+         senza lattosio: giusto per un intollerante, pericoloso per un
+         allergico. È la distinzione clinica della v13.101, aggirata da
+         una porta laterale. -->
+    <label>${tr("Intolleranze")}</label><input type="text" id="wzIntol" value="${esc(WIZ.d.intol!==undefined?WIZ.d.intol:S.diet.intol)}" placeholder="es. lattosio, glutine">
+    <label>${tr("Allergie")}</label><input type="text" id="wzAllergie" value="${esc(WIZ.d.allergie!==undefined?WIZ.d.allergie:(S.diet.allergie||""))}" placeholder="${esc(tr("es. latte, arachidi — qui non valgono eccezioni"))}">
     <label>${tr("Cibi che NON puoi o NON vuoi mangiare")}</label><textarea id="wzNo" placeholder="es. pomodoro, cipolla, aglio, pesce spada…">${esc(WIZ.d.no!==undefined?WIZ.d.no:S.diet.no)}</textarea>
     <label>${tr("Cibi che ami (l'AI li userà spesso)")}</label><textarea id="wzSi" placeholder="es. pollo, patate, yogurt greco, kefir…">${esc(WIZ.d.si!==undefined?WIZ.d.si:S.diet.si)}</textarea>
     <label>Note</label><input type="text" id="wzNote" value="${esc(dv("note",""))}" placeholder="${tr("preferenze, orari, altro")}">
@@ -1270,7 +1408,7 @@ window.nuviaFunzioni=nuviaFunzioni;
    (registro I18N_RIFAI in 10_base) */
 let NUVIA_FUNZIONI;
 (window.I18N_RIFAI=window.I18N_RIFAI||[]).push(function(){NUVIA_FUNZIONI=`<div class="card guida-sec"><details class="gdet"><summary><h2>${tr("Tutto quello che Nuvia sa fare")}</h2><span class="gdet-arrow">▾</span></summary><div class="gdet-body">
-${hint2(tr("La mappa completa, funzione per funzione."),tr("Ogni voce è poi spiegata in dettaglio nella Guida."))}
+<div class="hint">${tr("La mappa completa, funzione per funzione.")} ${tr("Ogni voce è poi spiegata in dettaglio nella Guida.")}</div>
 <table class="gtable">
 <tr><td colspan="2"><b>Percorso guidato</b> ${trh("— otto passi guidati: privacy, chiave AI, chi sei, obiettivo, come mangi, backup, piano. La {b1}, così tutti i passi successivi possono già usare l'AI.",{b1:"<b>chiave Gemini si aggancia subito al passo 3</b>"})}</td></tr>
 <tr><td colspan="2"><b>${tr("Obiettivo su misura")}</b> ${trh("— il ritmo (kg/settimana) cambia opzioni in base all'obiettivo scelto e {b2}; gli {b1} (sport · minuti · volte) e l'{b3} entrano nel fabbisogno già dal percorso iniziale.",{b2:"<b>"+tr("guida davvero il deficit")+"</b>",b1:"<b>allenamenti previsti</b>",b3:"<b>"+tr("obiettivo acqua")+"</b>"})}</td></tr>
@@ -1332,7 +1470,7 @@ ${hint2(tr("La mappa completa, funzione per funzione."),tr("Ogni voce è poi spi
 <tr><td colspan="2"><b>Scaffale</b> ${trh("(in Strumenti) — davanti a venti prodotti simili, fotografi lo scaffale: Nuvia legge le etichette, incrocia la {b} e le tue caratteristiche alimentari e dice <b>quale prendere, quanto e perché</b> quello e non l'altro (proteine, zuccheri, sale, additivi, prezzo al chilo se leggibile). Se un prodotto è da evitare per te, lo segnala. Se le etichette non si leggono, lo dice invece di inventare.",{b:"<b>"+tr("tua lista")+"</b>"})}</td></tr>
 <tr><td colspan="2"><b>${tr("Quanto costa la spesa")}</b> ${trh("— dallo scontrino Nuvia legge anche i prezzi: totale, costo al giorno, {b} e la ripartizione per categoria. I prezzi sono stime (offerte e sconti ingannano la lettura): tocca un prodotto in dispensa per correggerlo. Il costo entra anche nei suggerimenti: a parità di valori nutrizionali, l'AI segnala dove si spenderebbe meno.",{b:"<b>costo medio a pasto</b>"})}</td></tr>
 <tr><td colspan="2"><b>${tr("Stime senza chiave AI")}</b> ${trh("— una tabella locale di {b1}, con i nomi in italiano e in inglese, stima calorie e macro dei piatti comuni («riso 90g, pollo 150g, zucchine», «naan, dal, paneer») direttamente sul telefono, senza rete e senza chiave. Copre solo ciò che riconosce: se capisce meno del 60% del piatto, preferisce chiederti i numeri piuttosto che inventarli.",{b1:"<b>"+tr("695 alimenti di tutte le tradizioni")+"</b>"})}</td></tr>
-<tr><td colspan="2"><b>${tr("L'AI impara le tue correzioni")}</b> ${trh("— dopo ogni stima puoi rispondere {b}: la coppia (piatto, valore giusto) resta in memoria e viene allegata alle stime successive. «La mia carbonara è 650, non 520» detto una volta vale per sempre: la tua padella, il tuo olio, le tue porzioni.",{b:"<b>Correggo io</b>"})}</td></tr>
+<tr><td colspan="2"><b>${tr("Le tue correzioni restano, piatto per piatto")}</b> ${trh("— dopo ogni stima puoi rispondere {b}: quel piatto, con il valore che gli hai dato tu, resta salvato e la volta dopo vince sulla stima. Vale per QUEL piatto, non per tutti: una correzione non diventa una regola generale, perché su un bilancio di calorie una regola inventata da un solo caso fa più danni di una stima imperfetta.",{b:"<b>Correggo io</b>"})}</td></tr>
 <tr><td colspan="2"><b>${tr("Alternative della spesa che aggiornano il piano")}</b> ${trh("— l'icona AI su un prodotto propone tre sostituti {b}: quello che scegli entra in lista e, se accetti, riscrive i pasti del piano che lo usavano adattando le grammature per restare vicino a kcal e proteine originali.",{b:"<b>selezionabili</b>"})}</td></tr>
 <tr><td colspan="2"><b>${tr("Cosa sa di te l'AI")}</b> ${trh("(Regole → Regole AI) — il testo {b} che accompagna ogni richiesta, composto dal vivo dai tuoi dati: regole, intolleranze, divieti, stati del corpo, correzioni. In fondo c'è la {b2}: quante risposte sono arrivate in formato corretto. Non devi fidarti: leggi.",{b:"<b>esatto</b>",b2:"<b>"+tr("salute del motore")+"</b>"})}</td></tr>
 <tr><td colspan="2">${trh("<b>Foto del piatto</b> — l\'AI stima <b>il peso in grammi di ogni elemento</b> oltre a kcal e macro, e scrive la descrizione pesata: correggi i grammi con {v1} e la stima si rifà usando esattamente i tuoi numeri. Al ristorante una portata alla volta; barcode multiplo senza consumare AI.",{v1:ic("pencil",15)})}</td></tr>
@@ -1459,8 +1597,22 @@ ${trh("Gli allenamenti non sono dentro: si sommano a parte, con la formula {b1}.
 
 <div class="gsec">${tr("7 · I tuoi dati")}</div>
 <p class="gp">${trh("Tutto vive sul telefono, senza account e senza server di Nuvia. Il backup su Drive è facoltativo e finisce sul {b} account Google; la chiave AI resta su questo dispositivo. {b2}: né ai dati, né al Drive, né alla chiave — non esiste un posto dove potrebbero arrivare.\nDa",{b:"<b>tuo</b>",b2:"<b>"+tr("Lo sviluppatore non ha accesso a nulla")+"</b>"})} <b>${trh("Storico → Esporta i dati</b> scarichi qualsiasi periodo come tabella: una riga per giorno con pianificato, mangiato, macro completi, sport, sonno, relax, umore, acqua, evento, periodo di dieta, ribilanciamenti e recuperi. In CSV per il foglio di calcolo, oppure lasci che sia Nuvia a cercarci i {b2}. Il backup completo dell'app, quello che serve per rimettere tutto su un altro telefono, si scarica invece da {b}.",{b2:"<b>pattern</b>",b:"<b>Io → Backup</b>"})}</p>
-</div></details></div>`;
-GUIDA_IT.pagine=()=>`<div class="card guida-sec"><details class="gdet"><summary><h2>${tr("Le pagine")}</h2><span class="gdet-arrow">▾</span></summary><div class="gdet-body"><table class="gtable">
+
+<div class="gsec">8 · Chi mangia con te</div>
+<p class="gp">Se a tavola non sei solo, il percorso guidato chiede chi c'è: nome, sesso ed età di ciascuno. Da lì cambiano due cose, e solo due.
+<br><br>La <b>spesa</b>: le quantità si moltiplicano per le porzioni di casa (una donna adulta vale 1, un bambino di 4-9 anni 0,75, un adolescente 1,10). L'interruttore è in fondo alla pagina Spesa, e si può rimettere su «solo per me» quando vuoi.
+<br><br>La <b>scelta</b> dei piatti: l'AI sceglie ricette che si possano cucinare in un'unica preparazione per tutti. La spunta sta in Regole, sotto le righe della famiglia.
+<br><br>Quello che <b>non cambia</b> sono le grammature del piano: quelle restano tue, le decidono i tuoi numeri. Se il piano moltiplicasse le porzioni per il numero di persone sarebbe sbagliato di tre volte restando perfettamente sensato a leggerlo — per questo la famiglia entra nella scelta dei piatti e mai nelle quantità.
+L'età si scrive in anni e l'app la trasforma in una data: l'anno prossimo le porzioni sono giuste da sole.</p>
+
+<div class="gsec">9 · Quando l'app ti scrive</div>
+<p class="gp">Le notifiche sono <b>poche per regola</b>: al massimo <b>due a settimana</b>, mai in due giorni di fila, e vale per tutte — promemoria, incoraggiamenti, «come stai?». Nessuna notifica è commerciale: un partner non ti scrive mai.
+Se hai raggiunto il traguardo l'app si fa sentire ancora meno: un «come stai?» ogni tre settimane, e basta.</p>
+
+<div class="gsec">10 · Se serve una mano</div>
+<p class="gp">Nuvia non fa diagnosi e non cura: quando una conversazione tocca il rapporto col cibo in un modo che va oltre una dieta, l'app lo dice e mostra a chi rivolgersi — il numero verde italiano e findahelpline.com, che trova la linea giusta in qualunque Paese.
+<br><br>Nella stessa pagina, e in fondo a Sport e Spesa, possono comparire delle <b>schede di professionisti e negozi</b>. Tre regole, e sono scritte nel codice prima che qui: compaiono solo dove un bisogno è già stato dichiarato (mai una vetrina, mai una notifica); portano sempre l'etichetta «Partner · Nuvia riceve un contributo»; e su psicologi, nutrizionisti e medici il contributo è un canone di presenza, <b>mai una percentuale su una prestazione sanitaria</b>. Finché non c'è nessuno di vero per quel bisogno, le schede che vedi sono esempi e lo dichiarano.</p>
+</div></details></div>`;GUIDA_IT.pagine=()=>`<div class="card guida-sec"><details class="gdet"><summary><h2>${tr("Le pagine")}</h2><span class="gdet-arrow">▾</span></summary><div class="gdet-body"><table class="gtable">
 <tr><td colspan="2"><b>Oggi</b> ${trh("— bilancio del giorno (anello con il {b1} in grande e {b2} = le kcal previste dal piano per quel giorno), acqua, sonno/relax/umore, pasti ed extra da spuntare. Le frecce ‹ › in alto cambiano giorno.",{b1:"<b>deficit</b>",b2:"<b>Pianificato</b>"})}</td></tr>
 <tr><td colspan="2"><b>${tr("Piano")}</b> ${tr("— tutta la settimana con i sei comandi: gestisci · alternativa stagionale · ripeti il percorso guidato · genera nuovo piano · importa da foto · stima risultati; più opzioni, orari e alternative per ogni pasto.")}</td></tr>
 <tr><td colspan="2">${trh("<b>Spesa</b> — lista che si costruisce e si aggiorna da sola dal piano, ricerca sul sito del tuo supermercato, invio WhatsApp. L'icona AI su un prodotto propone {b1}: quella che scegli sostituisce il prodotto in lista e, se vuoi, <b>riscrive i pasti del piano</b> che lo usavano. Dallo {b3} arrivano prodotti, quantità e {b2}: da lì Nuvia calcola quanto è costata la spesa, quanto costa in media un pasto e dove vanno i soldi.",{b1:"<b>tre alternative da scegliere</b>",b3:"<b>scontrino</b>",b2:"<b>prezzi</b>"})}</td></tr>
@@ -1470,6 +1622,14 @@ GUIDA_IT.pagine=()=>`<div class="card guida-sec"><details class="gdet"><summary>
 <tr><td colspan="2"><b>${tr("Regole")}</b> ${trh("— la configurazione, divisa in {b2}: {b3} (quello che hai inserito nel percorso guidato: obiettivo, caratteristiche alimentari, protocolli — si modifica qui e vale ovunque), {b} (come deve ragionare l'AI, «Cosa sa di te l'AI» con il testo esatto che parte a ogni richiesta, linee guida OMS), {b1}: fabbisogno, formula degli allenamenti, soglie di ribilanciamento e recupero, obiettivo proteine, caratteristiche alimentari e gestione del piano.",{b2:"<b>tre schede</b>",b3:"<b>"+tr("Le tue scelte")+"</b>",b:"<b>Regole AI</b>",b1:"<b>Formule e calcoli</b>"})}</td></tr>
 <tr><td colspan="2"><b>Io</b> ${trh("— solo il tuo corpo e i tuoi obiettivi: {b2}, {b3} (ogni salvataggio aggiunge una riga allo storico), {b},",{b2:"<b>Anagrafica</b>",b3:"<b>Nuova pesata</b>",b:"<b>Obiettivi</b>"})} <b>${tr("Attività di base")}</b>, promemoria, vacanza e percorso guidato.</td></tr>
 <tr><td colspan="2"><b>Sistema</b> ${tr("— tutto il tecnico in un posto solo: livello di dettaglio dell'interfaccia, chiave AI (Gemini), Google Drive, backup locale, ripristino di emergenza, pulizia selettiva, dati d'uso anonimi e segnalazioni.")}</td></tr>
+<tr><td colspan="2"><b>Il punto</b> — la pagina che si apre per prima: come sta andando adesso e, a chi è appena arrivato, i primi passi da fare. Da qui si entra ovunque.</td></tr>
+<tr><td colspan="2"><b>Come stai</b> — sonno, stress, umore e come ti senti in questo momento. Non sono decorazione: sono i numeri che spiegano le settimane storte, e alimentano le correlazioni di fine settimana.</td></tr>
+<tr><td colspan="2"><b>Strumenti</b> — quello che serve in un momento preciso: «Ho una voglia…» (l'app cerca un'alternativa), «Sto per cedere» (non si dice di no: si dice metà, e adesso), la dispensa, il codice piano.</td></tr>
+<tr><td colspan="2"><b>La mia</b> — la pagina che componi tu: scegli fino a sei pezzi dell'app, li metti nell'ordine che vuoi, e diventa la prima cosa che apri. Esiste solo se la componi: l'app non si riorganizza mai da sola.</td></tr>
+<tr><td colspan="2"><b>Insieme</b> — la piazza, non il social: si sta insieme senza gare al ribasso e senza confronti fra corpi.</td></tr>
+<tr><td colspan="2"><b>Il tuo percorso</b> e <b>Costellazione</b> — ventiquattro segni che si accendono la prima volta che fai una cosa. Non si spengono mai, non ci sono livelli e non c'è niente da fare per tenerli accesi: la settimana storta non conta.</td></tr>
+<tr><td colspan="2"><b>Abbonamento</b> e <b>I piani</b> — cosa è attivo adesso e cosa fanno i piani. Free resta gratis.</td></tr>
+<tr><td colspan="2"><b>Guida</b> e <b>Nuvia</b> — questa guida, e la mappa di tutte le funzioni una per una.</td></tr>
 <tr><td colspan="2"><b>Percorso guidato</b> ${tr("(in Piano) — lo stesso percorso guidato, con tutti i campi già compilati (dati, intolleranze, gusti, obiettivi) da cui l'AI genera una settimana su misura, modificabile prima della conferma. «Modifica il piano» per ritocchi a mano. Sempre da validare con un nutrizionista.")}</td></tr></table></div></details></div>`;
 GUIDA_IT.simboli=()=>`<div class="card guida-sec"><details class="gdet"><summary><h2>${tr("I simboli")}</h2><span class="gdet-arrow">▾</span></summary><div class="gdet-body">
 <div class="gsec">${tr("Sui pasti")}</div><table class="gtable">
@@ -1515,15 +1675,50 @@ GUIDA_IT.simboli=()=>`<div class="card guida-sec"><details class="gdet"><summary
 <tr><td colspan="2">${trh("Fine settimana: l'archiviazione è {b} con quello che c'è, senza bottoni da premere. Le settimane chiuse restano {b2} da Storico → Settimane passate → Modifica.",{b:"<b>automatica</b>",b2:"<b>"+tr("sempre modificabili")+"</b>"})}</td></tr>
 <tr><td colspan="2"><b>${tr("Link di ricerca della spesa")}</b> ${tr("(in cima a Spesa): quasi tutti i supermercati online richiedono prima la scelta del negozio, quindi non c'è un link universale. Fai una ricerca sul sito del TUO negozio, copia l'indirizzo e incollalo sostituendo la parola cercata con")} <b>{q}${tr("</b>: da lì ogni link ↗ della lista cerca direttamente nel tuo supermercato.")}</td></tr>
 <tr><td colspan="2"><b>${tr("Prodotti in lista")}</b> ${tr("(in Spesa): arrivano tutti dal piano, compresi gli ingredienti dei pasti che modifichi o aggiungi tu — la lista si riallinea da sola. Per una cosa fuori piano usa il ＋ accanto alla categoria.")}</td></tr>
+<tr><td>${ic("ai",18)}</td><td><b>La stella dell'AI</b>: dove la trovi, quella funzione chiede al modello — e consuma una richiesta. Dove non c'è, è tutto calcolo dell'app.</td></tr>
+<tr><td>${ic("chiedi",18)}</td><td>Chiedi a Nuvia: la domanda breve, in qualunque punto dell'app.</td></tr>
+<tr><td>${ic("mic",18)}</td><td>Detta il pasto a voce. Prima di salvare te lo fa rileggere.</td></tr>
+<tr><td>${ic("attrezzi",18)}</td><td>I tre puntini sul pasto: aprono tutti gli attrezzi di quel pasto (foto, barcode, voce, commensali, cucina guidata, ospite).</td></tr>
+<tr><td>${ic("persone",18)}</td><td><b>Commensali</b>: per quante persone stai cucinando adesso. Riscala le quantità del piatto, non il tuo target.</td></tr>
+<tr><td>${ic("pentola",18)}</td><td><b>Come si cucina</b>: la preparazione passo passo del piatto che hai davanti.</td></tr>
+<tr><td>${ic("guest",18)}</td><td><b>Sono ospite</b>: registra il pasto con una stima, senza chiederti le grammature di casa d'altri.</td></tr>
+<tr><td>${ic("link",18)}</td><td>Porta fuori dall'app (il sito del tuo supermercato, una fonte). Si apre in una scheda nuova.</td></tr>
+<tr><td>${ic("search",18)}</td><td>Cerca — nei prodotti, negli alimenti, nella lista.</td></tr>
+<tr><td>${ic("tag",18)}</td><td>La categoria di un prodotto della spesa: si cambia se l'app l'ha messo nello scaffale sbagliato.</td></tr>
+<tr><td>${ic("trash",18)}</td><td>Elimina per sempre. Chiede conferma ogni volta che quello che togli non si può ricostruire.</td></tr>
+<tr><td>${ic("x",18)}</td><td>Chiude, nasconde o toglie dalla lista — senza cancellare niente di definitivo.</td></tr>
+<tr><td>${ic("su",18)} ${ic("giu",18)}</td><td>Spostano un pezzo su e giù: servono a comporre «La mia» nell'ordine che vuoi tu.</td></tr>
+<tr><td>${ic("gear",18)}</td><td>Sistema: chiavi, backup, sincronizzazione, dati d'uso.</td></tr>
+</table>
+<div class="gsec">I segni delle pagine</div><table class="gtable">
+<tr><td>${ic("punto",18)}</td><td>Il punto — come sta andando adesso.</td></tr>
+<tr><td>${ic("oggi",18)}</td><td>Oggi — il bilancio della giornata.</td></tr>
+<tr><td>${ic("piano",18)}</td><td>Piano — la settimana.</td></tr>
+<tr><td>${ic("spesa",18)}</td><td>Spesa — la lista che nasce dal piano.</td></tr>
+<tr><td>${ic("sport",18)}</td><td>Allenamento.</td></tr>
+<tr><td>${ic("heart",18)}</td><td>Come stai — sonno, stress, umore.</td></tr>
+<tr><td>${ic("progressi",18)}</td><td>Numeri — storico, pesate, riepiloghi, report.</td></tr>
+<tr><td>${ic("storico",18)}</td><td>Il calendario: le settimane passate, e l'appuntamento quando c'è.</td></tr>
+<tr><td>${ic("tools",18)}</td><td>Strumenti — le voglie, la dispensa, il codice piano.</td></tr>
+<tr><td>${ic("regole",18)}</td><td>Regole — le tue scelte, le regole dell'AI, le formule.</td></tr>
+<tr><td>${ic("star",18)}</td><td>La mia, Il tuo percorso, Abbonamento.</td></tr>
+<tr><td>${ic("io",18)}</td><td>Utente — il tuo corpo e i tuoi obiettivi.</td></tr>
+<tr><td>${ic("guida",18)}</td><td>Guida — questa pagina.</td></tr>
+<tr><td>${ic("nuvia",18)}</td><td>Nuvia — la mappa di tutte le funzioni.</td></tr>
+</table>
+<div class="gsec">Segni che non sono icone</div><table class="gtable">
+<tr><td colspan="2"><b>Il pallino della qualità</b> (su ogni pasto del piano): un voto da 0 a 100 sulla qualità degli alimenti, non sulle calorie. 0-20 ultraprocessato · 21-40 scarso · 41-60 nella media · 61-80 buono, cibo vero · 81-100 ottimo. Il piano punta a restare sopra 75, e un pasto libero basso non è un errore: è un pasto libero.</td></tr>
+<tr><td colspan="2"><b>Il logo sulle schede dei partner</b>: è l'insegna di quell'attività e arriva insieme alla scheda. Dove non c'è logo la scheda resta una riga di testo: l'app non ci mette un disegno proprio al posto suo.</td></tr>
+<tr><td colspan="2"><b>Le frequenze degli integratori</b> (nel percorso guidato): ogni riga parte da «mai», che è la risposta vera finché non ne dai un'altra. Scegliere una frequenza spunta la voce, scegliere «mai» la toglie.</td></tr>
 </table></div></details></div>`;
 GUIDA_IT.backup=()=>`<div class="card guida-sec"><details class="gdet"><summary><h2>Backup & aggiornamenti</h2><span class="gdet-arrow">▾</span></summary><div class="gdet-body">
-<div class="hint">${hint2(tr("I dati stanno nel browser di questo dispositivo."),tr("Per questo <b>aggiornare l'app non li tocca</b>: quando pubblichi una nuova versione su Git, riapri e ritrovi tutto (la versione in uso è scritta in Io)."))}<br><br>
+<div class="hint">${tr("I dati stanno nel browser di questo dispositivo.")} ${tr("Per questo <b>aggiornare l'app non li tocca</b>: quando pubblichi una nuova versione su Git, riapri e ritrovi tutto (la versione in uso è scritta in Io).")}<br><br>
 <b>Drive</b> ${trh("(Io → Sincronizzazione): dopo {b9} telefono e PC condividono gli stessi dati automaticamente (l'app carica e scarica da sola). {b2} = stacca solo questo dispositivo · {b} = elimina il backup remoto. I dati vivono in una cartella privata riservata a quest'app (non tra i tuoi file visibili di Drive): è una scelta di sicurezza, così nessun'altra app o cartella tua può leggerli o mescolarsi.",{b9:'<b>"Connetti e sincronizza"</b>',b2:"<b>Disconnetti e desincronizza</b>",b:"<b>Elimina backup</b>"})}<br><br>
 ${tr("<b>In locale</b>: Esporta/Importa = file .json sul dispositivo · Cancella = azzera tutto e ricomincia.")}<br><br>
 <b>${tr("Se cambi indirizzo del sito</b>: i dati non seguono da soli — Esporta su Drive dal vecchio, Importa dal nuovo.")}</div></div></details></div>`;
 GUIDA_IT.api=()=>`<div class="card guida-sec"><details class="gdet"><summary><h2>Configurazione API: Google Drive e Gemini</h2><span class="gdet-arrow">▾</span></summary><div class="gdet-body">
 <div class="gsec">Parte 1 — Google Drive</div>
-<details class="istr"><summary>${tr("Come si crea la chiave, passo per passo")}</summary><div class="hint" style="margin-top:8px">
+<div class="gsec2">${tr("Come si crea la chiave, passo per passo")}</div><div class="hint" style="margin-top:8px">
 <b>A) Progetto e API</b><br>
 1. Vai su <b>console.cloud.google.com</b><br>
 2. Crea un progetto (in alto a sinistra → "Nuovo progetto") o apri quello dell'app<br>
@@ -1548,13 +1743,13 @@ ${trh("2. Incolla il Client ID nel campo {b1} (non serve nessun'altra chiave)",{
 3. "Connetti e sincronizza" → autorizzi col tuo account (ora sbloccato)
 </div>
 <div class="gsec">Parte 2 — Google Gemini</div>
-<details class="istr"><summary>${tr("Come si prende la chiave")}</summary><div class="hint">
+<div class="gsec2">${tr("Come si prende la chiave")}</div><div class="hint">
 1. Vai su <a href="https://aistudio.google.com/app/apikey" target="_blank" rel="noopener" class="lnk">aistudio.google.com/app/apikey ↗</a><br>
 2. Clicca "Crea chiave"<br>
 ${tr("3. Scegli o crea un progetto")}<br>
 ${tr("4. Copia la chiave e incollala in")} <b>⋯ → Sistema → Motore AI (Gemini)</b>
-</div></details>
-<div class="hint" style="margin-top:8px;color:var(--rosso)"> ${tr("Non condividere né pubblicare mai queste chiavi (Client ID incluso è meglio tenerlo privato); se il repository è pubblico, evita di scrivere email o chiavi reali nei commit.")}</div></details></div></details></div>
+</div>
+<div class="hint" style="margin-top:8px;color:var(--rosso)"> ${tr("Non condividere né pubblicare mai queste chiavi (Client ID incluso è meglio tenerlo privato); se il repository è pubblico, evita di scrivere email o chiavi reali nei commit.")}</div></div></details></div>
 
 <div class="card"><div class="hint"> ${trh("Le stime di calorie, proteine e consumi sono {b}: l'app è un diario, non un medico. Il piano va validato col tuo professionista.",{b:"<b>indicative</b>"})}</div>
 </div>`;
@@ -1591,12 +1786,12 @@ While the app is in "Testing", Google blocks any email that isn't authorised:<br
 3. "Connect and sync" → authorise with your account, now unblocked
 </div>
 <div class="gsec">Part 2 — Google Gemini</div>
-<details class="istr"><summary>${tr("Come si prende la chiave")}</summary><div class="hint">
+<div class="gsec2">${tr("Come si prende la chiave")}</div><div class="hint">
 1. Go to <a href="https://aistudio.google.com/app/apikey" target="_blank" rel="noopener" class="lnk">aistudio.google.com/app/apikey ↗</a><br>
 2. Press "Create key"<br>
 3. Pick or create a project<br>
 4. Copy the key and paste it under <b>⋯ → System → AI engine (Gemini)</b>
-</div></details>
+</div>
 <div class="hint" style="margin-top:8px;color:var(--rosso)"> Never share or publish these keys — the Client ID included is better kept private. If your repository is public, keep real emails and keys out of your commits.</div></div></details></div>
 
 <div class="card"><div class="hint"> Calorie, protein and energy figures are <b>indicative</b>: this is a diary, not a doctor. Have your plan validated by your own professional.</div>
@@ -1638,6 +1833,21 @@ Averages are calculated on tracked days only. Days carrying an <b>event</b> (Chr
 <div class="gsec">7 · Your data</div>
 <p class="gp">Everything lives on your phone, with no account and no Nuvia server. The Drive backup is optional and lands in <b>your own</b> Google account; the AI key stays on this device. <b>The developer has access to nothing</b>: not your data, not your Drive, not your key — there's no place they could arrive at.
 From <b>History → Export data</b> you can download any period as a table: one row per day with planned, eaten, full macros, sport, sleep, relaxation, mood, water, event, diet phase, rebalancing and catch-ups. As CSV for your spreadsheet, or you can let Nuvia hunt for the <b>patterns</b> in it. The app's full backup — the one you need to put everything on another phone — is downloaded from <b>Profile → Backup</b> instead.</p>
+
+<div class="gsec">8 · Who eats with you</div>
+<p class="gp">If you are not alone at the table, the guided path asks who is there: name, sex and age of each person. Two things change from that, and only two.
+<br><br>The <b>shopping</b>: quantities are multiplied by the portions at home (an adult woman counts as 1, a child aged 4-9 as 0.75, a teenager as 1.10). The switch is at the bottom of the Shopping page, and you can set it back to "just for me" whenever you want.
+<br><br>The <b>choice</b> of dishes: the AI picks recipes that can be cooked in a single preparation for everyone. The checkbox is in Rules, under the family rows.
+<br><br>What does <b>not</b> change is the amounts in your plan: those stay yours, decided by your own numbers. If the plan multiplied the portions by the number of people it would be wrong by three times while reading perfectly sensibly — which is why the family enters the choice of dishes and never the quantities.
+The age is written in years and the app turns it into a date: next year the portions are right on their own.</p>
+
+<div class="gsec">9 · When the app writes to you</div>
+<p class="gp">Notifications are <b>few by rule</b>: at most <b>two a week</b>, never on two days in a row, and it holds for all of them — reminders, encouragement, "how are you?". No notification is commercial: a partner never writes to you.
+If you have reached your goal the app speaks even less: one "how are you?" every three weeks, and that is all.</p>
+
+<div class="gsec">10 · If you need a hand</div>
+<p class="gp">Nuvia does not diagnose and does not treat: when a conversation touches your relationship with food in a way that goes beyond a diet, the app says so and shows who to turn to — the Italian helpline and findahelpline.com, which finds the right line in any country.
+<br><br>On that same page, and at the bottom of Training and Shopping, <b>cards for professionals and shops</b> may appear. Three rules, written in the code before they were written here: they appear only where a need has already been stated (never a shop window, never a notification); they always carry the label "Partner · Nuvia receives a contribution"; and for psychologists, nutritionists and doctors the contribution is a flat presence fee, <b>never a percentage of a health service</b>. Until there is a real one for that need, the cards you see are examples and they say so.</p>
 </div></details></div>`;
 
 GUIDA_EN.pagine=()=>`<div class="card guida-sec"><details class="gdet"><summary><h2>The pages</h2><span class="gdet-arrow">▾</span></summary><div class="gdet-body"><table class="gtable">
@@ -1650,7 +1860,15 @@ GUIDA_EN.pagine=()=>`<div class="card guida-sec"><details class="gdet"><summary>
 <tr><td colspan="2"><b>Rules</b> — the configuration, in <b>three tabs</b>: <b>Your choices</b> (what you entered during the guided setup: goal, dietary details, protocols — you change it here and it counts everywhere), <b>AI rules</b> (how the AI should reason, "What the AI knows about you" with the exact text sent with every request, WHO guidelines), and <b>Formulas and calculations</b>: energy needs, the workout formula, rebalancing and catch-up thresholds, protein goal, dietary details and plan management.</td></tr>
 <tr><td colspan="2"><b>Profile</b> — your body and your goals, nothing else: <b>personal details</b>, <b>new weigh-in</b> (every save adds a row to your history), <b>Goals</b>, <b>baseline activity</b>, reminders, holiday mode and the guided setup.</td></tr>
 <tr><td colspan="2"><b>System</b> — everything technical in one place: how much detail the interface shows, the AI key (Gemini), Google Drive, local backup, emergency restore, selective clean-up, anonymous usage data and feedback.</td></tr>
-<tr><td colspan="2"><b>Guided setup</b> (under Plan) — the same guided path, with every field already filled in (your data, intolerances, tastes, goals), from which the AI generates a week made for you, editable before you confirm it. "Edit the plan" for changes by hand. Always to be validated with a nutritionist.</td></tr></table></div></details></div>`;
+<tr><td colspan="2"><b>Guided setup</b> (under Plan) — the same guided path, with every field already filled in (your data, intolerances, tastes, goals), from which the AI generates a week made for you, editable before you confirm it. "Edit the plan" for changes by hand. Always to be validated with a nutritionist.</td></tr><tr><td colspan="2"><b>The point</b> — the page that opens first: how things are going right now and, if you have just arrived, the first steps to take. Everything else opens from here.</td></tr>
+<tr><td colspan="2"><b>How are you</b> — sleep, stress, mood and how you feel at this moment. Not decoration: these are the numbers that explain the rough weeks, and they feed the end-of-week correlations.</td></tr>
+<tr><td colspan="2"><b>Tools</b> — what you need at one precise moment: "I have a craving…" (the app looks for an alternative), "I'm about to give in" (nobody says no: it says half, and now), the pantry, the plan code.</td></tr>
+<tr><td colspan="2"><b>Mine</b> — the page you build yourself: pick up to six pieces of the app, put them in the order you want, and it becomes the first thing you open. It exists only if you build it: the app never rearranges itself.</td></tr>
+<tr><td colspan="2"><b>Together</b> — a square, not a social network: people are together without the race to the lowest calorie and without comparing bodies.</td></tr>
+<tr><td colspan="2"><b>Your journey</b> and <b>Constellation</b> — twenty-four marks that light up the first time you do something. They never go out, there are no levels and there is nothing to do to keep them lit: a rough week does not count.</td></tr>
+<tr><td colspan="2"><b>Subscription</b> and <b>Plans</b> — what is active now and what each plan does. Free stays free.</td></tr>
+<tr><td colspan="2"><b>Guide</b> and <b>Nuvia</b> — this guide, and the map of every feature one by one.</td></tr>
+</table></div></details></div>`;
 
 GUIDA_EN.simboli=()=>`<div class="card guida-sec"><details class="gdet"><summary><h2>The symbols</h2><span class="gdet-arrow">▾</span></summary><div class="gdet-body">
 <div class="gsec">On meals</div><table class="gtable">
@@ -1696,6 +1914,41 @@ GUIDA_EN.simboli=()=>`<div class="card guida-sec"><details class="gdet"><summary
 <tr><td colspan="2">End of the week: archiving is <b>automatic</b>, with whatever is there, no buttons to press. Closed weeks stay <b>editable at any time</b> from History → Past weeks → Edit.</td></tr>
 <tr><td colspan="2"><b>Shopping search link</b> (at the top of Shopping): nearly every online supermarket makes you choose a store first, so there's no universal link. Run a search on YOUR store's site, copy the address and paste it here, replacing the word you searched for with <b>{q}</b>: from then on every ↗ link in the list searches directly in your supermarket.</td></tr>
 <tr><td colspan="2"><b>Products on the list</b> (in Shopping): they all come from the plan, including the ingredients of meals you change or add yourself — the list realigns itself. For something outside the plan, use the ＋ next to the category.</td></tr>
+<tr><td>${ic("ai",18)}</td><td><b>The AI star</b>: where you see it, that feature asks the model — and uses up one request. Where it is missing, everything is computed by the app.</td></tr>
+<tr><td>${ic("chiedi",18)}</td><td>Ask Nuvia: the short question, anywhere in the app.</td></tr>
+<tr><td>${ic("mic",18)}</td><td>Dictate the meal out loud. It always lets you read it back before saving.</td></tr>
+<tr><td>${ic("attrezzi",18)}</td><td>The three dots on a meal: they open every tool for that meal (photo, barcode, voice, guests, guided cooking, eating out).</td></tr>
+<tr><td>${ic("persone",18)}</td><td><b>People at the table</b>: how many you are cooking for right now. It rescales the dish, not your target.</td></tr>
+<tr><td>${ic("pentola",18)}</td><td><b>How to cook it</b>: step by step preparation for the dish in front of you.</td></tr>
+<tr><td>${ic("guest",18)}</td><td><b>I'm a guest</b>: records the meal with an estimate, without asking you for amounts in somebody else's kitchen.</td></tr>
+<tr><td>${ic("link",18)}</td><td>Takes you outside the app (your supermarket's site, a source). It opens in a new tab.</td></tr>
+<tr><td>${ic("search",18)}</td><td>Search — in products, foods, the list.</td></tr>
+<tr><td>${ic("tag",18)}</td><td>The category of a shopping product: change it if the app filed it under the wrong aisle.</td></tr>
+<tr><td>${ic("trash",18)}</td><td>Deletes for good. It asks for confirmation whenever what you remove cannot be rebuilt.</td></tr>
+<tr><td>${ic("x",18)}</td><td>Closes, hides or removes from a list — without deleting anything permanently.</td></tr>
+<tr><td>${ic("su",18)} ${ic("giu",18)}</td><td>Move a piece up and down: they are how you arrange "Mine" in your own order.</td></tr>
+<tr><td>${ic("gear",18)}</td><td>System: keys, backup, sync, anonymous usage data.</td></tr>
+</table>
+<div class="gsec">The page marks</div><table class="gtable">
+<tr><td>${ic("punto",18)}</td><td>The point — how things are going right now.</td></tr>
+<tr><td>${ic("oggi",18)}</td><td>Today — the day's balance.</td></tr>
+<tr><td>${ic("piano",18)}</td><td>Plan — the week.</td></tr>
+<tr><td>${ic("spesa",18)}</td><td>Shopping — the list that comes from the plan.</td></tr>
+<tr><td>${ic("sport",18)}</td><td>Training.</td></tr>
+<tr><td>${ic("heart",18)}</td><td>How are you — sleep, stress, mood.</td></tr>
+<tr><td>${ic("progressi",18)}</td><td>Numbers — history, weigh-ins, summaries, reports.</td></tr>
+<tr><td>${ic("storico",18)}</td><td>The calendar: past weeks, and your appointment when there is one.</td></tr>
+<tr><td>${ic("tools",18)}</td><td>Tools — cravings, pantry, plan code.</td></tr>
+<tr><td>${ic("regole",18)}</td><td>Rules — your choices, the AI rules, the formulas.</td></tr>
+<tr><td>${ic("star",18)}</td><td>Mine, Your journey, Subscription.</td></tr>
+<tr><td>${ic("io",18)}</td><td>Profile — your body and your goals.</td></tr>
+<tr><td>${ic("guida",18)}</td><td>Guide — this page.</td></tr>
+<tr><td>${ic("nuvia",18)}</td><td>Nuvia — the map of every feature.</td></tr>
+</table>
+<div class="gsec">Marks that are not icons</div><table class="gtable">
+<tr><td colspan="2"><b>The quality dot</b> (on every meal in the plan): a score from 0 to 100 on the quality of the food, not on the calories. 0-20 ultra-processed · 21-40 poor · 41-60 average · 61-80 good, real food · 81-100 excellent. The plan aims to stay above 75, and a low free meal is not a mistake: it is a free meal.</td></tr>
+<tr><td colspan="2"><b>The logo on partner cards</b>: it is that business's own sign, and it arrives together with the card. Where there is no logo the card stays a line of text: the app does not put a drawing of its own in its place.</td></tr>
+<tr><td colspan="2"><b>Supplement frequencies</b> (in the guided path): every row starts at "never", which is the true answer until you give another one. Picking a frequency ticks the item, picking "never" unticks it.</td></tr>
 </table></div></details></div>`;
 
 /* Il corpo inglese cresce qui dentro, una sezione per volta (blocco B). */

@@ -6,7 +6,7 @@ const KEY="diarioDieta_v2"; // NON cambiare mai: e' dove vivono i dati dell'uten
    apposta per verificare il deploy non verificava niente — e mentre si
    cercava un piano che «non arriva mai», non si poteva nemmeno sapere
    QUALE versione stesse girando sul telefono. Riallineata (25/08). */
-const APP_VER="13.107.0";        // aggiorna a ogni release: visibile in Io per verificare il deploy
+const APP_VER="14.2.0";        // aggiorna a ogni release: visibile in Io per verificare il deploy
 /*   SBLOCCO DI TEST — DA METTERE A false PRIMA DEL RILASCIO  
    Con true, ciclo/allattamento/gravidanza restano CLICCABILI anche sui
    profili maschili, per poterli provare senza cambiare genere. Con false
@@ -147,6 +147,12 @@ if(S.profile.gender!=="f"&&!PHYS_TEST_UNLOCK){S.phys.cycleOn=false;S.phys.cycleS
    l'app. Servono a cucinare per tutti (dosi in pentola) e a fare la spesa
    per il numero giusto di persone. */
 S.family=Array.isArray(S.family)?S.family:[];
+/* Cucinare per tutti è una scelta, non una conseguenza dell'avere una
+   famiglia: c'è chi prepara il proprio piatto a parte. Di norma è
+   acceso quando qualcuno c'è, perché è il caso comune, e si spegne da
+   Regole. Non tocca MAI le grammature: cambia solo la scelta dei
+   piatti (vedi famPianoForAI). */
+S.famPiano=(S.famPiano===undefined)?((S.family||[]).length>0):!!S.famPiano;
 S.weekOut=(S.weekOut&&typeof S.weekOut==="object")?S.weekOut:{};
 /* "porto" = me li preparo io e li porto (schiscetta): restano nella spesa.
    "fuori" = mensa, bar, ristorante: non si comprano e il piano è generico. */

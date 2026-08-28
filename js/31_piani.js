@@ -26,7 +26,18 @@
    qui servono a DISEGNARE, là a DECIDERE. Se divergono, comanda il
    server e l'interfaccia mostra un pulsante che non funziona — mai
    il contrario. */
-const LIVELLI={piano:1,analisi:2,foto:2,supporto:3,allenamenti:3};
+/* ── DIVERGEVANO, E NELLA DIREZIONE PEGGIORE (27/08) ──────────────
+   Trovato rileggendo i documenti contro il codice: qui c'era
+   {piano:1, analisi:2, foto:2, supporto:3, allenamenti:3}, il server
+   dice {piano:1, foto:1, supporto:2, allenamenti:2, analisi:3}
+   (backend/server.js, PILASTRI). Tre voci su cinque non
+   coincidevano, e sempre con l'interfaccia PIÙ severa del server:
+   un abbonato Start pagava la foto, il server gliela serviva, e
+   l'app gli mostrava un lucchetto. La riga qui sopra prometteva
+   proprio di non fare questo — «se divergono comanda il server» —
+   ma nessuno confrontava le due tabelle. Adesso lo fa un collaudo
+   (t_gating.js), che le legge tutte e due dal sorgente. */
+const LIVELLI={piano:1,foto:1,supporto:2,allenamenti:2,analisi:3};
 window.LIVELLI=LIVELLI;
 
 /* La strada Free per ogni funzione a pagamento: è l'antidoto al

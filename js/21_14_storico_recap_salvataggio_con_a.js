@@ -122,6 +122,18 @@ function sostegnoCardHTML(){
     ${r.segni.map(x=>`<div class="hint" style="margin-top:8px"><b>${esc(x.t)}</b>.</div>`).join("")}
     ${hint2(tr("Non è una diagnosi e non voglio spaventarti:"),tr("Sono numeri, e i numeri non sanno come stai davvero. Ma quando queste cose durano, un'app non basta — e non deve bastare. Parlarne con il tuo medico, o con uno psicologo, è la mossa più utile che puoi fare per te."))}
     <div class="hint" style="margin-top:12px">${tr("In Italia esiste un numero verde gratuito e anonimo per i disturbi alimentari:")} <b>${SOS_NUMERO}</b> ${tr("(lun-ven). Rispondono psicologi e nutrizionisti, anche solo per capire se c'è qualcosa di cui parlare.")}</div>
+    <!-- ══ LA PORTA INTERNAZIONALE (founder, 27/08) ══════════════
+         Il numero verde è italiano, e il testo lo dice — quindi non
+         mente. Ma a chi usa l'app in inglese, fuori dall'Italia, quel
+         numero non apre nessuna porta: la card che dovrebbe indicare
+         un aiuto vero diventa un vicolo cieco proprio nel momento in
+         cui serve. Accanto al numero c'è un indirizzo che riconosce il
+         paese di chi lo apre e copre un centinaio di stati. È un link,
+         non una chiamata: nessun dato esce da qui. -->
+    <div class="hint" style="margin-top:8px">${tr("Fuori dall'Italia:")}
+      <a href="https://findahelpline.com" target="_blank" rel="noopener">findahelpline.com</a>
+      ${tr("— elenchi di ascolto gratuiti, paese per paese.")}</div>
+    ${(typeof partnerBlocco==="function")?partnerBlocco("sostegno",tr("Se preferisci parlare con qualcuno")):""}
     <div class="mtools">
       <button class="btn ghost small" onclick="sosNascondi()">${tr("Ho capito, non mostrarlo più")}</button>
     </div></div>`;}
@@ -953,15 +965,39 @@ window.saveCustomRules=()=>{
   const e=document.getElementById("rCustom");if(!e)return;
   S.rules=S.rules||{};S.rules.custom=e.value.trim();save();
   toast(e.value.trim()?tr("Le tue regole sono salvate ✓"):tr("Regole personali rimosse"));};
-/* Mostra ESATTAMENTE il testo che parte con ogni richiesta all'AI */
+/* ── «IL TESTO ESATTO» NE MOSTRAVA UNO SOLO (audit 27/08) ─────────
+   La presentazione dice: «Dentro l'app leggi il testo esatto che
+   accompagna OGNI richiesta all'AI. Non devi fidarti: verifichi.»
+
+   Qui si mostrava `rulesForAI()`, che è il testo delle richieste
+   BREVI — ribilanci, stime, strumenti. Il piano non usa quella
+   funzione: usa `rulesForPlan()` più il contesto della persona,
+   costruito a parte. Chi «verificava» leggeva quindi un testo diverso
+   da quello che parte per la richiesta più importante che l'app fa —
+   e più ricco, il che è il modo peggiore di sbagliare: prometti una
+   verifica e la fai fallire per eccesso di fiducia.
+
+   Adesso si mostrano tutti e due, uno sotto l'altro, con scritto a
+   cosa serve ognuno. Sono due richieste diverse: è giusto che i testi
+   siano due, non che se ne veda uno solo. */
 window.promptShow=()=>{
   const el=document.getElementById("promptOut");if(!el)return;
   if(el.style.display==="block"){el.style.display="none";return;}
-  let t="";
+  let t="",p="";
   try{t=rulesForAI();}catch(e){t="(impossibile generare: "+e.message+")";}
+  try{p=((typeof dietStr==="function")?dietStr()+" ":"")+rulesForPlan()
+        +((typeof rigaPasto==="function")?rigaPasto():"");}
+  catch(e){p="(impossibile generare: "+e.message+")";}
+  const blocco=(titolo,testo,nota)=>
+    '<div style="font-weight:700;font-size:12.5px;margin:12px 0 4px">'+esc(titolo)+'</div>'+
+    '<div style="font-size:11.5px;line-height:1.5;white-space:pre-wrap">'+esc(testo)+'</div>'+
+    '<div class="hint" style="margin-top:8px">'+esc(testo.length+" caratteri. "+nota)+'</div>';
   el.style.display="block";
-  el.innerHTML='<div style="font-size:11.5px;line-height:1.5;white-space:pre-wrap">'+esc(t)+'</div>'+
-    '<div class="hint" style="margin-top:8px">Sono '+t.length+' caratteri. Questo testo viene aggiunto a <b>ogni</b> richiesta: generazione del piano, ribilanciamento, alternative, strumenti.</div>';};
+  el.innerHTML=
+    blocco(tr("Le richieste brevi"),t,
+      tr("Accompagna ribilanciamenti, stime, alternative, spesa e strumenti."))+
+    blocco(tr("La generazione del piano"),p,
+      tr("È un'altra richiesta e ha un altro testo: le linee guida ci sono in forma breve, perché una settimana intera è già una risposta lunga."));};
 /* Segnalazione allo sviluppatore: apre il client di posta (Gmail sul telefono)
    con destinatario, oggetto e corpo già compilati. */
 const DEV_MAIL="info@nuviahealth.app"   /* la casella del progetto, non quella personale */;
@@ -1119,6 +1155,46 @@ function rigaPasti(slots){
   return ' Pasti da prevedere ogni giorno, in questo ordine esatto e con QUESTI NOMI: '+l.join(", ")+
     '. Non aggiungerne altri, non toglierne, non rinominarli: se la persona non ha la colazione, il giorno comincia dal primo pasto di questo elenco.';}
 window.rigaPasti=rigaPasti;
+
+/* ── LA FORMA DI UN PASTO (founder, 27/08) ─────────────────────────
+   «Aggiungi dei dettagli per fare in modo che non venga creato un
+   piano con pasti con voti scarsi: altrimenti l'utente potrebbe essere
+   confuso, perché quei pasti sono stati creati dall'app e quindi deve
+   avere la percezione che vengano creati pasti di qualità.»
+
+   È una richiesta di prodotto prima che nutrizionale, ed è giusta: un
+   pallino arancione su un piatto che ha scritto Nuvia è Nuvia che si
+   dà del mediocre da sola.
+
+   IL BUCO CHE CHIUDE. Le regole che c'erano (linee guida OMS, in
+   `nutriRulesShort`) parlano della GIORNATA: «verdura a pranzo e cena,
+   frutta 2-3 volte, zuccheri sotto il 10%». Sono vere anche in una
+   giornata che comincia con gallette e miele — e infatti quella
+   colazione ha preso 45 senza violare niente. Qui si dice come è fatto
+   un PASTO, che è la cosa che nessuno aveva ancora scritto.
+
+   LA GERARCHIA, DETTA NEL PROMPT E NON SOTTINTESA (founder): «la
+   precedenza devono averla le linee guida OMS eccetera». Quindi
+   l'ultima frase di questa riga dice al modello, con parole sue, che
+   se questa regola litiga con le linee guida, con la tradizione
+   culinaria scelta, con un'intolleranza o con quello che ha detto il
+   medico, questa regola PERDE. Senza quella frase, un vincolo scritto
+   dopo tende a vincere solo perché è più recente e più specifico — e
+   ci ritroveremmo pasti «da manuale» che ignorano la cucina scelta.
+
+   PERCHÉ NON «MAI DUE CARBOIDRATI INSIEME», che era la prima stesura:
+   il founder ha riscritto a mano la colazione da 45 mettendo yogurt
+   senza lattosio, fette biscottate INTEGRALI, 10 g di miele e cinque
+   mandorle — due fonti di carboidrati — e ha preso 78. Aveva ragione
+   lui: il problema non erano due carboidrati, era lo zucchero senza
+   niente accanto. La regola dice quello. */
+function rigaPasto(){
+  /* UNA frase sola, non tre pezzi: una chiave che comincia in
+     minuscolo è un frammento, e in inglese si ricomporrebbe
+     nell'ordine sbagliato (lo dice t_i18n, e ha ragione). */
+  return " "+tr("FORMA DI OGNI PASTO (dopo le regole qui sopra, non al posto loro): ogni pasto ha una fonte proteica riconoscibile — nei pasti principali almeno 4 g di proteine ogni 100 kcal; pranzo e cena hanno sempre verdura; i carboidrati sono integrali quando la ricetta lo consente; gli zuccheri aggiunti — quelli che non vengono dall'alimento stesso — restano sotto i 10 g per pasto e non stanno mai da soli, ma accanto a proteine e a un grasso buono; nessun pasto è fatto solo di carboidrati raffinati e zucchero; uno spuntino senza proteine porta frutta secca, semi o frutta intera. La colazione segue le stesse regole degli altri pasti: un pasto fatto di soli cereali raffinati e zucchero non è una colazione, in nessuna cucina.")+" "+
+    tr("Se una di queste indicazioni contrasta con le linee guida qui sopra, con la tradizione culinaria scelta, con un'intolleranza, con un'allergia o con le indicazioni del medico, vincono sempre quelle: questa è una regola di composizione, non un vincolo di salute.");}
+window.rigaPasto=rigaPasto;
 function slotsChecksHTML(pre,cur){const on=parseSlots(cur);
   return `<div class="ckgrid">`+SLOTS.map((s,i)=>`<label class="ck"><input type="checkbox" id="${pre}S${i}" ${on.includes(s)?"checked":""}> ${esc(fascia(s))}</label>`).join("")+`</div>`;}
 function readSlotsChecks(pre){const out=[];SLOTS.forEach((s,i)=>{const e=document.getElementById(pre+"S"+i);if(e&&e.checked)out.push(s);});return out.join(", ");}
@@ -2059,9 +2135,12 @@ const FAMIGLIE={
 const RIPIEGO_FAM={
   verdura:["zucchine","carote","spinaci","insalata","broccoli"],
   frutta:["mela","pera","banana","arancia"],
-  proteina:["petto di pollo","tacchino","uova","merluzzo"],
+  /* dopo le animali ci sono le vegetali: per chi non mangia carne il
+     primo candidato sicuro dev'essere un alimento vero, non il vuoto
+     che resta quando nessun ripiego passa il controllo (27/08) */
+  proteina:["petto di pollo","tacchino","uova","merluzzo","ceci","lenticchie","tofu"],
   cereale:["riso","patate","pane","avena"],
-  latticino:["yogurt bianco","ricotta","formaggio fresco"],
+  latticino:["yogurt bianco","ricotta","formaggio fresco","yogurt di soia","bevanda di soia"],
   legume:["ceci","lenticchie","fagioli"],
   guscio:["semi di zucca","semi di girasole"],
   grasso:["olio EVO"],
@@ -2120,12 +2199,25 @@ const PREP_PRIMA="(?:con|senza|di|del|dello|della|dei|degli|delle|d'|dell'|a|al|
 /* aggettivi che appartengono al cibo VECCHIO: dopo lo scambio non
    hanno più senso e si tolgono. Lista corta apposta: si tolgono solo
    quelli inequivocabili. */
-const AGG_DEL_VECCHIO=["fondente","stagionato","stagionata","delattosato","delattosata","greco","greca"];
-function riparaDesc(desc,vietati){
+/* Le qualifiche del cibo VECCHIO se ne vanno col cibo vecchio. «Senza
+   lattosio» dopo uno scambio è la più insidiosa: la bevanda di soia
+   non ha bisogno di essere delattosata, e leggerlo fa pensare che il
+   piatto sia stato scritto da una macchina — che è esattamente quello
+   che è successo (27/08). */
+const AGG_DEL_VECCHIO=["fondente","stagionato","stagionata","delattosato","delattosata","greco","greca",
+  "senza lattosio","senza glutine"];
+/* ── LA RIPARAZIONE ORA CONOSCE GLI ASSOLUTI (27/08) ──────────────
+   Riceveva UNA lista sola e la trattava tutta come divieti normali,
+   cioè con le esenzioni attive. Per un allergico al latte voleva dire
+   che «yogurt senza lattosio» non veniva nemmeno riparato: la
+   validazione lo segnalava, la riparazione lo lasciava lì. Adesso gli
+   assoluti — allergie e dieta di riferimento — hanno un argomento
+   loro e valgono sul testo grezzo. */
+function riparaDesc(desc,vietati,assoluti){
   let d=String(desc||""),cambi=[];
   const esc2=x=>x.replace(/[.*+?^${}()|[\]\\]/g,"\\$&");
   for(let giro=0;giro<8;giro++){
-    const v=vietatoDentro(d,vietati);
+    const v=vietatoDentro(d,vietati,assoluti);
     if(!v)break;
     /* dedicato → famiglia → lista piatta: una verdura non diventa un
        secondo di carne solo perche' nessuno le aveva scritto un
@@ -2134,7 +2226,7 @@ function riparaDesc(desc,vietati){
     /* il sostituto deve essere sicuro per QUESTA persona: si scorre
        finché uno passa. Un intollerante al lattosio E alla soia non
        può ricevere lo yogurt di soia. */
-    const buono=cand.find(c=>!vietatoDentro(c,vietati));
+    const buono=cand.find(c=>!vietatoDentro(c,vietati,assoluti));
     const P="(?:"+formeDi(v).map(esc2).join("|")+")";
     const prima=d;
     if(buono&&buono.toLowerCase().indexOf(v.toLowerCase()+" ")===0){
@@ -2149,7 +2241,13 @@ function riparaDesc(desc,vietati){
       if(conDi.test(d))d=d.replace(conDi,(t,pre)=>pre+"di "+buono);
       else if(conPrep.test(d))d=d.replace(conPrep,(t,pre)=>pre+"con "+buono);
       /* forma 3 · scambio secco */
-      else d=d.replace(new RegExp("(^|[^a-zàèéìòù])("+P+")(?![a-zàèéìòù])","i"),(t,pre)=>pre+buono);
+      else{
+        d=d.replace(new RegExp("(^|[^a-zàèéìòù])("+P+")(?![a-zàèéìòù])","i"),(t,pre)=>pre+buono);
+        /* «Frittata di zucchine» → «Ceci di zucchine» non è italiano:
+           quando si scambia la testa di un piatto, il «di» che la
+           legava al resto diventa un «con». Si tocca solo il «di» che
+           sta SUBITO dopo il sostituto appena messo. */
+        d=d.replace(new RegExp("("+esc2(buono)+")\\s+di\\s+","i"),"$1 con ");}
     }else{
       /* nessun sostituto sicuro: si toglie la parola con la sua
          preposizione, se ce l'ha. Il piatto resta sicuro e leggibile,
@@ -2177,14 +2275,21 @@ function riparaDesc(desc,vietati){
    Passa su tutti i pasti, ripara quelli che contengono un divieto e
    torna l'elenco di cosa ha cambiato. NON butta via niente: è il
    punto di tutta questa storia. */
-function riparaSettimana(days,vietati){
+function riparaSettimana(days,vietati,assoluti){
   const fatti=[];
   (days||[]).forEach((d,i)=>{
     if(!d||!Array.isArray(d.meals))return;
     d.meals.forEach(m=>{
       if(!m||!m.d)return;
-      if(!vietatoDentro(m.d,vietati))return;
-      const r=riparaDesc(m.d,vietati);
+      /* IL CANCELLO GUARDAVA SOLO METÀ DEI DIVIETI (27/08). Questa
+         riga decide se un piatto va riparato, e non passava gli
+         ASSOLUTI: un allergene — o un alimento vietato dalla dieta di
+         riferimento — non entrava nemmeno in riparazione, perché il
+         cancello non lo vedeva. La riparazione sotto era giusta e non
+         veniva mai chiamata: è il difetto più insidioso di tutti,
+         perché il motore funziona e il risultato non cambia. */
+      if(!vietatoDentro(m.d,vietati,assoluti))return;
+      const r=riparaDesc(m.d,vietati,assoluti);
       if(!r.cambi.length)return;
       m.d=r.d;m.adattato=true;
       r.cambi.forEach(c=>fatti.push({giorno:i,pasto:m.n||"",da:c.da,a:c.a}));});});
@@ -2307,10 +2412,18 @@ function cibNorm(x){return String(x||"").toLowerCase().normalize("NFD").replace(
 const VIETATI_RUMORE=["tenere","conto","nessuna","nessuno","niente","alcuni","altri","varie","cibi","cibo","alimenti","evitare","assolutamente","poco","molto","sono","anche","tutto","tutti","della","delle","degli","come"];
 /* Gli alimenti vietati da un'ALLERGIA: lista a parte, perché su questi
    nessuna esenzione vale. Torna sempre un array, anche vuoto. */
-function allergeniElenco(testoAllerg){
+/* I divieti della DIETA DI RIFERIMENTO viaggiano insieme agli allergeni,
+   non insieme alle intolleranze, e la ragione è la stessa: **su di loro
+   non vale nessuna esenzione**. «Yogurt senza lattosio» è la risposta
+   giusta a un intollerante e resta latte per un vegano. Gli assoluti si
+   cercano sul testo GREZZO, prima che le esenzioni lo ripuliscano — è
+   il canale costruito per le allergie il 26/08, e la dieta di
+   riferimento è lo stesso tipo di divieto. */
+function allergeniElenco(testoAllerg,tipo){
   const out=new Set();
+  vietatiDaDieta(tipo).forEach(v=>out.add(cibNorm(v)));
   const t=cibNorm(testoAllerg);
-  if(!t.trim())return [];
+  if(!t.trim())return [...out].sort((a,b)=>b.length-a.length);
   Object.keys(VIETATI_DA_ALLERG).forEach(k=>{
     if(t.indexOf(cibNorm(k))>-1)VIETATI_DA_ALLERG[k].forEach(v=>out.add(cibNorm(v)));});
   /* quello che la persona ha scritto a mano fra le allergie vale come
@@ -2318,8 +2431,52 @@ function allergeniElenco(testoAllerg){
   cibNorm(testoAllerg).split(/[,;\n]/).forEach(p=>{
     const x=p.trim();
     if(x.length>=4&&x.indexOf(":")<0&&x.split(/\s+/).length<=4&&VIETATI_RUMORE.indexOf(x)<0)out.add(x);});
-  return [...out];}
+  /* la voce più lunga vince: «petto di pollo» prima di «pollo», o la
+     riparazione scambia la parola dentro la frase invece della frase
+     intera e produce «Petto di ceci» */
+  return [...out].sort((a,b)=>b.length-a.length);}
 window.allergeniElenco=allergeniElenco;
+
+/* ── «VEGANA» NON ERA UN DIVIETO PER IL CONTROLLO (27/08) ─────────
+   Il controllo di sicurezza costruiva la lista dei vietati SOLO da
+   «da evitare assolutamente» e dalle intolleranze. Il tipo di dieta —
+   vegana, vegetariana, pescetariana — non lo guardava nessuno: se il
+   modello metteva il pollo a una vegana, il piano passava.
+
+   Ora la dieta di riferimento entra nella lista come ci entra
+   un'intolleranza. Non è una preferenza: per chi l'ha scelta è la
+   ragione per cui usa l'app, e un piano che la ignora è un piano di
+   un'altra persona.
+
+   Il tipo si legge da `S.diet` quando chi chiama non lo passa: così la
+   rete c'è ovunque, senza dover ricordarsi di aggiungere un argomento
+   in ognuno dei punti che chiamano questa funzione. */
+const VIETATI_DA_DIETA={
+  vegana:["carne","manzo","vitello","maiale","agnello","pollo","petto di pollo","tacchino","coniglio",
+    "prosciutto","prosciutto cotto","prosciutto crudo","bresaola","speck","salame","salsiccia","wurstel","mortadella","pancetta","guanciale",
+    "pesce","merluzzo","nasello","orata","branzino","sgombro","salmone","tonno","alici","acciughe","sardine","platessa",
+    "gamberi","gamberetti","calamari","seppie","cozze","vongole","polpo",
+    "uova","uovo","frittata","omelette","maionese",
+    "latte","yogurt","formaggio","formaggi","mozzarella","ricotta","parmigiano","grana","pecorino","burro","panna","mascarpone","stracchino","scamorza","provola","feta",
+    "miele","strutto","lardo","brodo di carne","brodo di pollo"],
+  vegetariana:["carne","manzo","vitello","maiale","agnello","pollo","petto di pollo","tacchino","coniglio",
+    "prosciutto","prosciutto cotto","prosciutto crudo","bresaola","speck","salame","salsiccia","wurstel","mortadella","pancetta","guanciale",
+    "strutto","lardo","brodo di carne","brodo di pollo"],
+  pescetariana:["carne","manzo","vitello","maiale","agnello","pollo","petto di pollo","tacchino","coniglio",
+    "prosciutto","prosciutto cotto","prosciutto crudo","bresaola","speck","salame","salsiccia","wurstel","mortadella","pancetta","guanciale",
+    "strutto","lardo","brodo di carne","brodo di pollo"]};
+/* La vegetariana ammette o esclude pesce e uova secondo la scelta fatta
+   nella schermata: si aggiungono qui, perché senza sarebbero un divieto
+   che la persona non ha chiesto. */
+function vietatiDaDieta(tipo){
+  const t=String(tipo==null?((S.diet&&S.diet.tipo)||""):tipo).toLowerCase();
+  const base=(VIETATI_DA_DIETA[t]||[]).slice();
+  if(t==="vegetariana"){
+    if(!(S.diet&&S.diet.vegPesce))base.push("pesce","merluzzo","nasello","orata","branzino","sgombro","salmone","tonno","alici","acciughe","sardine",
+      "gamberi","gamberetti","calamari","seppie","cozze","vongole","polpo");
+    if(S.diet&&S.diet.vegUova===false)base.push("uova","uovo","frittata","omelette","maionese");}
+  return base;}
+window.vietatiDaDieta=vietatiDaDieta;
 
 function vietatiElenco(testoNo,testoIntol){
   const out=new Set();
@@ -2339,7 +2496,13 @@ function vietatiElenco(testoNo,testoIntol){
   const ti=cibNorm(testoIntol);
   Object.keys(VIETATI_DA_INTOL).forEach(k=>{
     if(ti.indexOf(cibNorm(k))>-1)VIETATI_DA_INTOL[k].forEach(v=>out.add(cibNorm(v)));});
-  return [...out];}
+  /* ── LA VOCE PIÙ LUNGA VIENE PRIMA (27/08) ────────────────────────
+     Chi cerca si ferma alla PRIMA voce che trova, e con «pollo» prima
+     di «petto di pollo» la riparazione produceva «Petto di ceci»:
+     scambiava la parola dentro la frase invece della frase intera.
+     Ordinando dal più lungo al più corto, «petto di pollo» vince su
+     «pollo» e il piatto diventa «Ceci 150g con riso», che è italiano. */
+  return [...out].sort((a,b)=>b.length-a.length);}
 
 /* ── IL PLURALE SFUGGIVA AL DIVIETO (trovato il 26/08 sera) ────────
    Le liste sono scritte a mano, e a mano si scrive una forma sola:
@@ -2415,7 +2578,8 @@ function weekJSONContract(giorni,conSpesa){
   return aiLingua()+' PRIMA DI RISPONDERE, RILEGGI QUELLO CHE HAI SCRITTO e correggilo dove serve:'+
     ' rifai la somma delle calorie e delle proteine di ogni giorno e verifica che stiano nel target dichiarato;'+
     ' verifica che nessun alimento vietato o incompatibile con le intolleranze sia finito in una descrizione;'+
-    ' verifica che nessun piatto si ripeta; verifica che ogni giorno abbia tutti i pasti richiesti.'+
+    ' verifica che nessun piatto si ripeta; verifica che ogni giorno abbia tutti i pasti richiesti;'+
+    ' verifica che ogni pasto abbia una fonte proteica e che nessun pasto sia fatto solo di carboidrati raffinati e zucchero.'+
     ' Rispondi SOLO con un oggetto JSON, senza alcun testo intorno: {"days":[{"day":"'+giorni[0]+'","ctx":"contesto breve del giorno","meals":[{"n":"Colazione","t":"08:00","type":"norm","d":"descrizione con grammature","k":numero,"p":numero,"c":numero,"f":numero,"fib":numero,"z":numero}]}]'+
     (conSpesa?',"spesa":[["Categoria",["prodotto con la quantità totale della settimana"]]]':'')+
     '} dove "days" contiene ESATTAMENTE sette oggetti, in quest\'ordine: '+giorni.join(", ")+
@@ -2485,6 +2649,60 @@ function validaSettimana(days,r){
       motivi.push(trh("il totale è {v1} kcal invece di circa {v2}",{v1:Math.round(k),v2:r.kcal}));
     if(r.prot>0&&p<r.prot)
       motivi.push(trh("le proteine sono {v1} g, sotto il minimo di {v2} g",{v1:Math.round(p),v2:r.prot}));
+    /* ── UN PASTO SQUILIBRATO SI VEDE DAI SUOI NUMERI (27/08) ─────
+       «Aggiungi dei dettagli per fare in modo che non venga creato un
+       piano con pasti con voti scarsi.»
+
+       Il voto vero lo dà il modello DOPO, sul piatto già scritto — e
+       chiedere un secondo giudizio a metà generazione costerebbe una
+       chiamata per pasto. Ma il caso che ha prodotto il 45% non ha
+       bisogno di un'opinione: lo dicono i numeri che il modello ci ha
+       già mandato. «200 g yogurt di soia, 60 g gallette, 15 g miele»
+       sono 390 kcal con 11 g di proteine, cioè 2,8 g ogni 100 kcal:
+       un pasto fatto quasi solo di carboidrati.
+
+       Due reti, tarate sui pasti VERI del piano del founder, così non
+       bocciano quello che è già buono:
+       · pasto principale (dal 20% delle calorie del giorno in su):
+         almeno 3,5 g di proteine ogni 100 kcal. La sua colazione
+         riscritta ne ha 4,2 e passa; quella da 45 ne ha 2,8 e no.
+       · pasto piccolo: può avere poche proteine — una banana con i
+         semi di zucca ha preso 80 — ma non può essere solo zucchero:
+         o proteine, o un grasso buono (frutta secca, semi).
+
+       Sono soglie BASSE apposta: non devono scrivere il piano al posto
+       del modello, devono impedire il pasto indifendibile. E non
+       toccano mensa e pasti liberi, dove le grammature non esistono.
+
+       ── PERCHÉ SONO «LIEVI» E NON «GRAVI» ────────────────────────
+       Perché rifare un giorno costa una seconda chiamata, e la regola
+       del 25/08 dice: «un piano imperfetto non raddoppia l'attesa — la
+       seconda chiamata si paga solo per un giorno inutilizzabile o per
+       la sicurezza». Un pasto sbilanciato è un difetto, non un piano
+       inutilizzabile.
+       La PREVENZIONE sta nel prompt (le linee guida, che ora arrivano
+       anche al primo piano, più la forma del pasto); questa è la
+       DICHIARAZIONE: se un pasto sbilanciato passa lo stesso, il piano
+       lo dice invece di far finta di niente, e quel motivo viaggia col
+       giorno se il giorno va rifatto per un'altra ragione.
+       Se coi piani veri si vedrà che il modello continua a scrivere
+       pasti indifendibili, la promozione a «grave» è una parola sola —
+       ma è una decisione da prendere coi numeri in mano, sapendo che si
+       paga in attesa. */
+    if(r.kcal>0)d.meals.forEach(m=>{
+      const t=(m.type||"norm");
+      if(t!=="norm")return;
+      const mk=numPulito(m.k),mp=numPulito(m.p),mf=numPulito(m.f);
+      if(mk==null||mp==null||mk<=0)return;              /* già detto sopra */
+      const nome=String(m.n||"").trim()||tr("un pasto");
+      const principale=(mk>=r.kcal*0.20);
+      if(principale){
+        const per100=mp/mk*100;
+        if(per100<3.5)
+          motivi.push(trh("{v1}: {v2} g di proteine su {v3} kcal, troppo poche per un pasto principale",
+            {v1:nome,v2:Math.round(mp),v3:Math.round(mk)}));
+      }else if(mp<4&&(mf==null||mf<4)){
+        motivi.push(trh("{v1}: solo carboidrati, senza proteine né grassi buoni",{v1:nome}));}});
     /* la sicurezza: un divieto dentro una descrizione */
     if(vietati.length||allergeni.length)d.meals.forEach(m=>{
       const v=vietatoDentro(m.d,vietati,allergeni);
@@ -2680,9 +2898,13 @@ async function chiediSettimana(cfg){
      consegna. La sicurezza non è stata allentata di un grammo — un
      alimento vietato non arriva mai a schermo — è cambiato cosa si fa
      quando lo si trova. */
-  const vietatiTutti=((cfg.regole&&cfg.regole.vietati)||[]).concat(ALCOL_VIETATI)
-    .concat((cfg.regole&&cfg.regole.allergeni)||[]);
-  const adattati=vietatiTutti.length?riparaSettimana(grezzi,vietatiTutti):[];
+  /* gli assoluti restano SEPARATI (27/08): allergie e dieta di
+     riferimento non conoscono esenzioni, e mescolarli ai divieti
+     normali voleva dire perdonarli col «senza lattosio». */
+  const vietatiTutti=((cfg.regole&&cfg.regole.vietati)||[]).concat(ALCOL_VIETATI);
+  const assolutiTutti=((cfg.regole&&cfg.regole.allergeni)||[]);
+  const adattati=(vietatiTutti.length||assolutiTutti.length)
+    ?riparaSettimana(grezzi,vietatiTutti,assolutiTutti):[];
   if(adattati.length)esito=validaSettimana(grezzi,cfg.regole);
   /* ── ULTIMA RETE SUI NOMI DEI PASTI (27/08) ────────────────────
      Il prompt li dice, e i giorni sbagliati si rifanno. Se dopo il
@@ -2779,10 +3001,37 @@ window.genPlanAI=async()=>{
        rifacimento dei giorni storti: due testi diversi sarebbero due
        piani diversi, e il rifacimento smetterebbe di somigliare al
        piano che sta riparando. */
-    const comune=' Persona: '+age()+' anni, '+(p.gender==="m"?"uomo":"donna")+', '+p.h+' cm, '+p.w+' kg, obiettivo: '+goal+'. Target di OGNI giorno: circa '+target+' kcal (tolleranza ±5%) e almeno '+protG+' g di proteine, distribuiti sui pasti. '+rulesForPlan()+
-      rigaPasti(slots)+rigaFuori+
+    /* ══ IL CONTESTO DELLA PERSONA, DA UNA FONTE SOLA (27/08) ══════
+       L'audit delle promesse ha trovato sei difetti con la stessa
+       causa, e questa riga li chiude tutti e sei.
+
+       `dietStr()` è il testo che dice al modello CHI è la persona:
+       impostazione alimentare (vegana, vegetariana con o senza uova e
+       pesce, pescetariana, mediterranea con le sue regole operative),
+       tradizione culinaria scelta, intolleranze per esteso, cibi da
+       evitare, cibi amati, vincoli religiosi, protocolli, patologie,
+       budget, tempo per cucinare, il divieto assoluto di alcol.
+
+       Lo usano VENTI punti dell'app — ribilanci, alternative, spesa,
+       stime, menù del ristorante. Le uniche due funzioni che NON lo
+       usavano erano le due che generano il piano: quella che scrive
+       la cosa più importante che l'app produce.
+
+       Il risultato, misurato: a un utente che ha dichiarato «vegana»
+       il prompt del piano non diceva che è vegana, e le linee guida
+       compresse gli dicevano «carne rossa 1-2, uova 2-4». Alla
+       tradizione culinaria — venti voci in due schermate — il piano
+       rispondeva «cucina italiana/mediterranea», sempre.
+
+       Le frasi scritte a mano che ripetevano un pezzo di questo testo
+       («ingredienti reperibili in un supermercato italiano», «rispetta
+       il tempo di cucina dichiarato») se ne vanno con questa riga: le
+       dice `dietStr()`, e le dice giuste. */
+    const comune=' Persona: '+age()+' anni, '+(p.gender==="m"?"uomo":"donna")+', '+p.h+' cm, '+p.w+' kg, obiettivo: '+goal+'. Target di OGNI giorno: circa '+target+' kcal (tolleranza ±5%) e almeno '+protG+' g di proteine, distribuiti sui '+slots.length+' pasti. '+
+      dietStr()+' '+rulesForPlan()+
+      rigaPasti(slots)+rigaPasto()+rigaFuori+
       (D.patologie?' Le condizioni di salute dichiarate sopra sono VINCOLANTI nella scelta degli alimenti di ogni pasto.':'')+
-      ' Regole: il piano si basa ESCLUSIVAMENTE su alimenti veri; NON inserire integratori (proteine in polvere, vitamine, barrette o pasti sostitutivi) a meno che i target siano davvero impossibili da coprire con il cibo: solo in quel caso indicali e scrivi nel campo ctx che l\'integrazione va concordata con un nutrizionista; porzioni in grammi sempre indicate; valori nutrizionali REALI per le quantità scritte; ingredienti reperibili in un supermercato italiano; stagione attuale: '+seasonNow()+', proponi piatti adatti alla stagione (niente piatti tipicamente invernali in estate e viceversa), restando generico su "verdura di stagione" e "frutta di stagione" dove sensato; rispetta il tempo di cucina dichiarato; nell\'arco della settimana devono alternarsi con equilibrio fonti proteiche compatibili con l\'impostazione dichiarata (per esempio carne bianca, pesce, uova, legumi, latticini SOLO se ammessi) più cereali integrali e abbondante verdura.'+rigaVar+rigaFarm+rigaMed+rigaInt;
+      ' Regole: il piano si basa ESCLUSIVAMENTE su alimenti veri; NON inserire integratori (proteine in polvere, vitamine, barrette o pasti sostitutivi) a meno che i target siano davvero impossibili da coprire con il cibo: solo in quel caso indicali e scrivi nel campo ctx che l\'integrazione va concordata con un nutrizionista; porzioni in grammi sempre indicate; valori nutrizionali REALI per le quantità scritte; stagione attuale: '+seasonNow()+', proponi piatti adatti alla stagione (niente piatti tipicamente invernali in estate e viceversa), restando generico su "verdura di stagione" e "frutta di stagione" dove sensato; nell\'arco della settimana devono alternarsi con equilibrio fonti proteiche compatibili con l\'impostazione dichiarata (per esempio carne bianca, pesce, uova, legumi, latticini SOLO se ammessi) più cereali integrali e abbondante verdura.'+rigaVar+rigaFarm+rigaMed+rigaInt;
     const regole={giorni:G,kcal:target,prot:protG,tollPct:5,slots:slots,nPasti:slots.length,
       vietati:vietatiElenco(D.no,D.intol),
       allergeni:allergeniElenco(D.allergie||""),

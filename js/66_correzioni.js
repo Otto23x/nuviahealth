@@ -140,11 +140,22 @@ window.correzioneApplica=async()=>{
 async function correzioneRifai(colpiti,vietati){
   const target=dayTargetK(),protG=dayTargetP();
   const slots=parseSlots(S.diet.slots||"Colazione, Metà mattina, Pranzo, Metà pomeriggio, Cena");
+  /* ══ ANCHE QUESTA È UNA STRADA CHE SCRIVE UN PIANO (audit 27/08) ══
+     Riscrive uno o più giorni interi, e lo faceva sapendo solo: i
+     termini appena corretti, l'età, il target e le regole nutrizionali.
+     Non sapeva le allergie, le intolleranze, il tipo di dieta, la
+     tradizione, i farmaci — e il suo controllo confrontava soltanto i
+     termini appena corretti, senza allergeni.
+     Cioè: un giorno riscritto per togliere il finocchio poteva
+     rientrare con dentro un allergene, e passava. Adesso questa strada
+     riceve lo stesso contesto delle altre e la stessa rete. */
   const q='Stai correggendo un piano alimentare settimanale italiano già scritto. Rifai SOLO questi giorni, lasciando stare gli altri: '+
     colpiti.map(c=>c.giorno).join(", ")+'. Il motivo della correzione: la persona NON vuole più questi alimenti o preparazioni, in nessuna forma: '+
     vietati.join(", ")+'. Persona: '+age()+' anni. Target di OGNI giorno: circa '+target+' kcal (tolleranza ±5%) e almeno '+protG+' g di proteine. '+
-    rulesForPlan()+' Pasti da prevedere, in questo ordine esatto: '+slots.join(", ")+'.'+
-    ' Regole: solo alimenti veri, porzioni in grammi, valori nutrizionali REALI, ingredienti da supermercato italiano.'+
+    ((typeof dietStr==="function")?dietStr()+' ':'')+
+    rulesForPlan()+((typeof rigaPasto==="function")?rigaPasto():'')+
+    ' Pasti da prevedere, in questo ordine esatto: '+slots.join(", ")+'.'+
+    ' Regole: solo alimenti veri, porzioni in grammi, valori nutrizionali REALI.'+
     weekJSONContract(colpiti.map(c=>c.giorno),false)
       .replace('ESATTAMENTE sette oggetti','ESATTAMENTE '+colpiti.length+(colpiti.length===1?' oggetto':' oggetti'));
   const r=await askWeekAI(q);
@@ -157,8 +168,15 @@ async function correzioneRifai(colpiti,vietati){
       if(!c||!d||!Array.isArray(d.meals)||!d.meals.length)return;
       /* la verifica è la stessa della generazione: il termine non deve
          più esserci, e i numeri devono essere numeri */
+      /* la rete completa, non solo i termini appena corretti: le
+         allergie e la dieta di riferimento valgono anche qui, e sono
+         proprio quelle su cui non ci si può permettere un buco */
       const controllo=validaSettimana([d],{giorni:[c.giorno],kcal:target,prot:protG,
-        tollPct:5,nPasti:slots.length,vietati:vietati,ripetizioni:"libera"});
+        tollPct:5,slots:slots,nPasti:slots.length,
+        vietati:vietati.concat((typeof vietatiElenco==="function")
+          ?vietatiElenco(S.diet.no||"",S.diet.intol||""):[]),
+        allergeni:(typeof allergeniElenco==="function")?allergeniElenco(S.diet.allergie||""):[],
+        ripetizioni:"libera"});
       const grave=controllo.problemi.some(p=>p.grave);
       if(grave){rimasti.push(giorno(c.giorno));return;}
       fatti.push({i:c.i,day:normDayAI(c.giorno,d)});});

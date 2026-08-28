@@ -1081,6 +1081,9 @@ function renderSpesa(){const el=document.getElementById("pg-spesa");
      <span class="box" style="border-style:dashed;color:var(--salvia);line-height:21px">＋</span>
      <span class="st" style="color:var(--grigio)">${tr("Aggiungi prodotto…")}</span></div>`;
    h+=`</div>`;}
+  /* in fondo alla lista, dove il bisogno è già dichiarato: chi ha
+     davanti la spesa della settimana sa cosa deve comprare (27/08) */
+  if(typeof partnerBlocco==="function")h+=partnerBlocco("spesa",tr("Dove fare la spesa"));
   el.innerHTML=h;}
 window.addShopExtra=async()=>{
   const v=await dlgPrompt(tr("Cosa devi comprare, fuori dal piano?"));if(!v||!v.trim())return;

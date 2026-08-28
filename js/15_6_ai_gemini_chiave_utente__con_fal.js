@@ -512,7 +512,10 @@ async function proxyCall(prompt,imgs,pilastro){
     try{if(j.conto&&S.conto){S.conto.vista=j.conto;save();}}catch(e){}
     const t=String(j.testo||"");
     if(!t.trim())throw new Error("vuota");
-    return t;
+    /* la stessa rete della chiamata diretta: il server ha gia' il suo
+       filtro, ma le due strade devono comportarsi uguale — se un
+       giorno il server cambia, la persona non se ne accorge */
+    return aiConfine(t);
   }catch(e){
     if(e&&e.name==="AbortError")throw new Error("timeout");
     throw e;
@@ -579,11 +582,44 @@ function gemSSETutto(testo){
    Non c'è un «va bene lo stesso»: se il modello ha messo le mani su
    una terapia, la risposta non arriva a schermo. Chi chiama lo tratta
    come un errore qualunque e riprova. */
+/* ── LE PAROLE VIETATE VALGONO ANCHE PER L'AI (audit 27/08) ───────
+   Il pilastro dice: «l'elenco delle parole vietate è applicato a OGNI
+   testo dell'app. Nessuna eccezione: vale per l'AI, per i messaggi
+   dello studio, per le schede partner, per le notifiche.»
+
+   Era applicato a quattro punti su sei, e fra i due che restavano
+   fuori c'erano proprio le risposte del modello: la cosa che una
+   persona legge più spesso. Nel prompt del server c'è una preghiera
+   («non usare le parole sgarro, colpa, fallito») — ma una preghiera
+   non è un filtro, e valeva solo per chi passa dal proxy.
+
+   Adesso il controllo sta QUI, dove passano tutte le risposte, e si
+   comporta come il server: una risposta che rompe la regola non esce.
+   Chi chiama vede l'errore «tono» e può riprovare — è quello che fa
+   già col 422 del proxy.
+
+   IL JSON NON SI TOCCA. Il piano, la spesa e le stime tornano come
+   dati, non come frasi: dentro può esserci «troppo salato» nel campo
+   di una nota, e un filtro sulle parole ucciderebbe una settimana di
+   piano per un aggettivo. Si guarda solo quello che è TESTO per una
+   persona — cioè quello che non comincia con { o [. */
+function aiTonoOk(txt){
+  const t=String(txt||"").trim();
+  if(!t||t[0]==="{"||t[0]==="[")return null;      /* dati, non frasi */
+  const basso=t.toLowerCase();
+  const L=(typeof PAROLE_VIETATE!=="undefined"&&Array.isArray(PAROLE_VIETATE))?PAROLE_VIETATE:[];
+  return L.find(p=>basso.indexOf(p)>-1)||null;}
+window.aiTonoOk=aiTonoOk;
 function aiConfine(txt){
   try{
     const f=(typeof frenoMedico==="function")?frenoMedico(txt):null;
     if(f)throw new Error("medico");
   }catch(e){if(String(e&&e.message)==="medico")throw e;}
+  try{
+    const p=aiTonoOk(txt);
+    if(p){aiAnnota("(tono)","parola vietata nella risposta: "+p,String(txt||"").length);
+      throw new Error("tono");}
+  }catch(e){if(String(e&&e.message)==="tono")throw e;}
   return txt;}
 
 async function geminiCall(prompt,imgs,pilastro){
@@ -1105,18 +1141,81 @@ function nutriRules(){
    Costruire un giorno richiede già una risposta lunga: caricare anche 3.400
    caratteri di regole aumenta la probabilità che la risposta venga troncata
    e che il giorno non arrivi mai. Il senso resta, il peso scende a un quinto. */
+/* ── LA COMPRESSIONE SEGUIVA IL TESTO, NON LA PERSONA (27/08) ─────
+   Le regole lunghe (NUTRI_RULES_DEF) hanno una riga per i vegetariani
+   e i vegani e una per gli onnivori. La versione compressa — l'unica
+   che arriva al piano — teneva SOLO quella degli onnivori:
+
+     «Per chi non è vegetariano: pesce 2-3 volte, carne bianca 2-3,
+      carne rossa 1-2, uova 2-4…»
+
+   A una persona che ha dichiarato «vegana» il prompt del piano diceva
+   dunque, testualmente, di metterle la carne. Non era una svista del
+   modello: era scritto da noi.
+
+   Adesso il taglio segue la PERSONA: chi non mangia carne riceve la
+   riga che parla di lui, e la riga degli onnivori sparisce invece di
+   restare lì a contraddirlo. È lo stesso principio della riparazione
+   dei divieti: non basta non dire la cosa sbagliata, bisogna dire
+   quella giusta al suo posto. */
+function nutriProteine(){
+  const t=String((S.diet&&S.diet.tipo)||"").toLowerCase();
+  if(t==="vegana")
+    return "La persona è VEGANA: nessun alimento di origine animale, in nessun pasto — niente carne, pesce, uova, latte, latticini, miele. "+
+      "Le proteine vengono da legumi, tofu, tempeh, seitan, edamame e frutta secca, presenti a OGNI pasto principale; "+
+      "cura ferro (legumi con vitamina C), B12, calcio e omega-3 (semi di lino, noci). ";
+  if(t==="vegetariana"){
+    const uova=(S.diet&&S.diet.vegUova!==false),pesce=!!(S.diet&&S.diet.vegPesce);
+    return "La persona è VEGETARIANA: niente carne di nessun tipo"+(pesce?"":", niente pesce")+
+      (uova?"; uova ammesse 2-4 a settimana":"; niente uova")+"; latticini ammessi. "+
+      "Le proteine vengono da legumi, tofu, tempeh"+(uova?", uova":"")+(pesce?", pesce 2-3 volte":"")+
+      " e latticini, presenti a OGNI pasto principale; cura ferro, B12 e omega-3. ";}
+  if(t==="pescetariana")
+    return "La persona è PESCETARIANA: niente carne di nessun tipo. Pesce 3-4 volte a settimana (una grassa), "+
+      "uova 2-4, latticini ammessi, legumi come aggiunta a ogni pasto principale. ";
+  return "Per chi non è vegetariano: pesce 2-3 volte a settimana (una grassa), carne bianca 2-3, carne rossa 1-2, "+
+    "uova 2-4, yogurt greco o ricotta anche ogni giorno. ";}
 function nutriRulesShort(){
-  if(S.rules&&typeof S.rules.nutri==="string")return S.rules.nutri.slice(0,900);
+  /* Le regole riscritte dalla persona si tagliano a 900 caratteri per
+     non far troncare la risposta. Il taglio ADESSO SI DICHIARA: prima
+     spariva in silenzio più di metà di quello che aveva scritto. */
+  if(S.rules&&typeof S.rules.nutri==="string"){
+    const t=S.rules.nutri;
+    return (t.length>900)?(t.slice(0,900)+" […regole personali abbreviate: le prime 900 lettere]"):t;}
   return "Base OMS, adattata alla persona: condizioni di salute e intolleranze dichiarate vincono sempre. "+
     "Verdura a pranzo e cena, frutta 2-3 volte (400 g al giorno). Zuccheri aggiunti sotto il 10% delle calorie, "+
     "grassi sotto il 30% (saturi sotto il 10%), sale sotto 5 g, fibra almeno 25 g. Olio extravergine a crudo, "+
     "frutta secca o semi ogni giorno, cereali integrali quando possibile. "+
-    "Per chi non è vegetariano: pesce 2-3 volte a settimana (una grassa), carne bianca 2-3, carne rossa 1-2, "+
-    "uova 2-4, yogurt greco o ricotta anche ogni giorno. Legumi 2-3 volte come aggiunta, non come sostituto; "+
+    nutriProteine()+
+    "Legumi 2-3 volte come aggiunta, non come sostituto; "+
     "con colon irritabile 1-2 volte, 60-80 g cotti, lenticchie decorticate. Salumi 1-2 volte al massimo. "+
     "Varia: mai lo stesso piatto più di due volte a settimana.";}
+window.nutriProteine=nutriProteine;
+/* ── I SENSORI SILENZIOSI NON ARRIVAVANO AL PIANO (audit 27/08) ───
+   La presentazione promette, sotto il titolo «più la usi, più è tua»:
+   «Fame media alta negli ultimi 14 giorni? Più volume e fibre a parità
+   di calorie. Cali ricorrenti dopo pranzo? Meno raffinati proprio lì.
+   Automatico, e dichiarato.»
+
+   Le due funzioni esistono, funzionano e sono ben scritte —
+   `hungerForAI()` e `chronoForAI()`. Ma stavano solo in
+   `rulesForAI()`, cioè nelle richieste brevi: ribilanci, stime,
+   strumenti. **Al piano non arrivavano**, e il piano è esattamente la
+   cosa che dovrebbe «diventare più tua».
+
+   Adesso ci sono. Restano fuori dal piano gli altri (famiglia,
+   schemi, trigger, crash): quelli parlano di un pasto o di un momento,
+   non della settimana, e infilarli qui vorrebbe dire allungare il
+   prompt con roba che non cambia una settimana. */
 function rulesForPlan(){const r=rulesSnapshot();
   return " "+tr("QUALITÀ NUTRIZIONALE (vincolante):")+" "+nutriRulesShort()+digiunoForAI()+" "+physForAI()+
+    ((typeof hungerForAI==="function")?hungerForAI():"")+
+    ((typeof chronoForAI==="function")?chronoForAI():"")+
+    /* La famiglia entra nel piano come CUCINA, non come quantità:
+       famPianoForAI() sceglie i piatti e lascia stare le grammature.
+       famForAI(), che parla di porzioni per tutti, resta fuori di qui
+       e vive in rulesForAI() e nella spesa. */
+    ((typeof famPianoForAI==="function")?famPianoForAI():"")+
     (r.custom?(" Regole della persona: "+r.custom):"");}
 function rulesForAI(){const r=rulesSnapshot();
   return " "+tr("QUALITÀ NUTRIZIONALE (vincolante):")+" "+nutriRules()+digiunoForAI()+" "+physForAI()+famForAI()+hungerForAI()+chronoForAI()+crashForAI()+
@@ -1507,6 +1606,22 @@ function hint2(breve,esteso,cls,lbl){
    dove sono CONTENUTO (il cibo, gli stati d'animo); spariscono da
    navigazione, titoli e pulsanti, dove facevano sembrare l'app una chat. */
 const ICONS={
+  /* ── I SEGNI DEI PARTNER SONO STATI TOLTI (founder, 27/08) ────────
+     «I segni di categoria non voglio più vederli: quando caricheremo
+     un'attività la caricheremo con il suo logo.»
+     Erano cinque — psicologo, nutrizionista, palestra, sportivo, e il
+     carrello per il negozio — e servivano a non lasciare nuda una
+     scheda senza immagine. Adesso il logo arriva con la scheda, e un
+     disegno nostro accanto a un'insegna vera sarebbe un secondo
+     linguaggio grafico nella stessa lista.
+     Il carrello «spesa» resta qui sotto perché non era un segno di
+     categoria: è l'icona della pagina Spesa, e la usa l'app da
+     sempre. Gli altri quattro non li chiama più nessuno, e un'icona
+     che non chiama nessuno è peso e una cosa in più da mantenere. */
+  /* per il negozio di alimentari si riusa il carrello che l'app ha
+     gia' («spesa», qui sotto): due disegni per la stessa cosa sono due
+     cose da tenere allineate, e il collaudo del lint l'ha detto subito
+     — chiave doppia nello stesso oggetto. */
  /* i tre puntini degli attrezzi (v13.86): apre il foglio con tutti
     gli attrezzi del pasto. Tre cerchi pieni, non il carattere «⋯» —
     un carattere tipografico cambia forma con il font e non è
@@ -1667,6 +1782,7 @@ function aiReason(e){const m=String(e&&e.message||e);
   return {medico:"argomento medico",timeout:"tempo scaduto",rete:"rete caduta",quota:"limite Gemini raggiunto",busy:"server occupati",
     badkey:"chiave non valida",blocked:"risposta bloccata dai filtri",nokey:"chiave mancante",
     livello:"livello di ragionamento non accettato dal modello",
+    tono:"la risposta non rispettava le regole sul tono",
     troncata:"risposta troppo lunga, tagliata a metà",vuota:"risposta vuota"}[m]||m;}
 /* ═══ COSA È ANDATO STORTO, SCRITTO ═════════════════════════════════
    Il founder manda una schermata e noi indoviniamo: è successo tre

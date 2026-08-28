@@ -65,9 +65,27 @@ const CURA_REGOLE={
 };
 window.CURA_REGOLE=CURA_REGOLE;
 
-/* I tipi «di cura»: quelli che parlano alla persona, non al piano.
-   Hanno un tetto proprio, più severo di quello giornaliero. */
-const TIPI_CURA=["fragile","patto","ciclo","ritorno"];
+/* ══ TUTTE DI CURA (founder, 27/08) ═══════════════════════════════
+   Il pilastro dice: «massimo due a settimana, mai in giorni
+   consecutivi». Il tetto stretto però valeva solo per quattro tipi
+   dichiarati qui; tutti gli altri ricadevano su «massimo due al
+   giorno», cioè fino a quattordici a settimana. Il pilastro non
+   distingue i tipi, e la decisione del founder è di non distinguerli
+   nemmeno nel codice: **ogni notifica è di cura**.
+
+   L'elenco resta, ma non è più un cancello: serve solo a dire quali
+   sono nate come tali. Il conto e il tetto valgono per tutte, comprese
+   quelle che qualcuno aggiungerà domani senza leggere questo commento
+   — ed è il punto: la regola non si applica a una lista, si applica a
+   quello che c'è.
+
+   ── IL DIFETTO CHE STAVA SOTTO ───────────────────────────────────
+   `comestai` non era nella lista, quindi usciva dal cancello alla
+   prima riga — e la regola scritta apposta per lui («a obiettivo
+   raggiunto, un "come stai?" ogni 21 giorni») stava PIÙ SOTTO, cioè
+   in un pezzo di codice che non veniva mai raggiunto. Era una regola
+   viva sulla carta e morta nell'esecuzione. Adesso gira. */
+const TIPI_CURA=["fragile","patto","ciclo","ritorno","comestai"];
 window.TIPI_CURA=TIPI_CURA;
 
 /* ── il cancello: si può mandare una notifica di cura adesso? ──── */
@@ -76,10 +94,10 @@ function curaSiPuo(tipo,quando){
   /* prima passano le regole di sempre: ore, quota, tipi vietati */
   const base=notificaSiPuo(tipo,t);
   if(!base.ok)return base;
-  if(TIPI_CURA.indexOf(tipo)<0)return base;
+  /* niente cancello per tipo: il tetto vale per tutte (27/08) */
 
   const N=notifiche();
-  const mandate=(N.mandate||[]).filter(m=>TIPI_CURA.indexOf(m.tipo)>=0);
+  const mandate=(N.mandate||[]);
 
   /* dopo il traguardo si dirada: solo il «come stai?», e di rado */
   const g=giorniDaTraguardo();

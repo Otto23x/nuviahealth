@@ -662,7 +662,24 @@ function assistProsegui(t){
 window.moreOpen=()=>{
   const w=document.getElementById("moreSheet"),l=document.getElementById("moreList");
   if(!w||!l)return;
-  l.innerHTML='<div class="sheethd">Altre sezioni</div>'+
+  /* ══ L'ANNULLA AVEVA PERSO IL SUO BOTTONE (audit 27/08) ══════════
+     La presentazione promette: «ogni azione lascia un Annulla». Il
+     motore c'è ed è completo (`annullaUltima`, in 11_2): tiene lo
+     stato di PRIMA, si annulla una volta sola, e all'avvio si azzera
+     perché le migrazioni non sono azioni della persona.
+
+     Aveva però un solo modo di raggiungerlo: il cartellino in fondo
+     allo schermo. Spenti i popup (25/08), la funzione è rimasta viva e
+     irraggiungibile — cioè, per chi usa l'app, inesistente.
+
+     Adesso vive qui, in cima al pannello «⋯»: compare SOLO quando c'è
+     davvero qualcosa da annullare, e dice cosa. Niente cartellini, e
+     niente promessa vuota: si torna indietro da un posto che c'è
+     sempre, invece che da uno che spariva dopo otto secondi. */
+  const undo=(typeof undoDisponibile==="function"&&undoDisponibile())
+    ? `<button class="sheetrow" title="${esc(tr("Annulla l'ultima modifica"))}" onclick="moreClose();setTimeout(annullaUltima,120)">${ic("undo",20)}<span>${tr("Annulla l'ultima modifica")}</span><em>›</em></button>`
+    : "";
+  l.innerHTML='<div class="sheethd">Altre sezioni</div>'+undo+
     ALTRE.map(([p,lab,icn])=>`<button title="${tr("Apri")}" class="sheetrow" onclick="moreGo('${p}')">${ic(icn,20)}<span>${tr(lab)}</span><em>›</em></button>`).join("");
   w.hidden=false;requestAnimationFrame(()=>w.classList.add("on"));};
 window.moreClose=()=>{

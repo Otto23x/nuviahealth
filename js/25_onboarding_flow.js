@@ -340,6 +340,25 @@ function ONB2t(){return [
       ["normale",tr("Il giusto"),tr("Mezz'ora, di solito")],
       ["amoCucinare",tr("Mi piace cucinare"),tr("Il tempo lo trovo volentieri")]]},
 
+ /* ── CHI ALTRO MANGIA A CASA (founder, 27/08) ──────────────────
+    «Nell'onboarding non chiede ancora della composizione della
+    famiglia e se deve considerarla nella preparazione dei pasti e
+    della spesa.»
+    Il modello c'era già tutto — S.family, famUnits(), shopForMe() —
+    ma si poteva riempire solo in Regole, cioè dopo. E la famiglia
+    non è un dettaglio da sistemare dopo: chi cucina per tre non
+    prepara due piatti diversi, e la spesa per uno solo è la prima
+    cosa che fa dire «questa app non sa come vivo».
+    Sta QUI, dopo il tempo per cucinare e prima della generazione,
+    perché è una domanda sulla cucina, non sul corpo — e perché ogni
+    risposta dopo la pausa che genera non toccherebbe più il piano.
+    Il confine è scritto sulla schermata: le grammature restano
+    personali. Chi mangia con te cambia la spesa e il modo di
+    cucinare; le tue quantità le decidono i tuoi numeri, non quanti
+    siete a tavola. */
+ {k:"famiglia",sez:"vita",tipo:"famiglia",
+  q:tr("A tavola siete solo tu, o anche altri?")},
+
  {k:"preferenze",sez:"vita",tipo:"preferenze",
   q:tr("Le ultime tre cose per il piano")},
 
@@ -554,6 +573,7 @@ function renderOnb2(){
   else if(sc.tipo==="giornate")c=onb2Giornate(sc);
   else if(sc.tipo==="medico")c=onb2Medico(sc);
   else if(sc.tipo==="dettagli")c=onb2Dettagli(sc);
+  else if(sc.tipo==="famiglia")c=onb2Famiglia(sc);
   else c=onb2Fine(sc);
 
   /* ── IL TITOLO DELL'ULTIMA SCHERMATA DICE LA VERITÀ (26/08) ──────
@@ -659,7 +679,17 @@ window.onb2IntollTag=(v,tipo)=>{
 function onb2Integ(sc){
   const o=onb2Stato(),sel=Array.isArray(o.ris[sc.k])?o.ris[sc.k]:[];
   const freq=o.ris.integ_freq||{};
-  const FR=[["giorni",tr("tutti i giorni")],["quasi",tr("quasi tutti i giorni")],["saltuario",tr("qualche volta")]];
+  /* ── «MAI» È LA PRIMA VOCE, E QUELLA DI PARTENZA (founder, 27/08) ──
+     «Sull'assunzione degli integratori sul numero di volte dovrebbe
+     esserci anche mai, selezionato di default per tutti.»
+     Prima le tendine partivano tutte da «tutti i giorni»: una riga
+     non spuntata diceva comunque «tutti i giorni», e chi guardava la
+     schermata leggeva una risposta che non aveva dato. Ora lo stato
+     di partenza è quello vero — non lo prendo — e la tendina e la
+     spunta dicono sempre la stessa cosa: scegliere una frequenza
+     spunta la voce, scegliere «mai» la toglie. Due comandi che si
+     contraddicono sono un difetto, non una libertà. */
+  const FR=[["mai",tr("mai")],["giorni",tr("tutti i giorni")],["quasi",tr("quasi tutti i giorni")],["saltuario",tr("qualche volta")]];
   let h=onb2Chip(sc.k);
   /* Niente testata «Ogni quanto» (founder, 27/08): le tendine lo dicono
      da sole, e una riga di intestazione sopra una lista di spunte è una
@@ -689,7 +719,7 @@ function onb2Integ(sc){
        niente, e nessuno lo farebbe per sbaglio. */
     const tendina=`<select class="o2ifreq" aria-label="${esc(trh("Ogni quanto: {v1}",{v1:t}))}"
           onchange="onb2IntegFreq('${esc(v)}',this.value)" onclick="event.stopPropagation()">${
-          FR.map(([fv,ft])=>`<option value="${fv}"${(freq[v]||"giorni")===fv?" selected":""}>${esc(ft)}</option>`).join("")}</select>`;
+          FR.map(([fv,ft])=>`<option value="${fv}"${onb2Freq(freq,v,sel)===fv?" selected":""}>${esc(ft)}</option>`).join("")}</select>`;
     return `<div class="o2irowi${on?" scelta-riga":""}" data-riga="${esc(v)}"><button class="o2op o2opm${on?" scelta":""}" type="button" data-v="${esc(v)}"
        onclick="onb2Toggle('${esc(sc.k)}','${esc(v)}')" aria-pressed="${on}">
        <i class="o2box" aria-hidden="true">${on?"✓":""}</i>
@@ -701,12 +731,24 @@ function onb2Integ(sc){
     `<button class="o2op${o.ris.integrareOk===v?" scelta":""}" type="button" onclick="onb2Set('integrareOk','${esc(v)}')">
        <b>${esc(t)}</b>${d?`<span>${esc(d)}</span>`:""}</button>`).join("")+`</div></div>`;
   return h;}
+/* Ogni quanto prende QUESTO integratore: un lettore solo, usato dalla
+   tendina, dal travaso e dai collaudi. Senza risposta scritta vale la
+   spunta: spuntato = tutti i giorni (era così prima del «mai» e i
+   percorsi lasciati a metà devono continuare a valere), non spuntato =
+   mai. */
+function onb2Freq(freq,v,sel){
+  const f=(freq||{})[v];
+  if(f)return f;
+  return (Array.isArray(sel)&&sel.includes(v))?"giorni":"mai";}
 window.onb2IntegFreq=(v,f)=>{const o=onb2Stato();
   (o.ris.integ_freq=o.ris.integ_freq||{})[v]=f;onb2Salva();
   /* toccare la tendina di una voce non spuntata vuol dire «questo lo
-     prendo, e lo prendo cosi'»: si spunta da sola, sul posto. */
+     prendo, e lo prendo cosi'»: si spunta da sola, sul posto.
+     E «mai» fa l'opposto: toglie la spunta. La tendina e la spunta
+     non possono dire due cose diverse della stessa riga. */
   const sel=Array.isArray(o.ris.integratori)?o.ris.integratori:[];
-  if(!sel.includes(v))onb2Toggle("integratori",v);};
+  if(f==="mai"){if(sel.includes(v))onb2Toggle("integratori",v);}
+  else if(!sel.includes(v))onb2Toggle("integratori",v);};
 
 /* ── I dettagli del corpo: tutti facoltativi ──────────────────────
    Le pliche stanno dietro una spunta, come in Io: da soli non si
@@ -735,6 +777,88 @@ function onb2Dettagli(sc){
   </div></div>
   <div class="hint">${esc(tr("Finiscono in Io → Misure dello studio, che è l'unico posto dove vivono: da lì si aggiornano a ogni visita."))}</div>`;
   return h;}
+
+/* ── CHI ALTRO MANGIA A CASA ───────────────────────────────────────
+   Le stesse tre informazioni di Regole → Chi altro mangia a casa
+   (nome, sesso, età) e gli stessi due interruttori che l'app aveva
+   già: quello della spesa (S.shopFor, in Spesa) e quello nuovo del
+   piano. Qui si chiedono, lì si correggono: una fonte sola.
+   L'età si scrive in ANNI e non con il calendario: la data di
+   nascita di un figlio, su un telefono, è la cosa più scomoda da
+   inserire che ci sia. L'app la converte in data appena travasa, così
+   l'età continua a crescere da sola ogni anno (vedi etaToDob).
+   Il nome è facoltativo: chi non lo scrive resta «bambino di 8 anni»
+   e le porzioni funzionano lo stesso. */
+function onb2Fam(){
+  const o=onb2Stato();
+  const f=o.ris.famiglia||(o.ris.famiglia={con:null,lista:[],piano:true,spesa:true});
+  if(!Array.isArray(f.lista))f.lista=[];
+  return f;}
+function onb2FamRiga(m,i){
+  return `<div class="famrow">
+    <input type="text" class="fnome" placeholder="${esc(tr("Nome"))}" value="${esc(m.nome||"")}"
+      onchange="onb2FamSet(${i},'nome',this.value)" aria-label="${esc(tr("Nome"))}">
+    <select class="fsex" aria-label="${esc(tr("Sesso"))}" onchange="onb2FamSet(${i},'gender',this.value)">
+      <option value="f"${m.gender!=="m"?" selected":""}>F</option>
+      <option value="m"${m.gender==="m"?" selected":""}>M</option></select>
+    <input type="number" class="fetan" inputmode="numeric" min="0" max="110" placeholder="${esc(tr("età"))}"
+      value="${(m.eta!==""&&m.eta!=null)?esc(String(m.eta)):""}"
+      onchange="onb2FamSet(${i},'eta',this.value)" aria-label="${esc(tr("Età"))}">
+    <button class="ibtn" type="button" title="${esc(tr("Togli"))}" onclick="onb2FamDel(${i})">✕</button></div>`;}
+function onb2FamBox(){
+  const f=onb2Fam();
+  return f.lista.map((m,i)=>onb2FamRiga(m,i)).join("");}
+function onb2Famiglia(sc){
+  const f=onb2Fam();
+  const B=(v,t,d)=>`<button class="o2op${f.con===v?" scelta":""}" type="button" data-fam="${v?1:0}"
+     onclick="onb2FamCon(${v?1:0})"><b>${esc(t)}</b><span>${esc(d)}</span></button>`;
+  return onb2Chip(sc.k)+
+  `<div class="o2ops">
+     ${B(false,tr("Cucino solo per me"),tr("Piano e spesa per una persona"))}
+     ${B(true,tr("Mangiamo insieme"),tr("Dimmi chi c'è: cambio la spesa, non le tue porzioni"))}
+   </div>
+   <div id="o2famBox" class="o2form" style="${f.con===true?"":"display:none"}">
+     <label>${esc(tr("Chi altro mangia a casa"))}</label>
+     <div id="o2famRighe">${onb2FamBox()}</div>
+     <button class="btn ghost small" type="button" onclick="onb2FamAdd()">${esc(tr("+ Aggiungi una persona"))}</button>
+     <label class="ckline" style="margin-top:12px"><input type="checkbox" id="o2famPiano" ${f.piano!==false?"checked":""}
+       onchange="onb2FamFlag('piano',this.checked)"> ${esc(tr("Scegli piatti che posso cucinare per tutti"))}</label>
+     <label class="ckline"><input type="checkbox" id="o2famSpesa" ${f.spesa!==false?"checked":""}
+       onchange="onb2FamFlag('spesa',this.checked)"> ${esc(tr("La spesa la faccio per tutti"))}</label>
+   </div>
+   <div class="hint">${tr("Le porzioni del piano restano tue: le decidono i tuoi numeri, non quanti siete a tavola. Chi mangia con te cambia la spesa e mi fa scegliere piatti da cucinare una volta sola.")}</div>`;}
+/* La scelta accende o spegne il riquadro SUL POSTO: nessun ridisegno
+   della pagina, come per le spunte e per le tendine degli integratori. */
+window.onb2FamCon=(v)=>{
+  const f=onb2Fam();f.con=!!v;
+  if(f.con&&!f.lista.length)f.lista.push({nome:"",gender:"f",eta:""});
+  onb2Salva();
+  const box=document.getElementById("o2famBox");
+  const righe=document.getElementById("o2famRighe");
+  if(righe)righe.innerHTML=onb2FamBox();
+  if(box)box.style.display=f.con?"":"none";
+  document.querySelectorAll('.o2op[data-fam]').forEach(b=>{
+    const on=(b.getAttribute("data-fam")==="1")===f.con;
+    b.classList.toggle("scelta",on);});
+  if(!box)renderOnb2();};
+window.onb2FamAdd=()=>{
+  const f=onb2Fam();f.lista.push({nome:"",gender:"f",eta:""});onb2Salva();
+  const righe=document.getElementById("o2famRighe");
+  if(righe)righe.insertAdjacentHTML("beforeend",onb2FamRiga(f.lista[f.lista.length-1],f.lista.length-1));
+  else renderOnb2();};
+window.onb2FamDel=(i)=>{
+  const f=onb2Fam();f.lista.splice(i,1);onb2Salva();
+  /* qui il ridisegno serve davvero: togliendo una riga cambiano gli
+     indici di tutte quelle sotto, e un indice sbagliato cancella la
+     persona sbagliata. Si ridisegna il solo riquadro, non la pagina. */
+  const righe=document.getElementById("o2famRighe");
+  if(righe)righe.innerHTML=onb2FamBox();else renderOnb2();};
+window.onb2FamSet=(i,k,v)=>{
+  const f=onb2Fam();if(!f.lista[i])return;
+  if(k==="eta"){const e=parseInt(v,10);f.lista[i].eta=(!isNaN(e)&&e>=0&&e<=110)?e:"";}
+  else f.lista[i][k]=(k==="nome")?String(v||"").trim().slice(0,24):v;
+  onb2Salva();};
+window.onb2FamFlag=(k,v)=>{const f=onb2Fam();f[k]=!!v;onb2Salva();};
 
 /* ── Le indicazioni del medico: il campo, e il confine scritto ─────
    È la sola schermata del percorso in cui Nuvia si mette
@@ -821,7 +945,23 @@ window.onb2Toggle=(k,v)=>{
     /* la riga (che contiene anche la tendina) segue la spunta: e' un
        cambio di CLASSE, non di struttura — nessun ridisegno */
     const riga=b.closest(".o2irowi");
-    if(riga)riga.classList.toggle("scelta-riga",on);});};
+    if(riga)riga.classList.toggle("scelta-riga",on);
+    /* ── LA TENDINA SEGUE LA SPUNTA (27/08) ────────────────────────
+       Da quando «mai» è la voce di partenza, spuntare un integratore
+       lasciando la tendina su «mai» sarebbe una riga che si
+       contraddice da sola. Spuntare vuol dire «lo prendo»: se la
+       frequenza non è ancora stata scelta, diventa quella comune
+       (tutti i giorni); togliere la spunta la riporta a «mai».
+       È l'altra metà di onb2IntegFreq, che fa la stessa cosa
+       partendo dalla tendina. */
+    if(k==="integratori"){
+      const t=riga&&riga.querySelector(".o2ifreq");
+      if(t){
+        const f=(o.ris.integ_freq=o.ris.integ_freq||{});
+        const v=b.getAttribute("data-v");
+        if(on&&(!f[v]||f[v]==="mai"))f[v]="giorni";
+        if(!on)f[v]="mai";
+        t.value=f[v];onb2Salva();}}});};
 
 window.onb2MultiOk=(k)=>{
   const o=onb2Stato(),sc=ONB2c().find(x=>x.k===k);
@@ -838,6 +978,15 @@ window.onb2MultiOk=(k)=>{
 /* ── Come mangi: dieta di riferimento e tradizione culinaria. ──────
    Le stesse voci (e gli stessi campi) di Regole → Caratteristiche
    alimentari: qui si chiedono, lì si modificano. */
+/* ── LE DUE SPUNTE DEL VEGETARIANO DICONO CHI SEI, NON COSA È ──────
+   «Uova sì» e «Pesce sì» sembravano l'etichetta di una regola
+   dell'app: sì per chi? Adesso sono in prima persona — «Mangio le
+   uova», «Mangio il pesce» — perché è una domanda su di te.
+   E la riga che spiega PERCHÉ la domanda esiste (le versioni della
+   dieta vegetariana cambiano) stava solo in Regole, cioè nel posto
+   dove si correggono le risposte già date. Serve di più qui, dove la
+   risposta si dà la prima volta: è la stessa frase, non una seconda
+   scritta da mantenere allineata. */
 function onb2Dieta(sc){
   const o=onb2Stato(),r=o.ris.dieta||{};
   const tipo=r.tipo||"mediterranea";
@@ -849,8 +998,9 @@ function onb2Dieta(sc){
       <select id="o2dTipo" onchange="onb2VegUI(this.value)">`+
         dt.map(x=>`<option value="${esc(x)}"${tipo===x?" selected":""}>${esc(O2CAP(x))}</option>`).join("")+`</select>
       <div id="o2VegBox" style="${tipo==="vegetariana"?"":"display:none"}">
-        <label class="ck"><input type="checkbox" id="o2vu"${r.uova===false?"":" checked"}> ${esc(tr("Uova sì"))}</label>
-        <label class="ck"><input type="checkbox" id="o2vp"${r.pesce?" checked":""}> ${esc(tr("Pesce sì"))}</label>
+        <label class="ck"><input type="checkbox" id="o2vu"${r.uova===false?"":" checked"}> ${esc(tr("Mangio le uova"))}</label>
+        <label class="ck"><input type="checkbox" id="o2vp"${r.pesce?" checked":""}> ${esc(tr("Mangio il pesce"))}</label>
+        <div class="hint">${tr("Nella dieta vegetariana le versioni cambiano: di norma le uova sono ammesse e il pesce no. Regola qui come mangi tu.")}</div>
       </div>
       <label>${esc(tr("Tradizione culinaria"))}</label>
       <select id="o2dTrad">`+
@@ -1768,6 +1918,21 @@ window.onb2AvantiSchermo=()=>{
     if(m.conPliche)P.forEach(([k])=>{const v=n("o2dP_"+k);if(v)m.pliche[k]=v;});
     o.ris.misure=m;onb2Salva();
     return onb2Avanti();}
+  if(sc.tipo==="famiglia"){
+    const f=onb2Fam();
+    if(f.con==null)return dlgAlert(tr("Dimmi se cucini solo per te o se mangiate insieme."));
+    /* le righe rimaste vuote non sono persone: si tolgono in silenzio */
+    f.lista=f.lista.filter(m=>(m.nome||"").trim()!==""||(m.eta!==""&&m.eta!=null));
+    if(f.con&&!f.lista.length){
+      /* «mangiamo insieme» senza nessuno è una risposta che non dice
+         niente: o si scrive chi c'è, o si torna a «solo per me». */
+      return dlgAlert(tr("Scrivi chi mangia con te, oppure scegli «Cucino solo per me»."));}
+    const senzaEta=f.lista.filter(m=>m.eta===""||m.eta==null);
+    if(f.con&&senzaEta.length)
+      return dlgAlert(tr("Manca l'età di chi mangia con te: è quella che mi dice quanto cucinare per ciascuno."));
+    if(!f.con)f.lista=[];
+    onb2Salva();
+    return onb2Avanti();}
   if(sc.tipo==="medico"){
     const o=onb2Stato(),t=document.getElementById("o2med");
     if(t)o.ris.medico=t.value.trim();
@@ -2189,9 +2354,12 @@ function onb2Travasa(){
        che si SALVA è la lingua del motore. */
     const FRT={giorni:"tutti i giorni",quasi:"quasi tutti i giorni",saltuario:"qualche volta a settimana"};
     const fm=r.integ_freq||{};
-    const voci=senzaNone(r.integratori,"nessuno");
-    S.diet.integratori=voci.map(v=>v+" ("+(FRT[fm[v]||"giorni"])+")").join(", ");
-    const f=voci.map(v=>fm[v]||"giorni");
+    const sel=Array.isArray(r.integratori)?r.integratori:[];
+    /* «mai» non è una frequenza da travasare: è un integratore che
+       questa persona non prende, e nel profilo non deve comparire. */
+    const voci=senzaNone(r.integratori,"nessuno").filter(v=>onb2Freq(fm,v,sel)!=="mai");
+    S.diet.integratori=voci.map(v=>v+" ("+(FRT[onb2Freq(fm,v,sel)])+")").join(", ");
+    const f=voci.map(v=>onb2Freq(fm,v,sel));
     S.diet.integratoriFreq=f.includes("giorni")?"giorni":(f.includes("quasi")?"quasi":(f.length?"saltuario":""));}
   /* ── R1 · gli sport preferiti, travasati in DUE posti ──────────
      `S.train.ama` è la stringa che trainForAI() legge davvero (vedi
@@ -2239,6 +2407,29 @@ function onb2Travasa(){
   if(r.cucina){
     S.diet.pronto=(r.cucina==="veloce")?"velocissimo":(r.cucina==="amoCucinare")?"mi piace cucinare":"semplice";
     S.diet.cucina=(r.cucina==="veloce")?10:(r.cucina==="amoCucinare")?60:30;}
+  /* ── La famiglia: NEGLI STESSI CAMPI che Regole e Spesa usano già ──
+     S.family è la lista che Regole → Chi altro mangia a casa mostra e
+     corregge; S.shopFor è l'interruttore che sta in fondo alla Spesa.
+     L'onboarding li COMPILA, non ne crea di nuovi.
+     L'età scritta in anni diventa una data di nascita approssimata:
+     così cresce da sola e l'anno prossimo le porzioni sono giuste
+     senza che nessuno le tocchi.
+     `famPiano` invece è nuovo, e riguarda solo la cucina: dice all'AI
+     di scegliere piatti che si possano preparare in una volta sola per
+     tutti. Le grammature restano quelle della persona — per questo la
+     famiglia non entra nel conto delle calorie, ma solo nella scelta
+     dei piatti e nelle quantità della spesa. */
+  if(r.famiglia){
+    const f=r.famiglia;
+    if(f.con&&Array.isArray(f.lista)&&f.lista.length){
+      S.family=f.lista.map(m=>{
+        const p={nome:String(m.nome||"").trim(),gender:(m.gender==="m")?"m":"f"};
+        const d=(typeof etaToDob==="function")?etaToDob(m.eta):"";
+        if(d)p.dob=d;else if(m.eta!==""&&m.eta!=null)p.eta=m.eta;
+        return p;});
+      S.shopFor=(f.spesa===false)?"me":"fam";
+      S.famPiano=(f.piano!==false);}
+    else{S.family=[];S.shopFor="me";S.famPiano=false;}}
   if(r.preferenze){
     S.diet.budget=r.preferenze.budget||"medio";
     S.diet.alcol=r.preferenze.alcol||"mai";

@@ -278,7 +278,21 @@ header h1{font-size:18px;font-weight:700;letter-spacing:.2px}
      che conta davvero */
   .rcerchio{transition:none;transform:none!important}}
 .pcard{border:1px solid var(--linea);border-radius:12px;padding:16px;margin-top:8px;background:var(--card)}
-.pnome{font-weight:600;font-size:15px}
+/* il segno del mestiere accanto al nome: un partner senza segno e' una
+   riga di testo in mezzo alle altre (27/08) */
+.pnome{font-weight:600;font-size:15px;display:flex;align-items:center;gap:8px}
+.pnome .ico{color:var(--bosco);flex:0 0 auto}
+/* Il logo delle schede di esempio. I cinque disegni hanno proporzioni
+   diverse fra loro (uno è largo, uno è alto): `object-fit:contain` li
+   fa stare tutti nello stesso quadrato senza deformarli.
+   48 px, misurati: a 40 i due disegni più fitti — la palestra e il
+   negozio sportivo, che hanno ali, manubri e una scarpa — diventavano
+   una macchia arancione. A 48 si leggono tutti e cinque, e restano
+   comunque un'insegna accanto al nome, non una vetrina sopra. */
+.pnome .plogo{flex:0 0 48px;width:48px;height:48px;object-fit:contain;border-radius:8px}
+/* «esempio» si vede: nessuno deve scambiare uno studio inventato da
+   noi per uno studio vero */
+.petichetta.pdemo{color:var(--zafft);font-weight:600}
 .petichetta{font-size:12px;color:var(--grigio);margin-top:8px;
   padding-top:8px;border-top:1px dashed var(--linea)}
 .pblocco{margin-top:16px}
@@ -983,6 +997,14 @@ label{font-size:11.5px;font-weight:700;letter-spacing:.09em;text-transform:upper
 .famrow .feta{flex:0 0 52px;text-align:center;border:1px solid var(--linea);border-radius:12px;
   background:var(--card);color:var(--ink);font-size:13px;font-weight:600;padding:8px 0;cursor:pointer}
 .famrow .fdob{flex:1 1 128px;min-width:0;font-size:13px;padding-left:8px;padding-right:8px}
+/* L'età scritta a mano nel percorso guidato: è un CAMPO, non il
+   bottoncino di Regole. Misurato nel browser a 390px: con i 52px del
+   bottone il numero veniva tagliato a metà (si leggeva «4» invece di
+   «42»), perché un campo numerico ha i suoi margini interni e le
+   frecce del telefono. 76px lo contengono, e la riga sta ancora tutta
+   su una riga sola: 76+58+44 di campi fissi, il nome prende il resto. */
+.famrow .fetan{flex:0 0 76px;min-width:0;text-align:center;font-size:13px;
+  padding-left:4px;padding-right:4px}
 .famrow .fbadge{flex:0 0 auto;font-size:13px;color:var(--grigio);white-space:nowrap;min-width:44px;text-align:right}
 .water span:hover{transform:translateY(-3px)}
 
@@ -1053,6 +1075,12 @@ html[data-theme="dark"] .water span.f{background:#0E2C29}
 .ctlrow{align-items:center}
 .ctlrow select{align-self:center}
 .gsec{font-weight:700;color:var(--grigio);margin:20px 4px 8px;font-size:11.5px;letter-spacing:.11em;text-transform:uppercase}
+/* Il sottotitolo dentro una sezione della guida. Nasce dove prima
+   c'era un blocco da aprire («Come si crea la chiave, passo per
+   passo»): il titolo resta, quello che c'era sotto adesso si legge
+   senza toccare niente. Più piccolo di .gsec e non maiuscolo, perché
+   è un gradino sotto, non un'altra sezione. */
+.gsec2{font-weight:700;color:var(--ink);margin:16px 4px 4px;font-size:13px}
 details.why{margin-top:4px}
 details.why>summary{cursor:pointer;color:var(--salvia);font-weight:600;font-size:11.5px;list-style:none;display:inline-block}
 details.why>summary::-webkit-details-marker{display:none}

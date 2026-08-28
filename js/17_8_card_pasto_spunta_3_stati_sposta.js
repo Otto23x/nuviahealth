@@ -640,6 +640,42 @@ function estimaPrompt(txt,o){
    Versione canonica: prima si abbassano le grammature (il piatto resta
    il tuo), la sostituzione è l'eccezione per la sazietà. */
 const REBAL_RULES=" REGOLE OBBLIGATORIE: (1) usa i valori nutrizionali REALI degli alimenti nelle quantità che scrivi, mai numeri adattati per far tornare il conto; (2) per ridurre parti sempre ABBASSANDO LE GRAMMATURE degli ingredienti (es. \"pasta 80g\"→\"pasta 60g\"); (3) SOLO se il pasto così diventa poco saziante, sostituisci un ingrediente con uno più leggero e voluminoso (es. parte dei carboidrati con verdure); (4) è vietato lasciare la descrizione uguale abbassando solo i numeri; (5) NESSUN pasto va eliminato o ridotto sotto ~250 kcal: meglio un totale un po' diverso ma VERO che numeri falsi. Riduci carboidrati e grassi, MAI le proteine.";
+/* ══ «PROTEINE INTOCCABILI» ERA UNA PREGHIERA (audit 27/08) ═══════
+   L'app lo dichiara nelle Regole — «Ribilanciamenti e recuperi
+   riducono solo carboidrati e grassi, le proteine non si toccano» — e
+   la presentazione lo mette fra le garanzie del motore.
+
+   In codice c'era solo un'istruzione dentro il prompt: «Riduci
+   carboidrati e grassi, MAI le proteine». Il controllo che scarta le
+   proposte guardava le GRAMMATURE (una descrizione identica con meno
+   calorie = barare) e non guardava le proteine: se il modello le
+   abbassava, quel numero finiva nel piano senza obiezioni. Una
+   garanzia che dipende dalla buona volontà di chi risponde non è una
+   garanzia: è una speranza.
+
+   Adesso è una rete. La tolleranza è 1 grammo o il 5%, il maggiore
+   dei due: un ribilanciamento vero sposta qualche grammo per gli
+   arrotondamenti, e bocciare per un grammo vorrebbe dire rifiutare
+   proposte buone. Sotto quella soglia la proposta non si applica.
+
+   Vale per tutti e due i punti che alleggeriscono un pasto — il
+   ribilanciamento di oggi e il recupero del giorno dopo — perché una
+   rete che vale in un posto solo è la stessa cosa che non averla. */
+function proteineTenute(prop,orig){
+  /* I DUE OGGETTI PARLANO DUE LINGUE. La proposta arriva dall'AI e usa
+     i nomi del contratto — {slot, desc, kcal, prot} — mentre il pasto
+     nel piano usa i nomi interni — {d, k, p}. Leggendo `p` su tutti e
+     due, la proposta risultava sempre a ZERO proteine e ogni
+     ribilanciamento veniva rifiutato: la rete avrebbe bloccato la
+     funzione invece di proteggerla. L'ha trovato un verso, non io. */
+  const num=(o,a,b)=>Math.round(+(((o&&o[a])!=null?o[a]:(o&&o[b]))||0));
+  const pOrig=num(orig,"p","prot");
+  const pNuovo=num(prop,"prot","p");
+  if(!pOrig)return true;                       /* non c'era niente da tenere */
+  const tolleranza=Math.max(1,Math.round(pOrig*0.05));
+  return pNuovo>=(pOrig-tolleranza);}
+window.proteineTenute=proteineTenute;
+
 window.rebalance=async(di)=>{
   /* v5.0.3 — logica a BUDGET, idempotente:
      budget residuo = kcal pianificate della giornata − kcal già mangiate;
@@ -662,7 +698,10 @@ window.rebalance=async(di)=>{
     // scarta le proposte "furbe": kcal più basse ma descrizione identica = barare
     const valid=arr.filter(a=>{const it=remaining.find(r=>r.slot===a.slot);if(!it)return false;
       const o=mealOpt(it.pdi,it.mi);
-      return String(a.desc).trim()!==String(o.d).trim()||Math.round(a.kcal)>=o.k;});
+      /* la furbizia delle grammature: stessa descrizione, meno calorie */
+      if(String(a.desc).trim()===String(o.d).trim()&&Math.round(a.kcal)<o.k)return false;
+      /* e le proteine, che l'app promette di non toccare */
+      return proteineTenute(a,o);});
     if(!valid.length)return dlgAlert(tr("L'AI non ha proposto grammature nuove valide: riprova."));
     let msg=tr("Ribilanciamento (budget residuo ~{b} kcal, eccesso {e} kcal):",{b:Math.max(0,budget),e:excess})+"\n";
     valid.forEach(a=>{const it=remaining.find(r=>r.slot===a.slot);const o=mealOpt(it.pdi,it.mi);
@@ -690,7 +729,8 @@ window.rebalanceNextDay=async(fromDi,toDi)=>{
     const arr=await aiAskJSON('Ieri ho ecceduto di '+sg+' kcal. Alleggerisci i pasti di OGGI ancora da consumare (ora sommano '+remPlanned+' kcal) portandone la SOMMA vicino a '+Math.round(targetRem)+' kcal. '+REBAL_RULES+' Pasti: '+JSON.stringify(list)+'. '+dietStr()+' Rispondi SOLO JSON array: [{"slot":"...","desc":"descrizione COMPLETA con le nuove grammature","kcal":n,"prot":n}]');
     const valid=arr.filter(a=>{const it=mains.find(r=>r.slot===a.slot);if(!it)return false;
       const o=mealOpt(it.pdi,it.mi);
-      return String(a.desc).trim()!==String(o.d).trim()||Math.round(a.kcal)>=o.k;});
+      if(String(a.desc).trim()===String(o.d).trim()&&Math.round(a.kcal)<o.k)return false;
+      return proteineTenute(a,o);});
     if(!valid.length)return dlgAlert(tr("L'AI non ha proposto grammature nuove valide: riprova."));
     let msg="Recupero dello sforo di "+PLAN[fromDi].day+" (~"+sg+" kcal):\n";
     valid.forEach(a=>{const it=mains.find(r=>r.slot===a.slot);const o=mealOpt(it.pdi,it.mi);
