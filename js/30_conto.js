@@ -157,7 +157,15 @@ function contoHTML(){
   if(!contoEntrato()){
     /* Il pulsante è a contorno e non pieno: la primaria di questa pagina
        è la pesata, che si fa ogni giorno. Entrare si fa una volta sola. */
+    /* L'INTENZIONE DICHIARATA NEL PERCORSO (28/08): chi ha scelto un
+       piano a pagamento quando i piani erano ancora chiusi lo ha detto
+       una volta, e l'app deve ricordarlo — altrimenti la domanda
+       tornerà, e la risposta di prima era servita a niente. */
+    const int=(C.intento&&C.intento.piano&&C.intento.piano!=="free")?C.intento.piano:"";
+    const nomeInt=int?int.charAt(0).toUpperCase()+int.slice(1):"";
     return `<div class="card" data-conto="fuori"><h2>${esc(tr("Il tuo conto"))}</h2>
+      ${int?`<div class="petichetta" style="margin:0 0 12px;padding-top:0;border-top:0">${
+        esc(trh("Nel percorso avevi scelto {v1}: te lo diciamo appena apre. Nessun pagamento adesso.",{v1:nomeInt}))}</div>`:""}
       <div class="hint">${esc(tr("Con un conto l'AI funziona senza configurare niente. Il diario, il peso e le foto restano su questo telefono: sul nostro server ci sono solo la tua email e l'abbonamento."))}</div>
       ${C.emailInCorso
         ? `<label>${esc(tr("Il codice che ti ho mandato"))}</label>

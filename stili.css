@@ -1533,6 +1533,14 @@ body.onb{padding-bottom:0}
 .primo-esito .forse{border-color:var(--zaff)}
 .primo-esito .att{color:var(--grigio)}
 .primo-ok{display:flex;gap:8px;align-items:center;color:var(--bosco);font-weight:600;margin-top:16px}
+/* Il segno del collegamento fatto. Era una STELLA — l'icona dei
+   preferiti — e lì non voleva dire niente: la spunta è il segno che
+   una persona riconosce senza leggere. Tondo pieno, come la spunta
+   dei pasti, così è la stessa lingua dell'app. */
+.primo-segno{width:64px;height:64px;margin:0 auto 16px;border-radius:99px;
+  background:var(--azione);color:#fff;display:flex;align-items:center;
+  justify-content:center;font-size:32px;line-height:1}
+.primo .acc-b+.acc-b{margin-top:8px}
 .primo-tec{margin-top:24px;border:1px dashed var(--linea);border-radius:12px;padding:16px}
 /* percentuale e orologio della generazione (v13.88) */
 .o2genperc{font-size:13px;color:var(--grigio);margin:4px 0 0;text-align:right}

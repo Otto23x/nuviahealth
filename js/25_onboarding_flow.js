@@ -434,6 +434,22 @@ function ONB2t(){return [
       ["estetica",tr("Per come mi vedo"),tr("Voglio ritrovarmi allo specchio")],
       ["evento",tr("Ho una data in mente"),tr("Un appuntamento che conta")]]},
 
+ /* ── L'ULTIMA DOMANDA È QUELLA SU DI NOI (founder, 28/08) ────────
+    «Andrebbe implementata anche un'ultima pagina dove si chiede
+    all'utente quante notifiche vuole ricevere e se vuole mandare i
+    dati di utilizzo allo sviluppatore, spiegando cosa manda e
+    perché.»
+    Sta in fondo, e ci sta bene: tutte le altre domande servono a fare
+    il piano, questa serve a decidere come l'app entra nella giornata
+    di una persona. Ed è l'unica in cui chiediamo qualcosa per NOI —
+    quindi è l'unica in cui va spiegato tutto prima, con l'interruttore
+    che parte da spento.
+    Non chiede il permesso di sistema: quello lo chiede il telefono, e
+    solo quando la prima notifica serve davvero. Qui si dice quante,
+    che è la cosa che l'app può promettere da sola. */
+ {k:"avvisi",sez:"piano",tipo:"avvisi",
+  q:tr("Quanto vuoi che mi faccia sentire?")},
+
  {k:"fine",sez:"piano",tipo:"fine",
   q:tr("Come vuoi che ti segua?"),
   sub:tr("Puoi cambiare idea quando vuoi, da Io.")}
@@ -574,6 +590,7 @@ function renderOnb2(){
   else if(sc.tipo==="medico")c=onb2Medico(sc);
   else if(sc.tipo==="dettagli")c=onb2Dettagli(sc);
   else if(sc.tipo==="famiglia")c=onb2Famiglia(sc);
+  else if(sc.tipo==="avvisi")c=onb2Avvisi(sc);
   else c=onb2Fine(sc);
 
   /* ── IL TITOLO DELL'ULTIMA SCHERMATA DICE LA VERITÀ (26/08) ──────
@@ -860,6 +877,43 @@ window.onb2FamSet=(i,k,v)=>{
   onb2Salva();};
 window.onb2FamFlag=(k,v)=>{const f=onb2Fam();f[k]=!!v;onb2Salva();};
 
+/* ── QUANTE NOTIFICHE, E I DATI D'USO ─────────────────────────────
+   Due domande sole, e sono di natura opposta: la prima è un limite
+   che l'app si dà (quante volte può farsi sentire), la seconda è una
+   cosa che chiediamo noi. Per questo la seconda parte da SPENTA e
+   dice per intero cosa manda: un elenco, non una formula.
+   Le tre risposte sulle notifiche non sono etichette: diventano il
+   tetto settimanale vero (`notifTetto()`), quello che il cancello
+   `curaSiPuo` legge prima di lasciar passare qualunque avviso. */
+function onb2Avvisi(sc){
+  const o=onb2Stato();
+  const a=o.ris.avvisi||(o.ris.avvisi={quante:"normale",usi:false});
+  const B=(v,t,d)=>`<button class="o2op${a.quante===v?" scelta":""}" type="button"
+     data-avv="${esc(v)}" onclick="onb2AvvSet('${esc(v)}')"><b>${esc(t)}</b><span>${esc(d)}</span></button>`;
+  return onb2Chip(sc.k)+
+  `<div class="o2ops">
+     ${B("normale",tr("Quando serve davvero"),tr("Al massimo due a settimana, mai in due giorni di fila"))}
+     ${B("poche",tr("Il meno possibile"),tr("Una a settimana, solo le cose importanti"))}
+     ${B("nessuna",tr("Nessuna notifica"),tr("Non ti scrivo mai: apri l'app quando vuoi tu"))}
+   </div>
+   <div class="hint">${tr("Il permesso del telefono non te lo chiedo adesso: lo chiede lui, la prima volta che serve. E non ti scriverò mai del peso, della serie o di quanto hai mangiato — su quelle tre cose non si notifica, mai.")}</div>
+
+   <div class="o2form" style="margin-top:16px">
+     <label class="ckline"><input type="checkbox" id="o2usi" ${a.usi?"checked":""}
+       onchange="onb2AvvUsi(this.checked)"> ${esc(tr("Mandami i dati d'uso anonimi"))}</label>
+     <div class="hint">${tr("Servono a rispondere a una domanda sola, che decide se questa app ha senso: <b>dopo quanti giorni si smette?</b>")}
+     <br><br>${tr("Esce questo, e nient'altro: un numero casuale che non sei tu, la versione dell'app, da quanti giorni ce l'hai, quanti giorni l'hai usata, quante spunte hai messo e quante richieste sono andate all'AI.")}
+     <br><br><b>${tr("Non esce niente di tuo: né peso, né cibo, né nome, né note, né dati di salute.")}</b>
+     ${tr("Si spegne quando vuoi da Sistema, e da lì puoi anche vedere esattamente cosa verrebbe mandato.")}</div>
+   </div>`;}
+window.onb2AvvSet=(v)=>{
+  const o=onb2Stato();(o.ris.avvisi=o.ris.avvisi||{}).quante=v;onb2Salva();
+  /* sul posto, come tutte le altre scelte del percorso */
+  document.querySelectorAll(".o2op[data-avv]").forEach(b=>
+    b.classList.toggle("scelta",b.getAttribute("data-avv")===v));};
+window.onb2AvvUsi=(v)=>{
+  const o=onb2Stato();(o.ris.avvisi=o.ris.avvisi||{}).usi=!!v;onb2Salva();};
+
 /* ── Le indicazioni del medico: il campo, e il confine scritto ─────
    È la sola schermata del percorso in cui Nuvia si mette
    esplicitamente in secondo piano. Il riquadro non è una nota a piè
@@ -1085,11 +1139,17 @@ function onb2Cibi(sc){
       <label for="o2note" style="margin-top:16px">${esc(tr("Altro che dovrei sapere"))}</label>
       <input type="text" id="o2note" value="${esc(bz("o2note",r.note||""))}"
         placeholder="${esc(tr("facoltativo"))}">
+      <label for="o2calc" style="margin-top:16px">${esc(tr("Bevi alcolici?"))}</label>
+      <select id="o2calc">${[["mai",tr("Mai")],["raramente",tr("Raramente")],
+          ["nel fine settimana",tr("Nel fine settimana")],["quotidiano",tr("Quasi ogni giorno")]]
+        .map(x=>`<option value="${esc(x[0])}"${(r.alcol||"mai")===x[0]?" selected":""}>${esc(x[1])}</option>`).join("")}</select>
+      <span class="o2hint">${esc(tr("Non entra nel piano e non entra nella spesa: nel piano non ci va mai, e non è una cosa da programmare. Me lo dici perché quando capita va segnato nel diario — così i conti restano veri — e perché cambia il modo in cui ti parlo il giorno dopo."))}</span>
     </div>`;}
 window.onb2CibiOk=()=>{
   const v=id=>String((document.getElementById(id)||{}).value||"").trim();
   const o=onb2Stato();
-  o.ris.cibi={no:v("o2cno"),si:v("o2csi"),note:v("o2note")};
+  const alc=(document.getElementById("o2calc")||{}).value;
+  o.ris.cibi={no:v("o2cno"),si:v("o2csi"),note:v("o2note"),alcol:alc||"mai"};
   onb2Salva();onb2Avanti();};
 
 /* ── FUORI CASA: quali giorni, quale pasto, e se te lo porti ─────
@@ -1118,7 +1178,18 @@ window.onb2FuoriOk=()=>{
   o.ris.fuori={giorni:g,tipo:(t&&t.value==="porto")?"porto":"fuori"};
   onb2Salva();onb2Avanti();};
 
-/* ── Le ultime tre cose per il piano: budget, alcol, varietà. ─────── */
+/* ── Le ultime due cose per il piano: budget e varietà. ────────────
+   L'ALCOL NON STA PIÙ QUI (founder, 28/08): «perché nelle ultime tre
+   cose del piano c'è l'alcol? non ha senso che ci sia per una dieta,
+   ha senso più come cosa informativa».
+   Aveva ragione due volte. La prima: nel piano non entrava già —
+   al modello arriva un divieto, sempre — quindi stava in una
+   schermata che prometteva l'opposto di quello che il codice fa.
+   La seconda: messo fra «budget» e «varietà» sembrava una
+   MANOPOLA del piano, cioè una cosa da regolare per stare meglio.
+   Adesso è una domanda di contesto e sta con le abitudini (schermata
+   `cibi`), dove le risposte servono a conoscere la persona e non a
+   comporre la settimana. */
 function onb2Pref(sc){
   const o=onb2Stato(),r=o.ris.preferenze||{};
   const sel=(id,val,opts)=>`<select id="${id}">`+opts.map(x=>`<option value="${esc(x[0])}"${(val||opts[0][0])===x[0]?" selected":""}>${esc(x[1])}</option>`).join("")+`</select>`;
@@ -1126,16 +1197,6 @@ function onb2Pref(sc){
    `<div class="o2form">
       <label>${esc(tr("Budget spesa"))}</label>
       ${sel("o2pb",r.budget,[["medio",tr("Medio")],["contenuto",tr("Contenuto")],["senza limiti",tr("Senza limiti")]])}
-      <label>Alcol</label>
-      ${sel("o2pa",r.alcol,[["mai",tr("Mai")],["raramente",tr("Raramente")],["nel fine settimana",tr("Nel fine settimana")],["quotidiano",tr("Quotidiano")]])}
-      <!-- LA DOMANDA HA CAMBIATO MESTIERE (founder, 24/08): «in una
-           dieta non ci andrebbe mai». Prima la risposta finiva nel
-           prompt come preferenza — un invito a mettercelo. Adesso nel
-           piano non entra comunque (divieto nel prompt + rete in
-           validazione), e la risposta serve a due cose oneste: sapere
-           che quando capita va segnato nel diario, e dire una volta,
-           senza giudizio, che tenerlo basso conviene. -->
-      <span class="o2hint">${esc(tr("Nel piano non entra mai. Quando capita, segnalo nel diario: così i conti restano veri. E tenerlo basso fa bene a sonno, fegato e bilancio."))}</span>
       <label>${esc(tr("Quanta varietà vuoi nel piano"))}</label>
       ${sel("o2pv",r.varieta,[["media",tr("Media")],["bassa",tr("Bassa: pochi piatti che tornano, spesa corta")],["alta",tr("Alta: ogni giorno diverso")]])}
     </div>`;}
@@ -1143,7 +1204,11 @@ function onb2Pref(sc){
 window.onb2PrefOk=()=>{
   const g=id=>(document.getElementById(id)||{}).value;
   const o=onb2Stato();
-  o.ris.preferenze={budget:g("o2pb")||"medio",alcol:g("o2pa")||"mai",varieta:g("o2pv")||"media"};
+  /* l'alcol si porta dietro quello che c'era: chi ha lasciato il
+     percorso a metà prima del 28/08 non perde la risposta gia' data */
+  const vecchio=(o.ris.preferenze||{}).alcol;
+  o.ris.preferenze={budget:g("o2pb")||"medio",varieta:g("o2pv")||"media"};
+  if(vecchio)o.ris.preferenze.alcol=vecchio;
   onb2Salva();onb2Avanti();};
 
 /* ── Le pause ──────────────────────────────────────────────────
@@ -1933,6 +1998,10 @@ window.onb2AvantiSchermo=()=>{
     if(!f.con)f.lista=[];
     onb2Salva();
     return onb2Avanti();}
+  if(sc.tipo==="avvisi"){
+    /* si passa sempre: le due risposte hanno gia' un valore di
+       partenza onesto (due a settimana, dati d'uso spenti) */
+    onb2Salva();return onb2Avanti();}
   if(sc.tipo==="medico"){
     const o=onb2Stato(),t=document.getElementById("o2med");
     if(t)o.ris.medico=t.value.trim();
@@ -2387,7 +2456,12 @@ function onb2Travasa(){
   if(r.cibi){
     if(r.cibi.no!=null)S.diet.no=String(r.cibi.no).trim();
     if(r.cibi.si!=null)S.diet.si=String(r.cibi.si).trim();
-    if(r.cibi.note!=null)S.diet.note=String(r.cibi.note).trim();}
+    if(r.cibi.note!=null)S.diet.note=String(r.cibi.note).trim();
+    /* L'alcol e' un dato di contesto, non una preferenza del piano:
+       si salva nello stesso campo di sempre (Regole lo mostra li'), e
+       nel prompt del piano non entra ne' entrera' — al modello va un
+       divieto, sempre, e la rete in validaSettimana lo verifica. */
+    if(r.cibi.alcol)S.diet.alcol=r.cibi.alcol;}
   /* ── I PASTI FUORI CASA ───────────────────────────────────────
      Stesso formato di Regole, perché le spunte sono le stesse:
      «lun pranzo, gio cena». `fuoriN` si conta da lì e non si scrive
@@ -2430,9 +2504,36 @@ function onb2Travasa(){
       S.shopFor=(f.spesa===false)?"me":"fam";
       S.famPiano=(f.piano!==false);}
     else{S.family=[];S.shopFor="me";S.famPiano=false;}}
+  /* ── LA SCELTA DEL PIANO NON SI BUTTA (founder, 28/08) ──────────
+     «Se l'utente sceglie un piano piuttosto che un altro cambia
+     qualcosa?» Fino a ieri: solo per chi sceglieva Free (che riceve
+     il piano di base invece di quello dell'AI). Fra Start, Complete e
+     Premium non cambiava NIENTE, e soprattutto la risposta non veniva
+     nemmeno salvata: la persona dichiarava un'intenzione e l'app la
+     dimenticava un istante dopo.
+     Adesso l'intenzione resta scritta. Non è un acquisto e non
+     sblocca niente — i piani non sono ancora aperti — ma è quello che
+     l'app deve ricordare per non far ripetere la domanda, e per dire
+     «te lo diciamo appena apre» a chi l'aveva chiesto. */
+  /* ── QUANTE NOTIFICHE, E I DATI D'USO ───────────────────────────
+     Le due risposte finiscono nei campi che l'app usa davvero:
+     `S.notif.quante` lo legge il cancello delle notifiche (notifTetto)
+     e `S.tel.on` decide se i dati d'uso partono. `attive` resta il
+     vecchio interruttore: si accende solo se la persona ne vuole
+     almeno una — il permesso del telefono e' un'altra cosa e lo
+     chiede il telefono. */
+  if(r.avvisi){
+    S.notif=S.notif||{};
+    S.notif.quante=(["nessuna","poche","normale"].indexOf(r.avvisi.quante)>=0)?r.avvisi.quante:"normale";
+    S.notif.attive=(S.notif.quante!=="nessuna");
+    S.tel=S.tel||{};
+    S.tel.on=!!r.avvisi.usi;}
+  if(r.piani){
+    S.conto=S.conto||{};
+    S.conto.intento={piano:r.piani,quando:new Date().toISOString()};}
   if(r.preferenze){
     S.diet.budget=r.preferenze.budget||"medio";
-    S.diet.alcol=r.preferenze.alcol||"mai";
+    if(r.preferenze.alcol)S.diet.alcol=r.preferenze.alcol;   /* percorsi lasciati a meta' prima del 28/08 */
     S.diet.varieta=r.preferenze.varieta||"media";}
   /* Gli stati del corpo valgono solo con genere donna (11_2 li azzera
      altrimenti) e col consenso dato: sono dati sensibili. */

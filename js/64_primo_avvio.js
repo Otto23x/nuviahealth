@@ -155,6 +155,55 @@ window.primoServe=()=>{
   try{if(S.conto&&S.conto.email)return false;}catch(e){}
   return true;};
 
+/* ── LA PAGINA DEL COLLEGAMENTO FATTO (founder, 28/08) ────────────
+   «Quando l'utente si collega con Google la schermata deve essere
+   migliorata e non deve essere "prima di cominciare": deve essere una
+   pagina a parte.»
+   Aveva ragione, ed era un difetto di senso prima che di grafica: a
+   collegamento avvenuto la pagina continuava a dire «Prima di
+   cominciare — una cosa sola, e poi si parte», cioè chiedeva ancora
+   la cosa che era appena stata fatta. Sopra restava la scheda con la
+   spiegazione («per non perdere niente…») come se dovessi ancora
+   decidere, e la conferma era una riga con una STELLA accanto —
+   l'icona dei preferiti, che lì non voleva dire niente.
+   Adesso il collegamento fatto ha la sua pagina: dice cos'è
+   cambiato, con l'account che si è collegato, e ha un'unica strada
+   avanti. La frase scomoda resta anche qui — è il momento in cui una
+   persona decide di fidarsi, ed è lì che va detta, non solo prima. */
+function primoCollegatoHTML(){
+  const mail=(()=>{try{return (S.conto&&S.conto.email)||(S.drive&&S.drive.email)||"";}catch(e){return "";}})();
+  const cid=(S.drive&&S.drive.cid)||"";
+  const key=(S.ai&&S.ai.key)||"";
+  return `<div class="primo">
+    <div class="primo-segno" aria-hidden="true">✓</div>
+    <h1 class="primo-t">${esc(tr("Il tuo Google è collegato"))}</h1>
+    <p class="primo-s">${mail?esc(mail):esc(tr("Da qui in poi il backup si aggiorna da solo."))}</p>
+
+    <div class="card">
+      <h2>${esc(tr("Cosa cambia da adesso"))}</h2>
+      <div class="primo-perche">
+        <div class="pp">
+          <b>${esc(tr("Il backup va sul TUO Drive"))}</b>
+          <span>${esc(tr("I dati vivono sul telefono; una copia va nel tuo Drive, in una cartella dell'app. Noi non la vediamo e non ne teniamo un'altra."))}</span>
+        </div>
+        <div class="pp">
+          <b>${esc(tr("L'abbonamento ti segue"))}</b>
+          <span>${esc(tr("Cambi telefono, rientri con questa email e ritrovi quello che hai: non si ricompra niente."))}</span>
+        </div>
+        <div class="pp">
+          <b>${esc(tr("E la cosa scomoda, detta adesso"))}</b>
+          <span>${esc(tr("Se un giorno cancelli quei file dal Drive, i dati sono persi: noi non ne abbiamo una copia. È il prezzo di non averli noi."))}</span>
+        </div>
+      </div>
+      <button class="btn acc-b" onclick="primoSalta()">${esc(tr("Cominciamo"))}</button>
+      <button class="btn ghost small acc-b" onclick="primoCollega()">${esc(tr("Uso un altro account"))}</button>
+      <span class="o2hint">${esc(tr("Il backup si spegne quando vuoi da Sistema → Sincronizzazione."))}</span>
+    </div>
+
+    ${primoTecHTML(cid,key)}
+  </div>`;}
+window.primoCollegatoHTML=primoCollegatoHTML;
+
 /* ── la schermata ─────────────────────────────────────────────── */
 window.primoHTML=()=>{
   /* PRIMA DI QUALUNQUE RICHIESTA. Il controllo sta QUI e non nei
@@ -168,6 +217,8 @@ window.primoHTML=()=>{
   /* «collegato» vuol dire: c'è un gettone valido E il backup è acceso */
   let collegato=false;
   try{collegato=!!(typeof DTOKEN!=="undefined"&&DTOKEN&&S.drive&&S.drive.on);}catch(e){}
+  /* collegato = un'altra pagina, non questa con un pezzo in meno */
+  if(collegato)return primoCollegatoHTML();
 
   return `<div class="primo">
     <div class="primo-logo"><img src="assets/marchio.svg" alt="" width="72" height="72" onerror="this.style.display='none'"></div>
@@ -210,10 +261,7 @@ window.primoHTML=()=>{
            chiede una cosa sola. Chi non vuole né l'uno né l'altra
            prosegue col campo vuoto — che è la stessa cosa, senza un
            comando che inviti a non farlo. -->
-      ${collegato
-        ? `<div class="primo-ok">${ic("star",18)} ${esc(tr("Collegato."))}</div>
-           <button class="btn acc-b" onclick="primoSalta()">${esc(tr("Prosegui"))}</button>`
-        : `<div class="acc">
+      ${`<div class="acc">
              <button class="btn acc-b acc-g" onclick="primoCollega()">${logoG()}${esc(tr("Entra con Google"))}</button>
              <div class="acc-sep"><span>${esc(tr("oppure"))}</span></div>
              <label for="primoMail">${esc(tr("Email"))}</label>
@@ -223,8 +271,14 @@ window.primoHTML=()=>{
              <button class="btn ghost acc-b" onclick="primoProsegui()">${esc(tr("Prosegui"))}</button>
            </div>`}
     </div>
+    ${primoTecHTML(cid,key)}
+  </div>`;};
 
-    <details class="primo-tec">
+/* Il blocco tecnico è lo stesso nelle due pagine: una funzione sola,
+   così non nascono due copie che poi divergono — e a pubblicazione
+   avvenuta se ne toglie una, non due. */
+function primoTecHTML(cid,key){
+  return `<details class="primo-tec">
       <summary>${esc(tr("Impostazioni di prova"))}</summary>
       <div class="hint">${esc(tr("Servono solo finché l'app non è pubblicata: dopo, la chiave arriva dal nostro server e il collegamento è già configurato. Un utente non vedrà mai questa parte."))}</div>
       <label style="margin-top:12px">CLIENT_ID (Google Cloud)</label>
@@ -242,8 +296,7 @@ window.primoHTML=()=>{
            forma di un piano che non si generava. Una chiave si prova
            usandola, e il risultato si scrive. -->
       <div class="primo-esito" id="primoEsito" aria-live="polite"></div>
-    </details>
-  </div>`;};
+    </details>`;}
 
 /* «Prosegui» con l'email scritta a mano: chi non vuole passare da
    Google lascia comunque il modo di ritrovare l'abbonamento. Non è

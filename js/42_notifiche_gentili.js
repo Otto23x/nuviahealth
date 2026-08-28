@@ -65,6 +65,16 @@ const CURA_REGOLE={
 };
 window.CURA_REGOLE=CURA_REGOLE;
 
+/* Quante ne vuole la persona, tradotto nel numero che il cancello
+   usa. Una funzione sola, così non nascono due interpretazioni della
+   stessa scelta. */
+function notifTetto(){
+  const q=(S.notif&&S.notif.quante)||"normale";
+  if(q==="nessuna")return 0;
+  if(q==="poche")return 1;
+  return CURA_REGOLE.massimoSettimana;}
+window.notifTetto=notifTetto;
+
 /* ══ TUTTE DI CURA (founder, 27/08) ═══════════════════════════════
    Il pilastro dice: «massimo due a settimana, mai in giorni
    consecutivi». Il tetto stretto però valeva solo per quattro tipi
@@ -110,9 +120,14 @@ function curaSiPuo(tipo,quando){
       return {ok:false,perche:"traguardo-troppo-presto"};
     return {ok:true};}
 
-  /* tetto settimanale */
+  /* tetto settimanale — quello CHIESTO dalla persona nell'ultima
+     schermata del percorso (28/08). Prima era un numero solo per
+     tutti: adesso «il meno possibile» vale una a settimana e
+     «nessuna» ne blocca il passaggio a monte (notifiche spente).
+     Il massimo resta due: la scelta può stringere il tetto, mai
+     allargarlo. */
   const settimana=mandate.filter(m=>(t-Date.parse(m.quando))<7*86400000);
-  if(settimana.length>=CURA_REGOLE.massimoSettimana)
+  if(settimana.length>=notifTetto())
     return {ok:false,perche:"quota-settimanale",
       motivo:"la fiducia si spende: due spinte a settimana sono già tante"};
 

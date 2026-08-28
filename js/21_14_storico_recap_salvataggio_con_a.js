@@ -1612,6 +1612,8 @@ function dietCardHTML(){const D=S.diet;
     <div><label>${tr("Budget spesa")}</label>${sel("dBudget",D.budget,["contenuto","medio",tr("senza limiti")])}</div>
     <div><label>Alcol</label>${sel("dAlcol",D.alcol,["mai","raramente",tr("nel fine settimana"),"quotidiano"])}</div>
   </div>
+  ${hint2(tr("L'alcol è un dato di contesto, non un'impostazione del piano."),
+    tr("Nel piano non entra mai — al modello parte un divieto, e c'è una rete che lo verifica — e nella spesa nemmeno. Serve a segnarlo nel diario quando capita, così i conti restano veri, e a scegliere le parole giuste il giorno dopo."))}
   <label>${tr("Intolleranze")}</label>
   ${intolChecksHTML("d",D)}
   ${hint2(tr("È questione di <b>quantità</b>: le alternative esistono quasi sempre e l'AI le propone."),tr("Chi non tollera il lattosio riceve i latticini <b>senza lattosio</b>, non una settimana senza latticini."))}
@@ -3522,11 +3524,24 @@ function renderTools(){
   h+=`<div class="card"><h2>${tr("Il giorno dopo")}</h2>
   <div class="hint">${trh("Serata pesante ieri? Oggi non si recupera con la fame: {b}. Riscrive i pasti che restano in versione digeribile, a parità di calorie e proteine, e dice quanto bere in più.",{b:"<b>"+tr("si recupera con acqua e cibo leggero")+"</b>"})}</div>
   <label>${tr("Com'è andata")}</label>
-  <select id="dopoCome">
-    <option value="con qualche bicchiere di vino o birra">qualche bicchiere</option>
+  ${/* CHI HA DETTO CHE NON BEVE non si sente nominare l'alcol (28/08).
+       È l'unica conseguenza vera della domanda sull'alcol, ed è quella
+       giusta: non cambia il piano — che l'alcol non lo mette comunque —
+       cambia le parole. Prima tutte e tre le voci parlavano di
+       bicchieri: a chi ha risposto «mai» questo strumento sembrava
+       scritto per qualcun altro, e una serata pesante senza alcol
+       esiste eccome. */
+   (S.diet&&S.diet.alcol==="mai")
+  ?`<select id="dopoCome">
+    <option value="una cena abbondante, fuori orario">${tr("una cena abbondante")}</option>
+    <option value="pesante" selected>${tr("Pesante: cibo abbondante e tardi")}</option>
+    <option value="molto pesante, ho mangiato molto più del solito e tardi">${tr("molto pesante")}</option>
+  </select>`
+  :`<select id="dopoCome">
+    <option value="con qualche bicchiere di vino o birra">${tr("qualche bicchiere")}</option>
     <option value="pesante" selected>${tr("pesante: alcol e cibo abbondante")}</option>
     <option value="molto pesante, ho bevuto parecchio">${tr("molto pesante")}</option>
-  </select>
+  </select>`}
   <div class="mtools"><button class="btn small" onclick="dopoAI(${di})">${tr("Sistema oggi")}</button></div>
   ${tr("Non è un consiglio medico: se ti senti male, parlane con un medico.")}
   <div class="aibox" aria-live="polite" id="dopoOut" style="display:none"></div></div>`;

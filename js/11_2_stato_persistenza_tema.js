@@ -6,7 +6,7 @@ const KEY="diarioDieta_v2"; // NON cambiare mai: e' dove vivono i dati dell'uten
    apposta per verificare il deploy non verificava niente — e mentre si
    cercava un piano che «non arriva mai», non si poteva nemmeno sapere
    QUALE versione stesse girando sul telefono. Riallineata (25/08). */
-const APP_VER="14.2.0";        // aggiorna a ogni release: visibile in Io per verificare il deploy
+const APP_VER="14.3.0";        // aggiorna a ogni release: visibile in Io per verificare il deploy
 /*   SBLOCCO DI TEST — DA METTERE A false PRIMA DEL RILASCIO  
    Con true, ciclo/allattamento/gravidanza restano CLICCABILI anche sui
    profili maschili, per poterli provare senza cambiare genere. Con false
