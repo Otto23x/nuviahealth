@@ -3,7 +3,7 @@
    ═══════════════════════════════════════════════════════════════ */
 function usageHtml(){const u=S.usage,t=iso(new Date());  /* giorno locale, in coppia con trackUsage */
   const calls=u.day===t?u.calls:0,tok=u.day===t?u.tokens:0,err=u.day===t?u.errors:0;
-  return "Oggi: <b>"+calls+"</b> chiamate · <b>"+tok.toLocaleString(dataLoc())+"</b> token stimati"+(err?" · <span style='color:var(--rosso)'>"+err+" errori</span>":"");}
+  return trh("Oggi: <b>{v1}</b> chiamate · <b>{v2}</b> token stimati",{v1:calls,v2:tok.toLocaleString(dataLoc())})+(err?" · <span style='color:var(--rosso)'>"+trh("{v1} errori",{v1:err})+"</span>":"");}
 /* ═══════════════════════════════════════════════════════════════
    WIZARD "RI/COMINCIA DA ZERO" + EDITOR DEL PIANO
    Percorso: 1 dati personali → 2 gusti/vincoli → 3 obiettivi/target
@@ -23,17 +23,17 @@ let WIZ={step:0,d:{},plan:null,editOnly:false};
    arrivava vuoto, e per una persona allergica il piano usciva senza
    nessuna rete sotto.
 
-   Adesso parte da quello che l'app SA GIÀ della persona: `S.diet` e
+   Adesso parte da quello che l'app SA GIÀ della persona: `S.pref` e
    `S.profile`, gli stessi dati che usano le altre due strade. Il
    modulo modifica quello che mostra; tutto il resto passa intatto
    invece di sparire. Una fonte sola, come per il contesto del piano.
 
-   NB: non basta `dietStr()` (che legge S.diet e quindi arrivava già
+   NB: non basta `vincoliStr()` (che legge S.pref e quindi arrivava già
    anche di qui). Le allergie hanno una riga tutta loro nel prompt e —
    soprattutto — sono la lista che il controllo confronta in codice:
    quella viaggia in `d`, e in `d` non c'era. */
 function wizDatiDaApp(){
-  const D=S.diet||{},p=S.profile||{};
+  const D=S.pref||{},p=S.profile||{};
   return {
     /* quello che il modulo chiederà e che qui serve solo come partenza */
     nome:p.name||"",gen:p.gender||"m",dob:p.dob||"",h:+p.h||0,w:+p.w||0,
@@ -50,7 +50,7 @@ function wizDatiDaApp(){
     allergeniLista:(typeof allergeniElenco==="function")?allergeniElenco(D.allergie||""):[]};}
 window.wizDatiDaApp=wizDatiDaApp;
 window.wizStart=(full)=>{WIZ={step:1,d:wizDatiDaApp(),plan:null,editOnly:false};show("setup");};
-window.wizEditCurrent=()=>{WIZ={step:4,d:{},plan:JSON.parse(JSON.stringify(PLAN)),editOnly:true};show("setup");};
+window.wizEditCurrent=()=>{WIZ={step:4,d:{},plan:JSON.parse(JSON.stringify(RICETTE)),editOnly:true};show("setup");};
 function wg(id){const e=document.getElementById(id);return e?e.value.trim():"";}
 function wizNext(to){
   if(WIZ.step===1){
@@ -66,10 +66,10 @@ function wizNext(to){
     /* le due liste che il CONTROLLO confronta si rifanno qui: se
        restassero quelle di partenza, una allergia appena scritta non
        proteggerebbe il piano che si sta per generare */
-    try{WIZ.d.vietatiLista=vietatiElenco([WIZ.d.no,S.diet.religiose].filter(Boolean).join("; "),WIZ.d.intol);
+    try{WIZ.d.vietatiLista=vietatiElenco([WIZ.d.no,S.pref.religiose].filter(Boolean).join("; "),WIZ.d.intol);
         WIZ.d.allergeniLista=allergeniElenco(WIZ.d.allergie);}catch(e){}
     WIZ.d.liberi=wg("wzLiberi");WIZ.d.pronto=wg("wzPronto");WIZ.d.nPasti=+wg("wzNPasti")||5;WIZ.d.colaz=wg("wzColaz");
-    if(WIZ.mode==="diet"){Object.assign(S.diet,{intol:WIZ.d.intol,allergie:WIZ.d.allergie,no:WIZ.d.no,si:WIZ.d.si,note:WIZ.d.note,liberi:WIZ.d.liberi,pronto:WIZ.d.pronto,nPasti:WIZ.d.nPasti,colaz:WIZ.d.colaz});save();
+    if(WIZ.mode==="diet"){Object.assign(S.pref,{intol:WIZ.d.intol,allergie:WIZ.d.allergie,no:WIZ.d.no,si:WIZ.d.si,note:WIZ.d.note,liberi:WIZ.d.liberi,pronto:WIZ.d.pronto,nPasti:WIZ.d.nPasti,colaz:WIZ.d.colaz});save();
       dlgAlert(tr("Caratteristiche aggiornate!"));show("io");return;}}
   if(WIZ.step===3){WIZ.d.goal=wg("wzGoal");}
   WIZ.step=to;renderSetup();}
@@ -204,7 +204,7 @@ async function wizGenDays(d,t,onStep,onFase){
     '. Target di OGNI giorno: circa '+t.kcal+' kcal (tolleranza ±5%) e almeno '+t.prot+' g di proteine, distribuiti sui '+nPasti+' pasti.'+
     /* ══ LE LINEE GUIDA NON ARRIVAVANO AL PRIMO PIANO (27/08) ══════
        Il difetto piu' grosso trovato oggi, e si vedeva senza saperlo:
-       `rulesForPlan()` — il blocco «QUALITÀ NUTRIZIONALE (vincolante)»
+       `regoleRicette()` — il blocco della QUALITÀ NUTRIZIONALE
        con le linee guida OMS compresse — lo mandava SOLO la pagina
        Regole. Questa strada, che è quella del PRIMO piano di ogni
        persona, non lo mandava affatto.
@@ -227,8 +227,8 @@ async function wizGenDays(d,t,onStep,onFase){
     /* la stessa fonte sola dell'altra strada (27/08): senza, il primo
        piano non sapeva né che tipo di dieta segue la persona né in
        che cucina vive. Vedi il commento lungo in 21_14. */
-    ((typeof dietStr==="function")?(" "+dietStr()):"")+
-    ((typeof rulesForPlan==="function")?rulesForPlan():"")+
+    ((typeof vincoliStr==="function")?(" "+vincoliStr()):"")+
+    ((typeof regoleRicette==="function")?regoleRicette():"")+
     ((typeof rigaPasti==="function")?rigaPasti(slots):"")+
     /* la forma del singolo pasto: la stessa riga della pagina Regole,
        e sta DOPO le linee guida perche' viene dopo anche per
@@ -282,7 +282,7 @@ async function wizGenDays(d,t,onStep,onFase){
        E' il motivo per cui il difetto e' passato inosservato. */
     regole:{giorni:DAYS,kcal:t.kcal,prot:t.prot,tollPct:5,
       slots:slots,nPasti:nPasti,
-      vietati:(d.vietatiLista&&d.vietatiLista.length)?d.vietatiLista:vietatiElenco(d.no,d.intol),
+      vietati:(d.vietatiLista&&d.vietatiLista.length)?d.vietatiLista:vietatiElenco([d.no,(S.pref&&S.pref.religiose)||""].filter(Boolean).join("; "),d.intol),
       /* gli allergeni viaggiano a parte: su di loro non vale nessuna
          esenzione, nemmeno «senza lattosio» */
       allergeni:(d.allergeniLista&&d.allergeniLista.length)?d.allergeniLista
@@ -319,7 +319,7 @@ async function wizGenDays(d,t,onStep,onFase){
   plan.insicuro=insicuri.length?insicuri:null;
   return plan;}
 async function wizGenerate(){
-  S.ui.pianoProprio=0;
+  S.ui.ricetteProprie=0;
   if(!document.getElementById("wzOk").checked)return dlgAlert(tr("Per procedere devi confermare di aver letto l'avvertenza sul nutrizionista."));
   if(!aiOn())return aiFail(new Error("nokey"));
   const t=wizTargets(),d=WIZ.d;
@@ -329,12 +329,28 @@ async function wizGenerate(){
        insieme, poi la controllo io, poi — solo se serve — rifaccio i
        giorni che non passano. Il vecchio «3 di 7» descriveva sette
        chiamate che non ci sono più. */
+    /* ── ANCHE QUI L'ATTESA SI MUOVE (v15.19.0) ───────────────────
+       Il percorso guidato aveva la barra; questa strada — «Genera
+       nuove ricette» dalla pagina Piano, quella che si usa TUTTE le
+       settimane dopo la prima — aveva solo una frase ferma. Senza
+       streaming restava «Scrivo la settimana intera…» per un minuto
+       intero, che è il modo più semplice di far credere a qualcuno
+       che l'app si sia piantata. Stesso attrezzo, stessa regola
+       dichiarata: vedi 71_attesa.js. */
+    let att=null,ultimaRiga=tr("Scrivo la settimana intera…");
+    const scrivi=(txt,perc)=>{
+      box.textContent=(perc!=null?(perc+"% · "):"")+txt;};
+    try{att=attesaAvvia((p,nota)=>{
+      scrivi(ultimaRiga+"  ("+nota+")",p);});}catch(e){}
     const plan=await wizGenDays(d,t,null,(f,dati)=>{
-      box.textContent=
+      if(f!=="settimana"){try{if(att&&!att.ceduta())att.vero();}catch(e){}}
+      ultimaRiga=
         f==="settimana"? tr("Scrivo la settimana intera…")
       : f==="controllo"? tr("Controllo i conti e quello che hai escluso…")
       : f==="ritocco"  ? trh("Rifaccio i giorni che non tornano: {v1}…",{v1:(dati||[]).join(", ")})
-      :                  tr("Fatto.");});
+      :                  tr("Fatto.");
+      scrivi(ultimaRiga, f==="settimana"?null:(f==="controllo"?82:(f==="ritocco"?88:100)));});
+    try{if(att)att.ferma();}catch(e){}
     if(!plan){box.textContent="";return;}
     /* v13.98: i piatti adattati si DICONO, non bloccano niente. */
     if(plan.adattati&&plan.adattati.length)
@@ -406,7 +422,7 @@ window.wizBalance=async(di)=>{
    1 kg di grasso ≈ 7.700 kcal, quindi 0,5 kg a settimana ≈ 550 kcal al
    giorno di deficit. Il deficit viene comunque limitato al 25% del
    fabbisogno e il target non scende mai sotto un pavimento di sicurezza. */
-function ratePerWeek(){const r=parseFloat((S.diet||{}).ritmo);return r>0?r:0.5;}
+function ratePerWeek(){const r=parseFloat((S.pref||{}).ritmo);return r>0?r:0.5;}
 /* Ritmo che il target produce DAVVERO: il deficit è limitato al 30% del
    fabbisogno per sicurezza, quindi un ritmo molto ambizioso viene ridotto.
    Prima la riduzione era silenziosa e l'app mostrava un ritmo che non era
@@ -437,6 +453,15 @@ function deficitTarget(){
   const t=tdeeTarget(),g=(S.profile.goal||"").toLowerCase();
   /* Malattia e gravidanza non sono momenti da deficit: si va a mantenimento */
   if(illOn()||pregOn()!=="no")return 0;
+  /* ── E NEMMENO UN CORPO CHE CRESCE (founder, 29/08) ──────────────
+     Il cancello sta all'ingresso (onboarding e Anagrafica rifiutano
+     una data sotto i 18), ma il motore ha la sua rete: se una data
+     minorenne è nello stato — un profilo vecchio, un ripristino, una
+     strada che non conosciamo — il deficit è ZERO. Un'app non mette a
+     dieta un minorenne nemmeno per sbaglio. */
+  try{if(typeof etaDa==="function"&&S.profile.dob){
+    const _e=etaDa(S.profile.dob);
+    if(_e!==null&&_e<((typeof ETA_MINIMA!=="undefined")?ETA_MINIMA:18))return 0;}}catch(e){}
   /* Mese di mantenimento programmato dopo i 3 mesi di deficit */
   if(cycMaintOn())return 0;
   if(/mantenimento/.test(g))return 0;
@@ -658,20 +683,20 @@ function famForAI(){
    piano è separata, dice solo come SCEGLIERE i piatti, e ripete a
    voce alta che le quantità restano personali.
    Si accende solo se c'è qualcuno E se la persona l'ha chiesto. */
-function famPianoForAI(){
+function famRicetteForAI(){
   const n=(S.family||[]).length;
-  if(!n||!S.famPiano)return "";
+  if(!n||!S.famRicette)return "";
   return trh(" IN CASA: a tavola siete in {v1}.",{v1:n+1})+" "+
     tr("Scegli piatti che si possano cucinare in un'unica preparazione per tutti, con ingredienti comuni e senza ricette separate.")+" "+
     tr("LE GRAMMATURE CHE SCRIVI RESTANO QUELLE DELLA PERSONA: non moltiplicarle per il numero di persone e non scrivere le quantità degli altri.");}
-window.famPianoSet=(v)=>{S.famPiano=!!v;save();
+window.famPianoSet=(v)=>{S.famRicette=!!v;save();
   /* cambia come vengono SCELTI i piatti, non le quantità: il piano si
      rifà alla prossima generazione, non si tocca quello in corso. */
   toast(v?tr("Cucinerò per tutti — dalla prossima generazione del piano"):tr("Piatti pensati solo per te — dalla prossima generazione del piano"));};
 window.famAdd=()=>{
   /* la prima persona accende il «cucino per tutti»: è il caso comune,
      e la spunta resta lì per chi invece si prepara il piatto a parte */
-  if(!S.family.length)S.famPiano=true;
+  if(!S.family.length)S.famRicette=true;
   S.family.push({nome:"",gender:"f",dob:""});save();render(cur);};
 window.famDel=(i)=>{S.family.splice(i,1);save();render(cur);};
 window.famSet=(i,k,v)=>{if(!S.family[i])return;
@@ -724,27 +749,27 @@ function famRowsHTML(){
 /* Pasti fuori casa della SETTIMANA in corso: per chi fa turni */
 function weekOutKey(){return (S.week&&S.week.started)||iso(new Date());}
 function weekOutGet(){const k=weekOutKey();return (S.weekOut&&S.weekOut[k]!==undefined)?S.weekOut[k]:null;}
-function outThisWeek(){const w=weekOutGet();return w!==null?w:(S.diet.mensaGiorni||"");}
+function outThisWeek(){const w=weekOutGet();return w!==null?w:(S.pref.mensaGiorni||"");}
 window.weekOutSet=async()=>{
   S.weekOut=S.weekOut||{};S.weekOut[weekOutKey()]=readMensaChecks("wk");
   save();render(cur);
   toast(tr("Pasti fuori casa aggiornati ✓"));
-  if(planIsEmpty())return;
+  if(ricetteVuote())return;
   if(!aiOn())return dlgAlert(tr("Selezioni salvate.\n\nSenza chiave AI il piano non può essere riadattato da solo: rigenera la spesa a mano dalla pagina Spesa."));
   /* Salvando le selezioni della settimana il piano viene SEMPRE riadattato:
      cambiano i giorni fuori casa, quindi cambiano i pasti da cucinare, le
      grammature e di conseguenza la spesa. */
   outRetagMeals();
   await outMealsRewrite(outTypeIsPorto()?"porto":"fuori");
-  if(await retunePlan()){await genShop(true);return planForecast(true,true);}};
+  if(await ritaraRicette()){await genShop(true);return stimaRicette(true,true);}};
 window.weekOutReset=()=>{if(S.weekOut)delete S.weekOut[weekOutKey()];save();render(cur);toast(tr("Regola fissa ripristinata"));};
 function outTypeGet(){const k=weekOutKey();
-  return (S.weekOutTipo&&S.weekOutTipo[k])||S.diet.fuoriTipo||"fuori";}
+  return (S.weekOutTipo&&S.weekOutTipo[k])||S.pref.fuoriTipo||"fuori";}
 function outTypeIsPorto(){return outTypeGet()==="porto";}
 /* Pasti fuori casa del piano secondo le spunte della settimana (di,mi) */
 function outMealsOfPlan(){
   const fm=parseMensa(outThisWeek()),out=[];
-  PLAN.forEach((d,di)=>{const dk=MENSA_DAYS.find(x=>x[1]===d.day);const v=dk?fm[dk[0]]:null;if(!v)return;
+  RICETTE.forEach((d,di)=>{const dk=MENSA_DAYS.find(x=>x[1]===d.day);const v=dk?fm[dk[0]]:null;if(!v)return;
     (d.meals||[]).forEach((m,mi)=>{const sl=String(m.n||"").toLowerCase();
       if((v==="entrambi"&&/pranzo|cena/.test(sl))||(v==="pranzo"&&/pranzo/.test(sl))||(v==="cena"&&/cena/.test(sl)))out.push({di:di,mi:mi});});});
   return out;}
@@ -752,17 +777,17 @@ function outMealsOfPlan(){
    "li preparo io" → type norm (entrano nella spesa),
    "li mangio fuori" → type mensa (esclusi dalla spesa). */
 function outRetagMeals(){
-  if(planIsEmpty())return false;
-  if(!S.customPlan){S.customPlan=JSON.parse(JSON.stringify(PLAN));PLAN=S.customPlan;}
+  if(ricetteVuote())return false;
+  if(!S.ricette){S.ricette=JSON.parse(JSON.stringify(RICETTE));RICETTE=S.ricette;}
   const want=outTypeIsPorto()?"norm":"mensa";let ch=false;
-  outMealsOfPlan().forEach(x=>{const m=PLAN[x.di].meals[x.mi];if(m&&m.type!==want){m.type=want;ch=true;}});
+  outMealsOfPlan().forEach(x=>{const m=RICETTE[x.di].meals[x.mi];if(m&&m.type!==want){m.type=want;ch=true;}});
   if(ch){S.customShop=null;S.shop={};save();}
   return ch;}
 /* Riscrive con l'AI i pasti fuori casa: trasportabili se li prepari tu,
    composizione generica se li mangi fuori. */
 async function outMealsRewrite(v){
-  const list=outMealsOfPlan().map(x=>{const m=PLAN[x.di].meals[x.mi];const o=(m.o&&m.o[0])||{};
-    return {di:x.di,mi:x.mi,giorno:PLAN[x.di].day,slot:m.n,d:o.d,k:o.k,p:o.p};});
+  const list=outMealsOfPlan().map(x=>{const m=RICETTE[x.di].meals[x.mi];const o=(m.o&&m.o[0])||{};
+    return {di:x.di,mi:x.mi,giorno:RICETTE[x.di].day,slot:m.n,d:o.d,k:o.k,p:o.p};});
   if(!list.length)return false;
   snapSave("prima di: adattamento pasti fuori casa");
   const box=genBox();
@@ -773,14 +798,14 @@ async function outMealsRewrite(v){
       :'Questi pasti si consumano FUORI CASA (mensa, bar o ristorante): NON scegliere piatti precisi e non dare grammature precise. Per ciascuno scrivi UNA RIGA generica su come comporre il piatto (es. "una fonte proteica + verdura abbondante + una porzione di pane o pasta"), mantenendo circa le stesse kcal e proteine indicate. ')+rulesForAI()+
       ' Pasti: '+JSON.stringify(list)+'. Rispondi SOLO JSON array nello stesso ordine: [{"di":n,"mi":n,"d":"...","k":n,"p":n,"c":n,"f":n}]');
     const arr=parseAIJSON(t);
-    if(Array.isArray(arr))arr.forEach(x=>{const m=PLAN[+x.di]&&PLAN[+x.di].meals[+x.mi];if(!m||!x.d)return;
+    if(Array.isArray(arr))arr.forEach(x=>{const m=RICETTE[+x.di]&&RICETTE[+x.di].meals[+x.mi];if(!m||!x.d)return;
       m.o=[{d:String(x.d),k:Math.round(x.k)||((m.o[0]||{}).k||0),p:Math.round(x.p)||((m.o[0]||{}).p||0),
         c:Math.round(x.c)||0,f:Math.round(x.f)||0,fib:estFiberOf(x.d),z:estSugarOf(x.d)}];});
     save();render(cur);if(box)box.textContent="";genBoxVia();toast(tr("Pasti fuori casa adattati ✓"));return true;
   }catch(e){if(box)box.textContent="";genBoxVia();aiFail(e);return false;}}
 window.outTypeSet=async(v,perSettimana)=>{
   if(perSettimana){S.weekOutTipo=S.weekOutTipo||{};S.weekOutTipo[weekOutKey()]=v;}
-  else S.diet.fuoriTipo=v;
+  else S.pref.fuoriTipo=v;
   save();
   const changed=outRetagMeals();
   render(cur);
@@ -794,7 +819,7 @@ window.outTypeSet=async(v,perSettimana)=>{
     else toast(tr("Tipo aggiornato: la spesa va rigenerata dalla pagina Spesa"));
   }else toast(tr("Tipo aggiornato: rigenera la spesa per allinearla"));};
 function outTypeHTML(pre,perSettimana){
-  const c2=perSettimana?outTypeGet():(S.diet.fuoriTipo||"fuori");
+  const c2=perSettimana?outTypeGet():(S.pref.fuoriTipo||"fuori");
   return `<label>${tr("Come mangi fuori")}</label>
   <div class="ckgrid">
     <label class="ck"><input type="radio" name="${pre}ot" ${c2==="porto"?"checked":""} onchange="outTypeSet('porto',${!!perSettimana})"> Li preparo io</label>
@@ -813,7 +838,7 @@ function famCardHTML(pre){
   return `<label>${tr("Chi altro mangia a casa")}</label>
   <div id="famBox">${famRowsHTML()}</div>
   <button class="btn ghost small" onclick="famAdd()">${tr("+ Aggiungi una persona")}</button>
-  ${(S.family||[]).length?`<label class="ckline" style="margin-top:12px"><input type="checkbox" id="famPianoCk" ${S.famPiano?"checked":""}
+  ${(S.family||[]).length?`<label class="ckline" style="margin-top:12px"><input type="checkbox" id="famRicetteCk" ${S.famRicette?"checked":""}
     onchange="famPianoSet(this.checked)"> ${tr("Nel piano, scegli piatti che posso cucinare per tutti")}</label>`:""}
   ${hint2(tr("Dai un <b>nome</b> a ciascuno e scrivi <b>sesso ed età</b>: al resto pensa l'app. L'età si aggiorna da sola con gli anni."),tr("Servono per cucinare in una pentola sola e per fare la spesa giusta. Le porzioni si calcolano così: donna adulta = 1, uomo = 1,25, adolescente = 1,10, bambino = 0,75, infante = 0,50."))}`;}
 /* ═══ MINIMO CALORICO ═══════════════════════════════════════════════
@@ -923,9 +948,9 @@ function refWeightWhy(){
    peso e l'app non lo registrava, e non lo faceva nemmeno vedere».
    Erano due cose insieme.
    1. DUE VARIABILI. Il numero viveva in `S.profile.goalW` e in
-      `S.diet.obiettivoPeso`. Chi leggeva ne guardava ora una ora
+      `S.pref.obiettivoPeso`. Chi leggeva ne guardava ora una ora
       l'altra, e chi scriveva ne aggiornava a volte una sola. Da oggi
-      la variabile è UNA: `S.profile.goalW`. `S.diet.obiettivoPeso`
+      la variabile è UNA: `S.profile.goalW`. `S.pref.obiettivoPeso`
       viene travasato all'avvio per i profili già salvati e poi
       cancellato — non esiste più un secondo posto dove guardare.
    2. IL RIFIUTO SILENZIOSO. Questa funzione aveva TRE uscite che
@@ -1152,14 +1177,14 @@ function qPeek(desc){const k=qKey(desc);return (k&&S.qCache&&S.qCache[k]!=null)?
    visibile PRIMA di mangiare, e spunta istantanea (cache-hit, nessuna
    chiamata AI a rallentare il gesto più frequente dell'app). */
 let QPLAN_T=null;
-function qPlanPrecompute(){
-  if(!aiOn()||typeof PLAN==="undefined"||!PLAN||!PLAN.length)return;
+function qRicettePrecompute(){
+  if(!aiOn()||typeof RICETTE==="undefined"||!RICETTE||!RICETTE.length)return;
   clearTimeout(QPLAN_T);
   QPLAN_T=setTimeout(async()=>{
     try{
       S.qCache=S.qCache||{};
       const miss=[],seen={};
-      PLAN.forEach((d,di)=>(d.meals||[]).forEach((m,mi)=>{
+      RICETTE.forEach((d,di)=>(d.meals||[]).forEach((m,mi)=>{
         const perm=S.permMeals[di+"_"+mi];
         [perm].concat(m.o||[]).forEach(o=>{
           if(!o||!o.d)return;const k=qKey(o.d);
@@ -1179,7 +1204,7 @@ function qPlanPrecompute(){
         j.forEach(r=>{const it=batch[+r.i];const q=Math.max(0,Math.min(100,Math.round(+r.q||0)));
           if(it&&q){S.qCache[it.k]=q;n++;}});
         if(n){save();render(cur);
-          if(miss.length>batch.length)qPlanPrecompute();}}
+          if(miss.length>batch.length)qRicettePrecompute();}}
     }catch(e){/* silenzioso: al peggio i pallini arrivano alla spunta, come prima */}
   },1200);}
 let QPEND={},QFAIL={};      /* richieste in volo · descrizioni che l'AI non ha saputo valutare */
@@ -1241,16 +1266,16 @@ window.wizConfirm=async ()=>{
   if(!WIZ.plan||WIZ.plan.some(d=>!(d.meals||[]).length))return dlgAlert(tr("Ogni giorno deve avere almeno un pasto."));
   if(!await dlgConfirm(tr("Confermo questo piano come base settimanale? La settimana in corso (spunte, extra, allenamenti) viene azzerata.")+(WIZ.editOnly?"":" "+tr("Consulta comunque un nutrizionista prima di seguirlo."))))return;
   snapSave("prima di: piano modificato");
-  try{S.ui.pianoOrigine="ai";}catch(e){} S.customPlan=WIZ.plan;PLAN=S.customPlan;S.permMeals={};
+  try{S.ui.ricetteOrigine="ai";}catch(e){} S.ricette=WIZ.plan;RICETTE=S.ricette;S.permMeals={};
   if(!WIZ.editOnly){const d=WIZ.d,t=wizTargets();
     S.profile.name=d.nome||S.profile.name;S.profile.gender=d.gen||S.profile.gender;S.profile.dob=d.dob;
     S.profile.h=d.h;S.profile.w=d.w;S.profile.fatp=d.fat||null;S.profile.musp=d.mus||null;S.profile.act=d.act;
     S.profile.weights.push({d:iso(new Date()),w:d.w,fat:d.fat,mus:d.mus,pa:null,spo2:null});
-    S.diet.intol=d.intol;S.diet.no=d.no;S.diet.si=d.si;
+    S.pref.intol=d.intol;S.pref.no=d.no;S.pref.si=d.si;
     if(document.getElementById("wzWipe")&&document.getElementById("wzWipe").checked){S.history=[];S.profile.weights=S.profile.weights.slice(-1);S.streak={count:0,last:""};}}
   S.customShop=null;S.week=freshWeek();save();
   dlgAlert(tr("Piano confermato! Vai in Spesa per generare la lista della spesa dal nuovo piano."));
-  show("piano");};
+  show("ricette");};
 function renderSetup(){const el=document.getElementById("pg-setup");let h="";
   const disc=`<div class="card nota grave">${hint2(tr("<b> Avvertenza importante:</b> questo piano è generato da un'intelligenza artificiale su dati auto-dichiarati."),tr("NON sostituisce un professionista: prima di seguirlo, fallo validare da un nutrizionista o un medico, soprattutto in presenza di patologie, intolleranze o gravidanza."))}</div>`;
   if(WIZ.step===1){h=disc+`<div class="card"><h2>${tr("Passo 1 di 3 — Chi sei")}</h2>
@@ -1266,7 +1291,7 @@ function renderSetup(){const el=document.getElementById("pg-setup");let h="";
     <label>${tr("Stile di vita (giorni in ufficio, mensa, smart, famiglia…)")}</label><textarea id="wzVita" placeholder="${tr("es. 2 giorni in ufficio con mensa, 3 in smart; 2 figli")}">${esc(WIZ.d.vita||"")}</textarea>
     <label>${tr("Sport abituali")}</label><input type="text" id="wzSport" value="${esc(WIZ.d.sport||"")}" placeholder="${trh("es. camminata {v1} quasi ogni giorno, tennis saltuario",{v1:(typeof distTxt==="function")?distTxt(4):"4 km"})}">
     <button class="btn" onclick="wizNext(2)">Avanti →</button></div>`;}
-  else if(WIZ.step===2){const dv=(f,def)=>WIZ.d[f]!==undefined?WIZ.d[f]:(S.diet[f]!==undefined?S.diet[f]:def);
+  else if(WIZ.step===2){const dv=(f,def)=>WIZ.d[f]!==undefined?WIZ.d[f]:(S.pref[f]!==undefined?S.pref[f]:def);
     const sel=(f,val,def)=>dv(f,def)===val?" selected":"";
     h=`<div class="card"><h2>${tr("Passo 2 di 3 — Cosa mangi")}</h2>
     <!-- DUE DOMANDE, NON UNA (audit 27/08). Qui c'era un campo solo,
@@ -1275,10 +1300,10 @@ function renderSetup(){const el=document.getElementById("pg-setup");let h="";
          senza lattosio: giusto per un intollerante, pericoloso per un
          allergico. È la distinzione clinica della v13.101, aggirata da
          una porta laterale. -->
-    <label>${tr("Intolleranze")}</label><input type="text" id="wzIntol" value="${esc(WIZ.d.intol!==undefined?WIZ.d.intol:S.diet.intol)}" placeholder="es. lattosio, glutine">
-    <label>${tr("Allergie")}</label><input type="text" id="wzAllergie" value="${esc(WIZ.d.allergie!==undefined?WIZ.d.allergie:(S.diet.allergie||""))}" placeholder="${esc(tr("es. latte, arachidi — qui non valgono eccezioni"))}">
-    <label>${tr("Cibi che NON puoi o NON vuoi mangiare")}</label><textarea id="wzNo" placeholder="es. pomodoro, cipolla, aglio, pesce spada…">${esc(WIZ.d.no!==undefined?WIZ.d.no:S.diet.no)}</textarea>
-    <label>${tr("Cibi che ami (l'AI li userà spesso)")}</label><textarea id="wzSi" placeholder="es. pollo, patate, yogurt greco, kefir…">${esc(WIZ.d.si!==undefined?WIZ.d.si:S.diet.si)}</textarea>
+    <label>${tr("Intolleranze")}</label><input type="text" id="wzIntol" value="${esc(WIZ.d.intol!==undefined?WIZ.d.intol:S.pref.intol)}" placeholder="es. lattosio, glutine">
+    <label>${tr("Allergie")}</label><input type="text" id="wzAllergie" value="${esc(WIZ.d.allergie!==undefined?WIZ.d.allergie:(S.pref.allergie||""))}" placeholder="${esc(tr("es. latte, arachidi — qui non valgono eccezioni"))}">
+    <label>${tr("Cibi che NON puoi o NON vuoi mangiare")}</label><textarea id="wzNo" placeholder="es. pomodoro, cipolla, aglio, pesce spada…">${esc(WIZ.d.no!==undefined?WIZ.d.no:S.pref.no)}</textarea>
+    <label>${tr("Cibi che ami (l'AI li userà spesso)")}</label><textarea id="wzSi" placeholder="es. pollo, patate, yogurt greco, kefir…">${esc(WIZ.d.si!==undefined?WIZ.d.si:S.pref.si)}</textarea>
     <label>Note</label><input type="text" id="wzNote" value="${esc(dv("note",""))}" placeholder="${tr("preferenze, orari, altro")}">
     <label>${tr("Pasti liberi desiderati (quali e quanti a settimana)")}</label><input type="text" id="wzLiberi" value="${esc(dv("liberi",""))}" placeholder="${tr("es. pizza il sabato, sushi 1 volta al mese, aperitivo venerdì")}">
     <div class="row3"><div><label>Cucini o pronto?</label><select id="wzPronto"><option value="cucino"${sel("pronto","cucino","semplice")}>Mi piace cucinare</option><option value="semplice"${sel("pronto","semplice","semplice")}>${tr("Piatti semplici")}</option><option value="pronto"${sel("pronto","pronto","semplice")}>Pronto/veloce</option></select></div>
@@ -1295,10 +1320,10 @@ function renderSetup(){const el=document.getElementById("pg-setup");let h="";
     <label style="margin-top:12px"><input type="checkbox" id="wzWipe" style="width:auto"> ${tr("Azzera anche storico e pesate precedenti (ricomincio davvero da zero)")}</label>
     <label style="margin-top:8px"><input type="checkbox" id="wzOk" style="width:auto"> ${tr("Ho letto l'avvertenza: farò validare il piano da un nutrizionista/medico")}</label>
     <div class="mtools"><button class="btn ghost" onclick="wizNext(2)">← Indietro</button>
-    <button class="btn" onclick="wizGenerate()">${tr("Genera il piano")}</button></div>
+    <button class="btn" onclick="wizGenerate()">${tr("Chiedi le ricette")}</button></div>
     <div class="aibox" aria-live="polite" id="wzOut" style="display:none"></div></div>`;}
   else if(WIZ.step===4&&WIZ.plan){
-    h=(WIZ.editOnly?`<button class="btn ghost small" style="margin-bottom:12px" onclick="show('piano')">${tr("‹ Torna al piano (senza salvare)")}</button>`:disc)+`<div class="card"><h2>${WIZ.editOnly?"Modifica il piano":" Il tuo piano — controlla e modifica"}</h2>
+    h=(WIZ.editOnly?`<button class="btn ghost small" style="margin-bottom:12px" onclick="show('ricette')">${tr("‹ Torna al piano (senza salvare)")}</button>`:disc)+`<div class="card"><h2>${WIZ.editOnly?"Modifica il piano":" Il tuo piano — controlla e modifica"}</h2>
     Tocca i campi per correggere descrizioni, kcal e proteine. Poi conferma: diventerà la tua base settimanale.</div>`;
     WIZ.plan.forEach((d,di)=>{
       h+=`<div class="dayname">${esc(giorno(d.day))}</div><div class="dayctx">${esc(d.ctx)}</div>`;
@@ -1476,7 +1501,7 @@ let NUVIA_FUNZIONI;
 <tr><td colspan="2"><b>${tr("Le tue note")}</b> ${tr("(in Storico) — tutte le note del diario in un unico elenco. Vengono archiviate con la settimana, escono nel CSV (colonna «nota») e le legge l'AI quando cerca le correlazioni.")}</td></tr>
 <tr><td colspan="2"><b>Ritmo dichiarato = ritmo reale</b> ${trh("— il deficit non può superare il 30% del fabbisogno per sicurezza. Se il ritmo che scegli richiede di più, l'app {b1} e mostra il ritmo a cui lavorerà davvero, invece di ridurlo in silenzio.",{b1:"<b>"+tr("te lo dice")+"</b>"})}</td></tr>
 <tr><td colspan="2"><b>${tr("Generatore di piano AI")}</b> ${trh("— sette giorni costruiti {b1}: ogni giorno conosce i piatti già usati (niente ripetizioni), rispetta mensa, intolleranze, stagione e target; solo cibo vero, integratori soltanto se indispensabili e da concordare con un nutrizionista.",{b1:"<b>"+tr("uno alla volta")+"</b>"})}</td></tr>
-<tr><td colspan="2"><b>${tr("Importa il piano da foto")}</b> ${trh("— fotografi il piano che hai già, o carichi le immagini dalla galleria (carta o PDF, anche più pagine in una volta): l'AI trascrive giorni, pasti e {b}, stima kcal e macro dalle grammature scritte e prepara la lista della spesa.",{b:"<b>alternative</b>"})}</td></tr>
+<tr><td colspan="2"><b>${tr("Importa quelle che hai")}</b> ${trh("— carichi il PDF che ti ha dato il nutrizionista, oppure fotografi il foglio (anche più pagine in una volta): l'AI trascrive giorni, pasti e {b}, stima kcal e macro dalle grammature scritte e prepara la lista della spesa.",{b:"<b>alternative</b>"})}</td></tr>
 <tr><td colspan="2"><b>Stima risultati</b> ${trh("— media del piano vs fabbisogno + allenamenti = kg/settimana e data stimata dell'obiettivo; se l'obiettivo non torna, propone la {b1} (i piatti restano gli stessi) con spesa e stima rigenerate.",{b1:"<b>"+tr("ritaratura automatica delle grammature")+"</b>"})}</td></tr>
 <tr><td colspan="2"><b>Alternative stagionali</b> ${tr("— a pranzi e cene si aggiunge un'opzione di stagione etichettata")} ${ic("primavera",14)} Primaverile · ${ic("estate",14)} Estivo · ${ic("autunno",14)} Autunnale · ${ic("inverno",14)} ${tr("Invernale, a parità di kcal e proteine; il piano base resta generico e rigenerando spariscono le stagioni vecchie.")}</td></tr>
 <tr><td colspan="2"><b>${tr("Diario di oggi")}</b> ${tr("— anello col deficit in tempo reale, spunte ✓/✗ su pasti ed extra, acqua, sonno/relax/umore, eventi, nota del giorno, swipe fra i giorni.")}</td></tr>
@@ -1562,7 +1587,26 @@ NUVIA_EN.corpo=()=>`<div class="card nvhero">
 function nuviaCorpo(){
   const en=(typeof LANG!=="undefined"&&LANG==="en");
   return ((en&&NUVIA_EN.corpo)||NUVIA_IT.corpo)();}
-function renderNuvia(){document.getElementById("pg-nuvia").innerHTML=avvisoLingua()+nuviaCorpo();}
+/* ═══ LE COSE CHIARE (v15.6.0) ═════════════════════════════════════
+   La postura legale di Nuvia detta alla persona, in un posto che si
+   ritrova sempre. Non è burocrazia difensiva scopiazzata: ogni frase
+   è VERA nel codice — le proposte SONO modificabili (ogni piatto ha
+   Modifica/Alternativa), le stime SONO stime (dichiarate tali in ogni
+   scheda), il blocco sotto i 18 anni ESISTE (guardrail), l'invito al
+   professionista c'è a ogni generazione. Un disclaimer che descrive
+   un'app diversa da quella vera non protegge: aggrava. */
+function coseChiareHTML(){
+  return `<div class="card" data-cosechiare="1"><h2>${esc(tr("Le cose chiare"))}</h2>
+    <div class="hint">
+      <p>${esc(tr("Nuvia è un diario con suggerimenti: ricette e spunti in linea con i numeri che hai scelto tu, da cambiare o ignorare liberamente. Ti aiuta a tenerli in ordine, a fare la spesa e a capire la composizione di quello che mangi."))}</p>
+      <p>${esc(tr("Non è un dispositivo medico, non fa diagnosi, non cura e non prescrive: le scelte su cosa mangiare restano tue. Fabbisogni e quantità sono stime da formule generali, e i testi scritti dall'AI possono contenere errori — controlla quello che ti sembra strano."))}</p>
+      <p>${esc(tr("Per condizioni mediche, gravidanza, farmaci o qualunque dubbio parla con un medico, un dietista o un biologo nutrizionista: Nuvia è pensata per accompagnare un professionista, non per sostituirlo. E se il cibo in questo periodo è una lotta più che una scelta, cercare un aiuto vero è la cosa giusta — l'app ti fa meno bene di una persona."))}</p>
+      <p>${esc(tr("Nuvia si usa dai 18 anni in su. I tuoi dati stanno sul tuo telefono e, se lo colleghi, sul tuo Drive: li cancelli quando vuoi."))}</p>
+    </div>
+    <div class="mtools"><button class="btn ghost small" onclick="show('documenti')">${esc(tr("Termini, privacy e consensi"))}</button></div>
+    </div>`;}
+window.coseChiareHTML=coseChiareHTML;
+function renderNuvia(){document.getElementById("pg-nuvia").innerHTML=avvisoLingua()+coseChiareHTML()+nuviaCorpo();}
 function avvisoLingua(){
   if(LANG!=="en")return "";
   /* Onestà sulla lingua, e con un numero: dire «in arrivo» per mesi non è
@@ -1648,10 +1692,10 @@ Se hai raggiunto il traguardo l'app si fa sentire ancora meno: un «come stai?»
 <tr><td colspan="2"><b>Strumenti</b> — quello che serve in un momento preciso: «Ho una voglia…» (l'app cerca un'alternativa), «Sto per cedere» (non si dice di no: si dice metà, e adesso), la dispensa, il codice piano.</td></tr>
 <tr><td colspan="2"><b>La mia</b> — la pagina che componi tu: scegli fino a sei pezzi dell'app, li metti nell'ordine che vuoi, e diventa la prima cosa che apri. Esiste solo se la componi: l'app non si riorganizza mai da sola.</td></tr>
 <tr><td colspan="2"><b>Insieme</b> — la piazza, non il social: si sta insieme senza gare al ribasso e senza confronti fra corpi.</td></tr>
-<tr><td colspan="2"><b>Il tuo percorso</b> e <b>Costellazione</b> — ventiquattro segni che si accendono la prima volta che fai una cosa. Non si spengono mai, non ci sono livelli e non c'è niente da fare per tenerli accesi: la settimana storta non conta.</td></tr>
+<tr><td colspan="2"><b>Il tuo percorso</b> — ventiquattro segni che si accendono la prima volta che fai una cosa. Non si spengono mai, non ci sono livelli e non c'è niente da fare per tenerli accesi: la settimana storta non conta. Con tutti e ventiquattro si sblocca la Modalità Zen.</td></tr>
 <tr><td colspan="2"><b>Abbonamento</b> e <b>I piani</b> — cosa è attivo adesso e cosa fanno i piani. Free resta gratis.</td></tr>
 <tr><td colspan="2"><b>Guida</b> e <b>Nuvia</b> — questa guida, e la mappa di tutte le funzioni una per una.</td></tr>
-<tr><td colspan="2"><b>Percorso guidato</b> ${tr("(in Piano) — lo stesso percorso guidato, con tutti i campi già compilati (dati, intolleranze, gusti, obiettivi) da cui l'AI genera una settimana su misura, modificabile prima della conferma. «Modifica il piano» per ritocchi a mano. Sempre da validare con un nutrizionista.")}</td></tr></table></div></details></div>`;
+<tr><td colspan="2"><b>Percorso guidato</b> ${tr("(in Piano) — lo stesso percorso guidato, con tutti i campi già compilati (dati, intolleranze, gusti, obiettivi) da cui l'AI propone una settimana di ricette, tutta modificabile prima della conferma. «Modifica il piano» per ritocchi a mano. Sempre da validare con un nutrizionista.")}</td></tr></table></div></details></div>`;
 GUIDA_IT.simboli=()=>`<div class="card guida-sec"><details class="gdet"><summary><h2>${tr("I simboli")}</h2><span class="gdet-arrow">▾</span></summary><div class="gdet-body">
 <div class="gsec">${tr("Sui pasti")}</div><table class="gtable">
 <tr><td>○ ✓ ✗</td><td>${trh("Tocca il cerchio per ciclare: {b}. Solo i ✓ contano nel bilancio; i ✗ restano segnati come saltati.",{b:"<b>da fare → mangiato → saltato</b>"})}</td></tr>
@@ -1714,7 +1758,7 @@ GUIDA_IT.simboli=()=>`<div class="card guida-sec"><details class="gdet"><summary
 <div class="gsec">I segni delle pagine</div><table class="gtable">
 <tr><td>${ic("punto",18)}</td><td>Il punto — come sta andando adesso.</td></tr>
 <tr><td>${ic("oggi",18)}</td><td>Oggi — il bilancio della giornata.</td></tr>
-<tr><td>${ic("piano",18)}</td><td>Piano — la settimana.</td></tr>
+<tr><td>${ic("ricette",18)}</td><td>Piano — la settimana.</td></tr>
 <tr><td>${ic("spesa",18)}</td><td>Spesa — la lista che nasce dal piano.</td></tr>
 <tr><td>${ic("sport",18)}</td><td>Allenamento.</td></tr>
 <tr><td>${ic("heart",18)}</td><td>Come stai — sonno, stress, umore.</td></tr>
@@ -1953,7 +1997,7 @@ GUIDA_EN.simboli=()=>`<div class="card guida-sec"><details class="gdet"><summary
 <div class="gsec">The page marks</div><table class="gtable">
 <tr><td>${ic("punto",18)}</td><td>The point — how things are going right now.</td></tr>
 <tr><td>${ic("oggi",18)}</td><td>Today — the day's balance.</td></tr>
-<tr><td>${ic("piano",18)}</td><td>Plan — the week.</td></tr>
+<tr><td>${ic("ricette",18)}</td><td>Plan — the week.</td></tr>
 <tr><td>${ic("spesa",18)}</td><td>Shopping — the list that comes from the plan.</td></tr>
 <tr><td>${ic("sport",18)}</td><td>Training.</td></tr>
 <tr><td>${ic("heart",18)}</td><td>How are you — sleep, stress, mood.</td></tr>
@@ -2048,6 +2092,11 @@ function renderIo(){const el=document.getElementById("pg-io");const p=S.profile;
        la usa, ma non deve contendere l'attenzione a quello sopra. -->
   <button class="btn ghost" onclick="saveWeighIn()">${tr("Registra la pesata")}</button></div>`;
   h+=studioCardHTML();
+  /* Sotto le misure, come cambiano nel tempo (v15.14.0): il founder
+     ha chiesto «l'evoluzione nel tempo di tutte queste cose», e fino
+     alla v15.13.0 se ne vedeva solo il delta fra le ultime due
+     visite. Vive in 70_evoluzione.js. */
+  h+=(function(){try{return (typeof evoluzioneHTML==="function")?evoluzioneHTML():"";}catch(e){return "";}})();
 
   h+=`<div class="card"><h2>${tr("Obiettivi")}</h2>
   ${hint2(tr("Dove vuoi arrivare e con che ritmo."),tr("Da qui l'app calcola il deficit e la proiezione del peso."))}
@@ -2059,7 +2108,12 @@ function renderIo(){const el=document.getElementById("pg-io");const p=S.profile;
          più chiara: il «per giorno» è la cosa che serve sapere. */
         trh("Acqua al giorno ({v1})",{v1:(typeof unitaVol==="function")?unitaVol():"L"})}</label><input type="number" step="${(typeof imperiale==="function"&&imperiale())?"4":"0.25"}" id="pWater" value="${p.waterGoalL?((typeof imperiale==="function"&&imperiale())?Math.round(p.waterGoalL*33.814):p.waterGoalL):""}" placeholder="${esc(trh("proposto: {v1}",{v1:(typeof litriTxt==="function")?litriTxt(waterSuggestL()):waterSuggestL()}))}"></div></div>
   ${(()=>{if(!p.goalW||!p.h)return"";const b=bmiFor(p.goalW),cl=bmiClass(b);
-    return `<div class="hint" style="color:${cl.ok?"var(--bosco)":"var(--rosso)"}">Obiettivo ${p.goalW} kg → BMI ${b} (${cl.label}).</div>`;})()}
+    /* QUESTA RIGA ERA LA STESSA DI SEMPRE, TROVATA SOLO ORA (28/08):
+       è nella stessa scheda «Obiettivi» dove ho vestito peso e acqua
+       la prima volta, tre righe sopra — e questa era rimasta com'era.
+       Non un difetto nuovo: uno che non avevo guardato abbastanza a
+       fondo la prima volta. */
+    return `<div class="hint" style="color:${cl.ok?"var(--bosco)":"var(--rosso)"}">${trh("Obiettivo {v1} → BMI {v2} ({v3}).",{v1:(typeof pesoTxt==="function")?pesoTxt(p.goalW,1):p.goalW+" kg",v2:b,v3:cl.label})}</div>`;})()}
   ${hint2(tr("Lascia vuoto e l'obiettivo lo calcola l'app su di te."),
  `${trh("{v1}, già al netto dell'acqua che arriva dal cibo. Un bicchiere vale {v2}; con allenamenti intensi o oltre 45 minuti l'obiettivo sale di 2 bicchieri.",{v1:waterExplain(),v2:(typeof volumeTxt==="function")?volumeTxt(ML_BICCHIERE):"200 ml"})}`)}
   <label>${tr("Allenamenti obiettivo a settimana")}</label>
@@ -2138,7 +2192,10 @@ function renderIo(){const el=document.getElementById("pg-io");const p=S.profile;
   let corpo=schedeFiltra(h,att);
   if(!/<div class="card|<div class="gsec/.test(corpo.split('<div class="schede"')[1]||"")){
     corpo+=IO_VUOTI[att]||IO_VUOTI.dati;}
-  el.innerHTML=corpo;}
+  el.innerHTML=corpo;
+  /* il grafico dell'evoluzione si disegna DOPO l'innerHTML: prima il
+     canvas non esiste ancora (v15.14.0, modulo 70) */
+  try{if(typeof drawEvoluzione==="function")drawEvoluzione();}catch(e){}}
 
 /* ── LA PAGINA ABBONAMENTO ──────────────────────────────────────
    Voce propria del menu (22/08, dal founder): l'abbonamento non è né
@@ -2167,18 +2224,22 @@ function renderSistema(){const el=document.getElementById("pg-sistema");const p=
   <div class="ckgrid">
     ${(window.LINGUE||[["it","Italiano"],["en","English"]]).map(([k,l])=>`<label class="ck"><input type="radio" name="lang" ${LANG===k?"checked":""} onchange="langSet('${k}')"> ${l}</label>`).join("")}
   </div></div>`;
-  /* NIENTE COMANDO PER IL TEMA, e per una ragione precisa.
-     Il 19/08 il tema scuro è stato rispento dopo un riscontro sul
-     telefono: i contrasti delle VARIABILI passavano, ma i pulsanti
-     erano illeggibili. Il 20/08 ho aggiunto qui una card «Chiaro o
-     scuro» senza accorgermi di quella decisione: prometteva una
-     scelta che non si poteva fare, perché temaVoluto() restituisce
-     sempre «light».
-     Un comando che non fa niente è peggio di nessun comando: chi lo
-     tocca pensa che l'app sia rotta, e ha ragione.
-     Il CSS scuro resta pronto. La card torna il giorno in cui il
-     tema sarà verificato su un telefono vero, pulsante per
-     pulsante. */
+  /* ── LA CARD DEL TEMA È TORNATA (v15.11.0) ───────────────────────
+     Era stata tolta il 20/08 perché prometteva una scelta che
+     temaVoluto() ignorava («un comando che non fa niente è peggio di
+     nessun comando»). Ora la scelta è vera: il censimento delle
+     regole a colore fisso è fatto (vedi temaVoluto in 11_2) e
+     t_tema.js lo rifà a ogni giro. «Automatico» segue il telefono,
+     anche al tramonto, senza riaprire l'app. */
+  h+=(function(){
+    const t=(S.ui&&S.ui.theme)||"auto";
+    const op=[["auto",tr("Automatico"),tr("Segue il telefono")],
+              ["light",tr("Chiaro"),""],["dark",tr("Scuro"),""]];
+    return `<div class="card" data-tema-card="1"><h2>${tr("Chiaro o scuro")}</h2>
+    <div class="ckgrid">
+      ${op.map(([k,l,d])=>`<label class="ck"><input type="radio" name="tema" ${t===k?"checked":""}
+        onchange="temaSet('${k}')"> ${esc(l)}${d?` <small style="color:var(--grigio)">· ${esc(d)}</small>`:""}</label>`).join("")}
+    </div></div>`;})();
   h+=`<div class="card"><h2>${tr("Quanto vuoi vedere")}</h2>
   <label class="ck" style="margin-bottom:8px"><input type="checkbox" ${S.ui.guidaOff?"":"checked"} onchange="S.ui.guidaOff=!this.checked;save();toast(this.checked?tr('Suggerimenti di guida attivi'):tr('Suggerimenti di guida spenti'))"> ${tr("Suggerimenti di guida (primi passi, faro e consigli)")}</label>
   ${hint2(tr("Tre livelli di dettaglio. <b>Nessuna funzione viene tolta</b>: cambia solo cosa è in vista."),tr("Con «Essenziale» restano pasti, spesa e peso, e il bilancio mostra i quattro numeri che contano. Con «Completo» tornano macro, fibre e fasi della dieta. Con «Esperto» compaiono anche tutte le formule di calcolo. Tutto il resto resta comunque raggiungibile dall'assistente e dal pulsante ⋯."))}
@@ -2195,23 +2256,41 @@ function renderSistema(){const el=document.getElementById("pg-sistema");const p=
   </div>
   ${tr("Le voci in grigio non sono state tolte: compaiono passando al livello indicato, e tutto resta comunque raggiungibile dall'assistente.")}</div>`;
   h+=`<div class="gsec">${tr("Impostazioni")}</div>`;
-  h+=`<div class="card${aiOn()?"":" nota"}"><h2>Motore AI (Gemini)</h2>
-  ${aiOn()?"":`${hint2(tr(" <b>Senza chiave l'app è fortemente limitata.</b> È gratuita e si crea in un minuto."),tr("Restano spenti: generazione e bilanciamento del piano, stima di calorie e macro dai piatti scritti, analisi delle foto, selezionatore di menù, svuota-frigo, ribilanciamento della giornata, recupero degli sfori, alternative ai pasti, analisi dei pattern e report."))}`}
-  <label>Chiave API Google Gemini</label><input type="text" id="gKey" value="${(S.ai&&S.ai.key)||""}" placeholder="${tr("incolla qui la chiave")}" oninput="aiKeyVive(this.value)">
+  /* La stessa fascia di Oggi, qui dove sta la scheda che l'interruttore
+     comanda: chi apre Sistema per mettere la chiave deve leggere, nella
+     stessa schermata, che quella casella non esisterà più. */
+  h+=(typeof bancoAvvisoHTML==="function")?bancoAvvisoHTML():"";
+  /* ══ IL MOTORE AI, E LA PORTA CHE SI CHIUDE ALLA PUBBLICAZIONE ══
+     (founder, 31/08: «quando l'app verrà pubblicata andrà tolta la
+     possibilità di inserire una chiave propria, sennò anche una
+     versione free con la chiave fa quello che vuole».)
+     Con `MODO_BANCO` acceso questa scheda è quella di sempre: campo
+     della chiave, link per crearne una gratis, contatore. È la
+     scheda che serve a NOI finché il server non è acceso.
+     Spento, la chiave sparisce — non nascosta, non disabilitata: il
+     campo non viene scritto — e resta ciò che ha senso per una
+     persona abbonata: quale modello, la prova della connessione, e
+     quanto ha consumato. Il perché sta in `11_2`, sull'interruttore;
+     che siano DUE cose sullo stesso interruttore è il punto: erano
+     la stessa decisione, e su due interruttori se ne sarebbe spento
+     uno solo. */
+  h+=`<div class="card${(aiOn()||!MODO_BANCO)?"":" nota"}"><h2>Motore AI (Gemini)</h2>
+  ${(MODO_BANCO&&!aiOn())?`${hint2(tr(" <b>Senza chiave l'app è fortemente limitata.</b> È gratuita e si crea in un minuto."),tr("Restano spenti: generazione e bilanciamento del piano, stima di calorie e macro dai piatti scritti, analisi delle foto, selezionatore di menù, svuota-frigo, ribilanciamento della giornata, recupero degli sfori, alternative ai pasti, analisi dei pattern e report."))}`:""}
+  ${MODO_BANCO?`<label>Chiave API Google Gemini</label><input type="text" id="gKey" value="${(S.ai&&S.ai.key)||""}" placeholder="${tr("incolla qui la chiave")}" oninput="aiKeyVive(this.value)">`:`<div class="hint">${tr("L'AI arriva dal tuo abbonamento: non c'è nessuna chiave da creare e nessuna quota da sorvegliare.")}</div>`}
   <label>Modello Gemini</label>
   <select id="gModel">${(function(){const d=gemDiscovered()||[];
     const list=["auto"].concat(d,GEM_ALL.filter(m=>m!=="auto"&&d.indexOf(m)<0));
     return list.map(m=>`<option ${S.ai.model===m?"selected":""}>${m}</option>`).join("");})()}</select>
-  <div class="mtools" style="margin-top:8px"><button class="btn ghost small" onclick="aiDiagnosi()">${tr("Prova la connessione")}</button><button class="btn ghost small" onclick="gemRefreshModels()">Cerca modelli nuovi</button></div>
+  <div class="mtools" style="margin-top:8px"><button class="btn ghost small" onclick="aiDiagnosi()">${tr("Prova la connessione")}</button>${MODO_BANCO?`<button class="btn ghost small" onclick="gemRefreshModels()">${tr("Cerca modelli nuovi")}</button>`:""}</div>
   <div class="aibox" aria-live="polite" id="aiDiag" style="display:none"></div>
-  <div class="hint">${tr("Con <b>auto</b> l'app usa sempre il modello più recente di Google, scendendo agli altri se non risponde. L'elenco si aggiorna da solo.")}${gemDiscovered()?" Ultimo controllo: "+new Date(S.ai.models.at).toLocaleDateString(dataLoc())+" · "+S.ai.models.list.length+" modelli.":""}</div>
-  <div class="hint">${trh("Con la chiave gratuita usi i modelli {b}",{b:"<b>Flash</b>"})} ${trh("La catena parte dal Flash più recente che il tuo account espone e scende ai due precedenti se non risponde. Niente lite, niente Pro: sono scelte prese.",{b:"<b>Pro</b>"})}</div>
+  <div class="hint">${tr("Con <b>auto</b> l'app usa sempre il modello più recente di Google, scendendo agli altri se non risponde. L'elenco si aggiorna da solo.")}${gemDiscovered()?" "+trh("Ultimo controllo: {v1} · {v2} modelli.",{v1:new Date(S.ai.models.at).toLocaleDateString(dataLoc()),v2:S.ai.models.list.length}):""}</div>
+  ${MODO_BANCO?`<div class="hint">${trh("Con la chiave gratuita usi i modelli {b}",{b:"<b>Flash</b>"})} ${trh("La catena parte dal Flash più recente che il tuo account espone e scende ai due precedenti se non risponde. Niente lite, niente Pro: sono scelte prese.",{b:"<b>Pro</b>"})}</div>`:""}
   <button class="btn" onclick="saveAI()">${tr("Salva impostazioni AI")}</button>
   <div class="aibox" aria-live="polite" style="margin-top:12px"><div id="usageLine">${usageHtml()}</div>
-  <div class="hint" style="margin-top:4px">${trh("Contatore locale del tuo consumo (Google non espone i token residui: quelli si vedono solo nella Google Cloud Console). Se vedi molti errori {v1}, stai toccando i limiti gratuiti: rallenta o attiva la fatturazione.",{v1:'\"quota\"'})}</div>
-  <button class="btn ghost small" onclick="S.usage={day:'',calls:0,tokens:0,errors:0,last:''};save();render('io')">Azzera contatore</button></div>
-  ${hint2(`${trh("Chiave gratuita su {v1} → <b>Create API key</b>. Resta sul tuo telefono.",{v1:'<a href="https://aistudio.google.com/app/apikey" target="_blank" rel="noopener" class="lnk">aistudio.google.com/app/apikey ↗</a>'})}`,
- tr("Serve per: foto dei piatti e del frigo, lettura dei menù, stime di sfori e sport, alternative, ribilanciamento, sostituzioni nella spesa e report settimanali. Senza chiave l'app funziona lo stesso, ma tutto va fatto a mano."))}</div>`;
+  ${MODO_BANCO?`<div class="hint" style="margin-top:4px">${trh("Contatore locale del tuo consumo (Google non espone i token residui: quelli si vedono solo nella Google Cloud Console). Se vedi molti errori {v1}, stai toccando i limiti gratuiti: rallenta o attiva la fatturazione.",{v1:'\"quota\"'})}</div>`:""}
+  <button class="btn ghost small" onclick="S.usage={day:'',calls:0,tokens:0,errors:0,last:''};save();render('io')">${tr("Azzera contatore")}</button></div>
+  ${MODO_BANCO?hint2(`${trh("Chiave gratuita su {v1} → <b>Create API key</b>. Resta sul tuo telefono.",{v1:'<a href="https://aistudio.google.com/app/apikey" target="_blank" rel="noopener" class="lnk">aistudio.google.com/app/apikey ↗</a>'})}`,
+ tr("Serve per: foto dei piatti e del frigo, lettura dei menù, stime di sfori e sport, alternative, ribilanciamento, sostituzioni nella spesa e report settimanali. Senza chiave l'app funziona lo stesso, ma tutto va fatto a mano.")):""}</div>`;
   // Drive
   h+=`<div class="card"><h2>Sincronizzazione Google Drive</h2>
   <div class="hint">${trh("Backup automatico su una cartella privata del {b} Drive. Serve una configurazione iniziale su Google Cloud: i passaggi sono qui sotto.",{b:"<b>tuo</b>"})}</div>
@@ -2227,12 +2306,12 @@ function renderSistema(){const el=document.getElementById("pg-sistema");const p=
     <button class="btn ghost small" onclick="driveFlush();driveUpload()">${tr("Salva")}</button>
     <button class="btn ghost small" onclick="driveRestoreMenu()">${tr("Ripristina")}</button>
   </div>
-  <label style="margin-top:12px">Zona pericolosa</label>
+  <label style="margin-top:12px">${tr("Zona pericolosa")}</label>
   <div class="mtools">
     <button class="btn warn small" onclick="driveDelete()">${tr("Elimina backup da Drive")}</button>
   </div>
-  <div class="hint" id="driveStatus">${S.drive.on?"Configurato: a ogni avvio l'app si riconnette da sola, confronta i timestamp e carica la versione più recente (telefono e PC condividono così gli stessi dati). Auto-save attivo.":"Non connesso."}
-  <br><b>Disconnetti e desincronizza</b> ${trh("= stacca solo QUESTO dispositivo, il backup su Drive e gli altri dispositivi restano intatti. {b} = cancella il file su Drive: sparisce da TUTTI i dispositivi (con conferma).",{b:"<b>Elimina backup</b>"})}
+  <div class="hint" id="driveStatus">${S.drive.on?tr("Configurato: a ogni avvio l'app si riconnette da sola, confronta le date e carica la versione più recente (telefono e computer condividono così gli stessi dati). Il salvataggio automatico è attivo."):tr("Non connesso.")}
+  <br><b>${tr("Disconnetti e desincronizza")}</b> ${trh("= stacca solo QUESTO dispositivo, il backup su Drive e gli altri dispositivi restano intatti. {b} = cancella il file su Drive: sparisce da TUTTI i dispositivi (con conferma).",{b:"<b>"+tr("Elimina backup")+"</b>"})}
   <br>${trh("Configurazione (Client ID + progetto Google Cloud): spiegata passo passo nella {b1}. Salva su una cartella privata di Drive dedicata solo a quest'app (nessuna cartella tua è coinvolta). Al primo accesso su ogni dispositivo Google chiede il consenso una volta; poi la sincronizzazione è silenziosa.",{b1:"<b>Guida</b>"})}</div></div>`;
   // Backup
   h+=`<div class="gsec">${tr("I tuoi dati")}</div>`;
@@ -2248,7 +2327,7 @@ function renderSistema(){const el=document.getElementById("pg-sistema");const p=
    if(!sn.length)h+=`<div class="hint">${tr("La prima copia si crea al prossimo avvio.")}</div>`;
    else sn.forEach((x,i)=>{
      h+=`<div class="wline"><span>${new Date(x.at).toLocaleString(dataLoc())}<br>
-       <small style="color:var(--grigio)">v${esc(x.v||"?")}${x.w?" · "+x.w+" kg":""}</small></span>
+       <small style="color:var(--grigio)">v${esc(x.v||"?")}${x.w?" · "+((typeof pesoTxt==="function")?pesoTxt(x.w,1):x.w+" kg"):""}</small></span>
        <span style="display:flex;gap:8px">
          <button class="btn ghost small" style="margin:0" onclick="restoreSnap(${i})">${tr("Ripristina")}</button>
          <button class="ibtn" title="${tr("Elimina questa copia")}" onclick="delSnap(${i})"></button></span></div>`;});
@@ -2260,24 +2339,24 @@ function renderSistema(){const el=document.getElementById("pg-sistema");const p=
    <label>${tr("Cosa vuoi azzerare")}</label>
    <label class="ckline"><input type="checkbox" id="clStreak"> ${tr("Serie di giorni in target")} <small>(ora: ${st.count||0})</small></label>
    <label class="ckline"><input type="checkbox" id="clPeriods"> ${tr("Periodi dieta/libero")} <small>(${tr("ora:")} ${pr})</small></label>
-   <label class="ckline"><input type="checkbox" id="clWeights"> Pesate e biometriche <small>(ora: ${ws})</small></label>
+   <label class="ckline"><input type="checkbox" id="clWeights"> ${tr("Pesate e biometriche")} <small>(ora: ${ws})</small></label>
    <label class="ckline"><input type="checkbox" id="clWeek"> ${tr("Settimana in corso")} <small>(spunte, extra…)</small></label>
    <label class="ckline"><input type="checkbox" id="clHistory"> ${tr("Settimane archiviate")} <small>(ora: ${(S.history||[]).length})</small></label>
-   <label class="ckline"><input type="checkbox" id="clEvents"> Eventi e giornate particolari</label>
+   <label class="ckline"><input type="checkbox" id="clEvents"> ${tr("Eventi e giornate particolari")}</label>
    <label class="ckline"><input type="checkbox" id="clShop"> ${tr("Lista della spesa")}</label>
-   <label class="ckline"><input type="checkbox" id="clRecipes"> ${ic("star",16)} Piatti salvati <small>(ora: ${(S.recipes||[]).length})</small></label>
-   <label>Periodo</label>
-   Vale per pesate, settimane archiviate ed eventi.
+   <label class="ckline"><input type="checkbox" id="clRecipes"> ${ic("star",16)} ${tr("Piatti salvati")} <small>(ora: ${(S.recipes||[]).length})</small></label>
+   <label>${tr("Periodo")}</label>
+   ${tr("Vale per pesate, settimane archiviate ed eventi.")}
    <div class="mtools" style="margin-top:0">
      <button class="chipbtn clchip on" data-k="tutto" onclick="cleanupRange('tutto')">${tr("Tutto")}</button>
-     <button class="chipbtn clchip" data-k="oggi" onclick="cleanupRange('oggi')">Oggi</button>
+     <button class="chipbtn clchip" data-k="oggi" onclick="cleanupRange('oggi')">${tr("Oggi")}</button>
      <button class="chipbtn clchip" data-k="settimana" onclick="cleanupRange('settimana')">${tr("Settimana")}</button>
-     <button class="chipbtn clchip" data-k="mese" onclick="cleanupRange('mese')">Mese</button>
+     <button class="chipbtn clchip" data-k="mese" onclick="cleanupRange('mese')">${tr("Mese")}</button>
    </div>
-   <div class="hint" style="margin-top:8px">Periodo scelto: <b id="clRangeLbl">${tr("tutto lo storico")}</b> ${tr("— oppure imposta due date qui sotto.")}</div>
+   <div class="hint" style="margin-top:8px">${tr("Periodo scelto:")} <b id="clRangeLbl">${tr("tutto lo storico")}</b> ${tr("— oppure imposta due date qui sotto.")}</div>
    <div class="grid2 g2fix">
-     <div><label>Dal</label><input type="date" id="clFrom" onchange="document.getElementById('clRangeLbl').textContent=this.value?('dal '+this.value.split('-').reverse().join('/')+(document.getElementById('clTo').value?' al '+document.getElementById('clTo').value.split('-').reverse().join('/'):'')):'tutto lo storico'"></div>
-     <div><label>Al</label><input type="date" id="clTo" onchange="document.getElementById('clRangeLbl').textContent=(document.getElementById('clFrom').value?'dal '+document.getElementById('clFrom').value.split('-').reverse().join('/')+' ':'fino ')+('al '+this.value.split('-').reverse().join('/'))"></div>
+     <div><label>${tr("Dal")}</label><input type="date" id="clFrom" onchange="document.getElementById('clRangeLbl').textContent=this.value?('dal '+this.value.split('-').reverse().join('/')+(document.getElementById('clTo').value?' al '+document.getElementById('clTo').value.split('-').reverse().join('/'):'')):'tutto lo storico'"></div>
+     <div><label>${tr("Al")}</label><input type="date" id="clTo" onchange="document.getElementById('clRangeLbl').textContent=(document.getElementById('clFrom').value?'dal '+document.getElementById('clFrom').value.split('-').reverse().join('/')+' ':'fino ')+('al '+this.value.split('-').reverse().join('/'))"></div>
    </div>
    <div class="hint">${trh("Serie, settimana in corso e lista della spesa si azzerano {b1}: non dipendono da una data.",{b1:"<b>"+tr("sempre per intero")+"</b>"})}</div>
    <button class="btn ghost warn" onclick="cleanupRun()">${tr("Esegui la pulizia")}</button></div>`;}
@@ -2293,7 +2372,8 @@ function renderSistema(){const el=document.getElementById("pg-sistema");const p=
   <div class="mtools"><button class="btn ghost small" onclick="telUrlSave()">${tr("Salva indirizzo")}</button></div>
   ${hint2(tr("Senza indirizzo non parte niente da solo: resta il pulsante «Mandali», che apre la tua posta."),tr("Con un indirizzo di raccolta l'invio diventa automatico, una volta al giorno e in sottofondo, e l'invito ogni 30 giorni non compare più. Serve uno script su Google Apps Script: chiedilo allo sviluppatore, sono cinque minuti di configurazione."))}
   <label>${tr("Cosa esce, esattamente")}</label>
-  <div class="aibox" aria-live="polite" style="display:block;font-family:ui-monospace,monospace;font-size:11.5px;white-space:pre-wrap">${esc(JSON.stringify(telPayload(),null,2))}</div>
+  ${(typeof telPerCapireHTML==="function")?telPerCapireHTML(telPayload()):""}
+  <div class="aibox monospace" aria-live="polite" style="display:block">${esc(JSON.stringify(telPayload(),null,2))}</div>
   ${hint2(tr("Questo è il pacchetto reale, generato adesso con i tuoi dati."),tr("Se ci trovi qualcosa che non dovrebbe esserci, è un difetto: segnalalo."))}
   <div class="mtools"><button class="btn ghost small" onclick="telMail()">Mandalo a mano ora</button></div>
   ${hint2(((S.tel.url||TEL_URL)?"Con «Sì, invia» parte da solo una volta al giorno: non devi fare nulla.":tr("L'invio automatico non è ancora attivo: per ora puoi mandarlo a mano con il pulsante qui sopra.")),
@@ -2350,7 +2430,18 @@ window.setGoalWk=(i,f,v)=>{const g=(S.profile.goalWorkoutList||[])[i];if(!g)retu
    l'altezza non registra una pesata e viceversa. */
 function _v(id){const e=document.getElementById(id);return e?String(e.value).trim():"";}
 window.saveAnagrafica=()=>{const p=S.profile;
-  p.name=_v("pName");p.gender=_v("pGen")||"m";p.dob=_v("pDob");
+  /* ── LA DATA NON PUÒ SCENDERE SOTTO I 18 ANNI (founder, 29/08) ──
+     La stessa soglia dell'onboarding (ETA_MINIMA nel guardrail): senza
+     questo controllo, il cancello all'ingresso si aggirava cambiando
+     la data da Io → Anagrafica il giorno dopo. Una porta chiusa con la
+     finestra aperta non è una porta chiusa. */
+  const dobNuova=_v("pDob");
+  if(dobNuova&&typeof etaDa==="function"){
+    const e=etaDa(dobNuova);
+    if(e!==null&&e<((typeof ETA_MINIMA!=="undefined")?ETA_MINIMA:18))
+      return dlgAlert(tr("Nuvia lavora con i fabbisogni degli adulti: sotto i 18 anni le formule che usa non sono adatte a un corpo che cresce, e non sarebbe giusto fare finta di niente.")+
+        "\n\n"+tr("Per l'alimentazione a questa età la persona giusta è il pediatra o un nutrizionista dell'età evolutiva."));}
+  p.name=_v("pName");p.gender=_v("pGen")||"m";p.dob=dobNuova;
   /* l'altezza si legge nelle unità della persona («5'10"» o «178») e
      si salva in centimetri: vedi la nota in saveWeighIn */
   {let hIn=(typeof altIn==="function")?altIn(_v("pH")):+_v("pH");
@@ -2359,6 +2450,8 @@ window.saveAnagrafica=()=>{const p=S.profile;
       millimetri senza che nessuno l'abbia toccata */
    if(typeof senzaDeriva==="function"&&typeof altTxt==="function")
      hIn=senzaDeriva(hIn,parseFloat(p.h),altTxt);
+   /* e resta nell'intervallo del guardrail: fuori, si tiene la vecchia */
+   if(typeof misuraOk==="function"&&hIn>0&&!misuraOk("altezza",hIn))hIn=0;
    p.h=(hIn>0)?Math.round(hIn):(p.h||"");}
   /* Cambiando il nome cambia anche la prima voce della barra: senza
      questo, la barra restava col nome vecchio fino al ricaricamento. */
@@ -2408,7 +2501,7 @@ window.saveAttivita=()=>{const p=S.profile;
    controlla lo scarto e si propone (mai in automatico) di rifare i conti. */
 const PLANW_TRIGGER=3;            /* kg di scarto oltre i quali vale la pena */
 function planWeightDrift(){
-  const base=+S.planW||0,now=+S.profile.w||0;
+  const base=+S.ricetteW||0,now=+S.profile.w||0;
   if(!base||!now)return 0;
   return Math.round((base-now)*10)/10;}
 /* ── COME IL PIANO LEGGE I PROGRESSI ──────────────────────────────
@@ -2435,21 +2528,21 @@ function derivaFrase(giu){
 window.checkPlanAge=async()=>{
   const d=planWeightDrift();
   if(Math.abs(d)<PLANW_TRIGGER)return;
-  if(planIsEmpty())return;
+  if(ricetteVuote())return;
   const key="planw_"+Math.round(S.profile.w);
   if(S.ui&&S.ui[key])return;                       /* già chiesto per questo peso */
   S.ui=S.ui||{};S.ui[key]=1;save();
-  const oldT=Math.round(bmrForWeight(+S.planW)*(+S.profile.act||1.3));
+  const oldT=Math.round(bmrForWeight(+S.ricetteW)*(+S.profile.act||1.3));
   const newT=tdee(),diff=oldT-newT;
   const giu=d>0;
-  const msg=" "+(giu?tr("Hai perso {d} da quando è stato costruito questo piano ({a} → {b}).",{d:((typeof pesoTxt==="function")?pesoTxt(d,1):d+" kg"),a:((typeof pesoNum==="function")?pesoNum(S.planW,1):S.planW),b:((typeof pesoTxt==="function")?pesoTxt(S.profile.w,1):S.profile.w+" kg")})
-         :tr("Sei salito di {d} da quando è stato costruito questo piano ({a} → {b}).",{d:((typeof pesoTxt==="function")?pesoTxt(Math.abs(d),1):Math.abs(d)+" kg"),a:((typeof pesoNum==="function")?pesoNum(S.planW,1):S.planW),b:((typeof pesoTxt==="function")?pesoTxt(S.profile.w,1):S.profile.w+" kg")}))+
+  const msg=" "+(giu?tr("Hai perso {d} da quando è stato costruito questo piano ({a} → {b}).",{d:((typeof pesoTxt==="function")?pesoTxt(d,1):d+" kg"),a:((typeof pesoNum==="function")?pesoNum(S.ricetteW,1):S.ricetteW),b:((typeof pesoTxt==="function")?pesoTxt(S.profile.w,1):S.profile.w+" kg")})
+         :tr("Sei salito di {d} da quando è stato costruito questo piano ({a} → {b}).",{d:((typeof pesoTxt==="function")?pesoTxt(Math.abs(d),1):Math.abs(d)+" kg"),a:((typeof pesoNum==="function")?pesoNum(S.ricetteW,1):S.ricetteW),b:((typeof pesoTxt==="function")?pesoTxt(S.profile.w,1):S.profile.w+" kg")}))+
     "\n\n"+tr("Il fabbisogno cambia con il peso: adesso è di ~{n} kcal al giorno invece di ~{o} ({d} kcal).",{n:newT,o:oldT,d:(diff>0?"−":"+")+Math.abs(diff)})+" "+derivaFrase(giu)+
     "\n\n"+tr("Il target aggiornato sarebbe ~{k} kcal al giorno.",{k:dayTargetK()})+
     "\n\nPosso ritarare le grammature del piano attuale sui nuovi numeri, tenendo gli stessi piatti. Oppure lasci tutto com'è: i calcoli del diario usano comunque il peso di oggi.";
   if(!await dlgConfirm(msg,{ok:tr("Ritara il piano"),ko:tr("Lascia com'è")}))return;
   if(!aiOn())return dlgAlert(tr("Per ritarare serve la chiave AI. Puoi comunque rigenerare il piano a mano dal Piano."));
-  if(await retunePlan()){S.planW=S.profile.w;save();await genShop(true);return planForecast(true,true);}
+  if(await ritaraRicette()){S.ricetteW=S.profile.w;save();await genShop(true);return stimaRicette(true,true);}
 };
 /* ── LO STUDIO ───────────────────────────────────────────────────────
    Quello che misura un professionista — nutrizionista, centro dimagrimento,
@@ -2497,11 +2590,21 @@ window.misureRegistra=(rec)=>{
 window.studioSalva=()=>{
   const n=(id)=>{const v=parseFloat((document.getElementById(id)||{}).value);return isFinite(v)&&v>0?v:null;};
   const t=(id)=>{const v=((document.getElementById(id)||{}).value||"").trim();return v||null;};
+  /* intervalli del guardrail su ogni numero (MISURE, 29/08): la
+     visita è il posto con più campi, cioè con più occasioni di
+     scrivere 250 per 25 — fuori scala non si salva, e si dice quale */
+  const _fs=[];
+  const _in=(campo,v,nome)=>{if(v==null)return null;
+    if(typeof misuraOk==="function"&&!misuraOk(campo,v)){_fs.push(nome);return null;}
+    return v;};
   const rec={d:iso(new Date()),
-    fat:n("stFat"),mus:n("stMus"),acqua:n("stAcqua"),ossa:n("stOssa"),
-    bmr:n("stBmr"),pa:t("stPa"),
+    fat:_in("grassoPct",n("stFat"),tr("massa grassa")),
+    mus:_in("muscoloPct",n("stMus"),tr("massa muscolare")),
+    acqua:_in("acquaPct",n("stAcqua"),tr("acqua corporea")),
+    ossa:_in("ossaKg",n("stOssa"),tr("massa ossea")),
+    bmr:_in("bmr",n("stBmr"),"BMR"),pa:t("stPa"),
     pliche:{},circ:{},note:t("stNote"),pro:t("stPro")};
-  PLICHE.forEach(([k])=>{const v=n("stP_"+k);if(v)rec.pliche[k]=v;});
+  PLICHE.forEach(([k])=>{const v=_in("plica",n("stP_"+k),tr("plica")+" "+k);if(v)rec.pliche[k]=v;});
   /* Le circonferenze si scrivono nelle unità della persona e si salvano
      in centimetri. `senzaDeriva` confronta col valore dell'ultima visita:
      se il numero a schermo non è cambiato, resta quello di prima invece
@@ -2514,7 +2617,12 @@ window.studioSalva=()=>{
     let v=(typeof lunghIn==="function")?lunghIn(grezzo):parseFloat(grezzo);
     if(typeof senzaDeriva==="function"&&typeof lunghTxt==="function")
       v=senzaDeriva(v,prec[k],lunghTxt);
-    if(isFinite(v)&&v>0)rec.circ[k]=Math.round(v*10)/10;});
+    if(isFinite(v)&&v>0){
+      if(typeof misuraOk==="function"&&!misuraOk("circonf",v)){_fs.push(tr("circonferenza")+" "+k);return;}
+      rec.circ[k]=Math.round(v*10)/10;}});
+  if(_fs.length)
+    return dlgAlert(trh("Qualche misura non sembra plausibile: {v1}.",{v1:_fs.join(", ")})+"\n\n"+
+      tr("Controlla numero e unità (le pliche sono in millimetri). Niente è stato salvato."));
   if(!misureRegistra(rec))
     return dlgAlert(tr("Non c'è niente da salvare: compila almeno una misura o una nota."));
   save();render(cur);
@@ -2581,10 +2689,19 @@ function studioCardHTML(){
       d.fat!=null?tr("grasso")+" "+(d.fat>0?"+":"")+d.fat+"%":"",
       d.mus!=null?tr("magra")+" "+(d.mus>0?"+":"")+d.mus+"%":"",
       d.pliche!=null?tr("somma pliche")+" "+(d.pliche>0?"+":"")+d.pliche+" mm":"",
-      d.vita!=null?tr("vita")+" "+(d.vita>0?"+":"")+d.vita+" cm":""].filter(Boolean).join(" · ")}</div>`;
+      /* il girovita è salvato in cm sempre: qui si mostra, quindi si
+         veste. Stessa distanza percorsa per il peso, la stessa scena
+         che si ripete su una misura diversa.
+         Il segno va rimesso a mano: Math.abs() lo toglie e lunghTxt()
+         non lo sa — se non lo rimetto, un calo di girovita perde il
+         meno e sembra un aumento. */
+      d.vita!=null?tr("vita")+" "+(d.vita===0?"":(d.vita>0?"+":"−"))+((typeof lunghTxt==="function")?lunghTxt(Math.abs(d.vita),1):Math.abs(d.vita)+" cm"):""].filter(Boolean).join(" · ")}</div>`;
   if(v.length)h+=`<label style="margin-top:16px">${tr("Visite")} · ${v.length}</label>
     <div class="pantry">${v.slice().reverse().slice(0,8).map((x,k)=>
-      `<span class="pchip">${x.d}${x.fat!=null?" · "+x.fat+"%":""}<button onclick="studioDel(${v.length-1-k})" aria-label="${esc(tr("Togli"))}">×</button></span>`).join("")}</div>`;
+      /* chi ha misurato si vede (v15.13.0): una visita entrata dal
+         pannello dello studio porta la firma di chi l'ha presa —
+         un numero messo addosso senza un nome è sorveglianza */
+      `<span class="pchip"${x.fonte==="studio"?' data-fonte="studio"':""}>${x.d}${x.fat!=null?" · "+x.fat+"%":""}${x.da?" · "+esc(x.da):""}<button onclick="studioDel(${v.length-1-k})" aria-label="${esc(tr("Togli"))}">×</button></span>`).join("")}</div>`;
   if(aiOn())h+=`<div class="mtools"><button class="btn small" onclick="studioAI()">${tr("Analisi completa")}</button></div>
     <div class="aibox" aria-live="polite" id="studioOut" style="display:none"></div>`;
   return h+`</div>`;}
@@ -2600,6 +2717,13 @@ window.studioAI=async()=>{
       (typeof schemiForAI==="function"?schemiForAI():"")+
       " Dimmi: 1) cosa sta funzionando davvero (con il dato che lo dimostra); 2) cosa non torna e perché "+
       "(per esempio peso fermo ma pliche in calo = ricomposizione, non stallo); 3) UNA cosa da aggiustare, concreta. "+
+      /* v15.15.0: adesso le misure arrivano come SERIE, e chiederlo
+         esplicitamente è ciò che trasforma «il grasso è sceso» in
+         «scende da marzo, ma negli ultimi due mesi ha rallentato» —
+         la differenza fra leggere un numero e leggere un percorso. */
+      "Le misure ti arrivano come SERIE nel tempo: leggi la TRAIETTORIA, non solo l'ultimo valore. "+
+      "Di' se una tendenza è costante, se ha rallentato o se si è invertita, e CITA LE DATE. "+
+      "Se l'app ti passa un fatto già calcolato, quello è un dato: usalo, non ricalcolarlo. "+
       "REGOLE: se ci sono note del professionista, hanno la precedenza su qualsiasi tua proposta e non vanno contraddette. "+
       "Non fare diagnosi. Se un dato manca, dillo invece di stimarlo. Massimo 12 righe, testo semplice, niente markdown.");
     box.textContent=t;
@@ -2628,7 +2752,18 @@ function studioForAI(){
     [dl.fat!=null?"grasso "+(dl.fat>0?"+":"")+dl.fat+"%":"",
      dl.mus!=null?"magra "+(dl.mus>0?"+":"")+dl.mus+"%":"",
      dl.pliche!=null?"somma pliche "+(dl.pliche>0?"+":"")+dl.pliche+" mm":"",
-     dl.vita!=null?"vita "+(dl.vita>0?"+":"")+dl.vita+" cm":""].filter(Boolean).join(", ")+".";
+     /* stessa coerenza della riga «circonferenze» qui sopra: se quella
+        parla all'AI nelle unità della persona, anche questa deve —
+        e stesso segno rimesso a mano di due righe sopra */
+     dl.vita!=null?"vita "+(dl.vita===0?"":(dl.vita>0?"+":"−"))+((typeof lunghTxt==="function")?lunghTxt(Math.abs(dl.vita),1):Math.abs(dl.vita)+" cm"):""].filter(Boolean).join(", ")+".";
+  /* ── E LA TRAIETTORIA, NON SOLO L'ULTIMO PASSO (v15.15.0) ────────
+     Founder: «l'AI è in grado di fare queste analisi su pliche,
+     ricomposizione ecc?». Fino a ieri riceveva l'ultima visita e il
+     delta dalla precedente: due punti, con cui si dice «è sceso», non
+     «sta scendendo da quattro mesi e ha rallentato». La serie intera
+     e il fatto già calcolato arrivano da 70_evoluzione, che è anche
+     quello che disegna il grafico: una fonte sola. */
+  try{if(typeof evoPerAI==="function")t+=evoPerAI();}catch(e){}
   return t;}
 window.saveWeighIn=()=>{const p=S.profile;
   /* IL CAMPO PARLA NELLE UNITÀ DELLA PERSONA, LO STATO NO (v15.0.0):
@@ -2644,8 +2779,19 @@ window.saveWeighIn=()=>{const p=S.profile;
     wIn=senzaDeriva(wIn,parseFloat(p.w),(x)=>pesoTxt(x,1));
   const nw=wIn>0?Math.round(wIn*1000)/1000:(parseFloat(p.w)>0?parseFloat(p.w):null);
   if(!nw)return dlgAlert(tr("Inserisci almeno il peso."));
-  const fat=parseFloat(_v("pFat"))||null,mus=parseFloat(_v("pMus"))||null;
-  const pa=_v("pPa")||null,spo2=parseInt(_v("pSpo2"))||null;
+  /* gli intervalli del guardrail (MISURE, 29/08): il 250 che voleva
+     essere 25 si ferma qui, con scritto quale campo non torna */
+  if(typeof misuraOk==="function"&&!misuraOk("peso",nw))
+    return dlgAlert(tr("Quel peso non sembra plausibile: controlla numero e unità."));
+  let fat=parseFloat(_v("pFat"))||null,mus=parseFloat(_v("pMus"))||null;
+  const pa=_v("pPa")||null;let spo2=parseInt(_v("pSpo2"))||null;
+  if(typeof misuraOk==="function"){
+    if(fat!=null&&!misuraOk("grassoPct",fat))
+      return dlgAlert(tr("La massa grassa va scritta in percentuale: quel numero non sembra plausibile."));
+    if(mus!=null&&!misuraOk("muscoloPct",mus))
+      return dlgAlert(tr("La massa muscolare va scritta in percentuale: quel numero non sembra plausibile."));
+    if(spo2!=null&&!misuraOk("spo2",spo2))
+      return dlgAlert(tr("La saturazione (SpO2) sta fra 70 e 100: quel numero non sembra plausibile."));}
   p.w=nw;if(fat)p.fatp=fat;if(mus)p.musp=mus;
   p.weights=p.weights||[];
   const today=iso(new Date());

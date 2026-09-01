@@ -37,13 +37,13 @@
    proprio di non fare questo — «se divergono comanda il server» —
    ma nessuno confrontava le due tabelle. Adesso lo fa un collaudo
    (t_gating.js), che le legge tutte e due dal sorgente. */
-const LIVELLI={piano:1,foto:1,supporto:2,allenamenti:2,analisi:3};
+const LIVELLI={ricette:1,foto:1,supporto:2,allenamenti:2,analisi:3};
 window.LIVELLI=LIVELLI;
 
 /* La strada Free per ogni funzione a pagamento: è l'antidoto al
    vicolo cieco. Ogni voce dice cosa si può fare comunque, e come. */
 const ALTERNATIVE={
-  piano:      {t:"Puoi comporre la settimana a mano dal Piano: ci vuole più tempo, ma il risultato è tuo.",azione:"show('piano')",eti:"Vai al piano"},
+  ricette:    {t:"Puoi comporre la settimana a mano dal Piano: ci vuole più tempo, ma il risultato è tuo.",azione:"show('ricette')",eti:"Vai al piano"},
   analisi:    {t:"Puoi scrivere il pasto a mano: il bilancio del giorno si aggiorna lo stesso.",azione:"show('oggi')",eti:"Scrivi il pasto"},
   foto:       {t:"Puoi scrivere cosa hai mangiato: il conto delle calorie è identico.",azione:"show('oggi')",eti:"Scrivi il pasto"},
   supporto:   {t:"Nella pagina Come stai trovi comunque i tuoi schemi e i tuoi numeri.",azione:"show('comestai')",eti:"Vai a Come stai"},
@@ -136,8 +136,8 @@ const OFFERTE=[
    quando:()=>tentato("foto"),
    t:"Con l'AI la foto del piatto diventa un pasto registrato in due secondi.",
    piano:"start"},
-  {k:"piano",serve:1,
-   quando:()=>tentato("piano"),
+  {k:"ricette",serve:1,
+   quando:()=>tentato("ricette"),
    t:"Con l'AI la settimana e la lista della spesa te le preparo io.",
    piano:"start"},
   {k:"allenamenti",serve:2,

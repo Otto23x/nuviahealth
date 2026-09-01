@@ -460,7 +460,7 @@ function ponteHTML(){
 window.ponteHTML=ponteHTML;
 
 window.ponteAccetta=()=>{const L=fotoStato();L.ponte.proposto=true;save();
-  if(typeof wizStart==="function")wizStart(1);else show("piano");};
+  if(typeof wizStart==="function")wizStart(1);else show("ricette");};
 window.ponteRifiuta=()=>{const L=fotoStato();L.ponte.rifiutato=true;L.ponte.proposto=true;save();
   toast(tr("Va benissimo così. Non te lo chiedo più."));
   render(cur);};

@@ -2,7 +2,7 @@
    39. LA DIETA CHE ARRIVA DALLO STUDIO
    ═══════════════════════════════════════════════════════════════
    Il professionista compone il piano nel pannello e lo pubblica;
-   qui arriva col conto (vista.dietaStudio) e diventa una proposta
+   qui arriva col conto (vista.ricetteStudio) e diventa una proposta
    sulla pagina del piano. PROPOSTA, non imposizione: si adotta con
    un tocco, dopo un avviso chiaro che la settimana in corso
    riparte. Tre scelte:
@@ -19,36 +19,36 @@
 
 /* traduzioni nel dizionario centrale (10_base), come da convenzione */
 
-function dietaStudioInArrivo(){
+function ricetteStudioInArrivo(){
   try{
     const v=(S.conto&&S.conto.vista)||{};
-    const d=v.dietaStudio;
+    const d=v.ricetteStudio;
     if(!d||!Array.isArray(d.piano)||!d.piano.length)return null;
-    if(S.dietaStudioV&&S.dietaStudioV>=d.v)return null;  /* già adottata */
+    if(S.ricetteStudioV&&S.ricetteStudioV>=d.v)return null;  /* già adottata */
     return d;
   }catch(e){return null;}}
 
-function dietaStudioAdotta(){
-  const d=dietaStudioInArrivo();
+function ricetteStudioAdotta(){
+  const d=ricetteStudioInArrivo();
   if(!d)return;
   if(!confirm(tr("Confermo questo piano come base settimanale? La settimana in corso (spunte, extra, allenamenti) viene azzerata.")))return;
   /* stessa strada del piano personalizzato: un solo motore */
-  S.customPlan=d.piano;PLAN=d.piano;S.permMeals={};S.week=freshWeek();
-  S.dietaStudioV=d.v;
+  S.ricette=d.piano;RICETTE=d.piano;S.permMeals={};S.week=freshWeek();
+  S.ricetteStudioV=d.v;
   save();
   try{telemetria("dieta_studio_adottata");}catch(e){}
-  try{renderPiano();}catch(e){}}
-window.dietaStudioAdotta=dietaStudioAdotta;
+  try{renderRicette();}catch(e){}}
+window.ricetteStudioAdotta=ricetteStudioAdotta;
 
 /* La scheda, in testa alla pagina del piano. */
 (function(){
-  const _renderPiano=window.renderPiano;
-  if(typeof _renderPiano!=="function")return;
-  window.renderPiano=function(){
-    _renderPiano.apply(this,arguments);
+  const _renderProposta=window.renderRicette;
+  if(typeof _renderProposta!=="function")return;
+  window.renderRicette=function(){
+    _renderProposta.apply(this,arguments);
     try{
-      const el=document.getElementById("pg-piano");
-      const d=dietaStudioInArrivo();
+      const el=document.getElementById("pg-ricette");
+      const d=ricetteStudioInArrivo();
       const vecchia=el&&el.querySelector("#dieta-studio-scheda");
       if(vecchia)vecchia.remove();
       if(!el||!d)return;
@@ -64,7 +64,7 @@ window.dietaStudioAdotta=dietaStudioAdotta;
         '<button class="btn" id="dieta-studio-si">'+trBtn("Adotta il piano")+'</button>'+
         '<button class="btn ghost" id="dieta-studio-no">'+trBtn("Più tardi")+'</button></div>';
       el.insertBefore(box,el.firstChild);
-      box.querySelector("#dieta-studio-si").addEventListener("click",dietaStudioAdotta);
+      box.querySelector("#dieta-studio-si").addEventListener("click",ricetteStudioAdotta);
       box.querySelector("#dieta-studio-no").addEventListener("click",function(){box.remove();});
     }catch(e){}
   };

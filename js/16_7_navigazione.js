@@ -1,7 +1,9 @@
 /* ═══════════════════════════════════════════════════════════════
    7. NAVIGAZIONE
    ═══════════════════════════════════════════════════════════════ */
-const pages=["punto","oggi","piano","spesa","sport","comestai","storico","mia","insieme","io","ruota","conto","costellazione","sistema","regole","tools","guida","nuvia","setup","onb2","piani"];let cur="oggi";
+/* «costellazione» non è più una pagina (v15.5.0): è confluita in
+   «ruota» — Il tuo percorso — che ora porta anche medaglia e Zen. */
+const pages=["punto","oggi","ricette","spesa","sport","comestai","storico","mia","insieme","io","ruota","conto","sistema","regole","tools","guida","nuvia","documenti","setup","onb2","piani"];let cur="oggi";
 /* L'intestazione è sticky: sta sempre in cima e copre i primi ~90 px.
    scrollIntoView non lo sa e infila il titolo della card sotto la barra.
    Qui si calcola l'altezza VERA dell'intestazione e si scorre di conseguenza,
@@ -59,8 +61,16 @@ function show(p){
      nuovo incontra il flusso a dieci schermate; il percorso lungo resta
      raggiungibile (da Io) per chi vuole rifarlo con tutti i dettagli. */
   /* Un percorso solo (25/08): chiunque non abbia finito va in onb2,
-     compreso chi era rimasto a metà del percorso vecchio. */
-  if(!S.onboard.done&&p!=="onb2")p="onb2";
+     compreso chi era rimasto a metà del percorso vecchio.
+     ── L'ECCEZIONE DEI DOCUMENTI (v15.7.0) ────────────────────────
+     «documenti» passa anche a percorso non finito, e non è una
+     comodità: il gate legale è la PRIMA schermata e chiede di
+     accettare termini e privacy: se il link per leggerli riportasse
+     al gate, si accetterebbe un testo che non si può aprire. Un
+     consenso dato su un documento non consultabile non è un
+     consenso. Il gate resta comunque invalicabile — da Documenti si
+     torna indietro e si è ancora lì. */
+  if(!S.onboard.done&&p!=="onb2"&&p!=="documenti")p="onb2";
   cur=p;pages.forEach(x=>document.getElementById("pg-"+x).classList.toggle("active",x===p));
   document.querySelectorAll(".tabs button").forEach(b=>b.classList.toggle("on",b.dataset.p===p));
   {const mb=document.getElementById("hMore");
@@ -86,9 +96,9 @@ const TABS=[["punto","Punto"],
             ["oggi","Oggi"],["sport","Allenamento"],["spesa","Spesa"]];
 /* Il resto: si apre dal ⋯ oppure chiedendolo all'assistente. Un nome solo
    per ciascuna, così la lista si legge in un colpo d'occhio. */
-const ALTRE=[["piano","Piano","piano"],["comestai","Come stai","heart"],["storico","Numeri","progressi"],
+const ALTRE=[["ricette","Ricette","ricette"],["comestai","Come stai","heart"],["storico","Numeri","progressi"],
              ["tools","Strumenti","tools"],["regole","Regole","regole"],
-             ["mia","La mia","star"],["insieme","Insieme","persone"],["io","Utente","io"],["ruota","Il tuo percorso","star"],["conto","Abbonamento","star"],["costellazione","Costellazione","star"],["sistema","Sistema","gear"],["guida","Guida","guida"],["nuvia","Nuvia","nuvia"]];
+             ["mia","La mia","star"],["insieme","Insieme","persone"],["io","Utente","io"],["ruota","Il tuo percorso","star"],["conto","Abbonamento","star"],["sistema","Sistema","gear"],["guida","Guida","guida"],["nuvia","Nuvia","nuvia"],["documenti","Documenti","guida"]];
 /* ═══ L'ASSISTENTE ══════════════════════════════════════════════════
    Diciassette strumenti non si cercano: si chiedono. Qui la domanda viene
    riconosciuta e porta dove serve. Quando la domanda non è una richiesta
@@ -117,7 +127,7 @@ let ASSIST_MAP;
  {p:"tools",a:"rapidoAI",k:["dieci minuti","10 minuti","non ho tempo","veloce","di corsa","al volo","poco tempo","rapido"],t:"Ho dieci minuti"},
  {p:"tools",a:"dopoAI",k:["giorno dopo","ieri sera","postumi","ho bevuto troppo","bevuto ieri","sbornia","alcol","serata pesante","hangover","dopo la festa"],t:"Il giorno dopo"},   /* «geoStart» non esiste più: la chiave doppia lo teneva in vita */
  {p:"spesa",k:["spesa","supermercat","lista","comprare","carrello"],t:"Spesa"},
- {p:"piano",k:["piano","settimana","menu settimanale","cambiare i pasti","genera"],t:"Piano",top:1},
+ {p:"ricette",k:["piano","ricette","settimana","menu settimanale","cambiare i pasti","genera"],t:"Ricette",top:1},
  {p:"sport",k:["sport","camminata","registrare l'allenamento","quanto ho bruciato","allenamento","registrare un allenamento","palestra","ho corso","andato a correre","andato in palestra","vado in palestra","corsa","camminata","in bici","nuotato","workout"],t:"Allenamenti"},
  {p:"storico",k:["peso","pesata","progress","grafico","quanto ho perso","andamento","proiezione","settimane passate","mesi passati","riepilogo","le note che ho scritto","note del diario","scarica csv"],t:"Progressi",top:1},
  {p:"regole",k:["regole","formula","calcolo","proteine per kg","deficit","minimo calorico","soglia"],t:"Regole del calcolo",top:1},
@@ -133,7 +143,7 @@ let ASSIST_MAP;
  {p:"comestai",k:["come sto","come mi sento","umore","stress","fame nervosa","mi sento giù","ansia","sostegno","aiuto psicologico","abbuffata","mi sento in colpa"],t:"Come stai"},   /* «a» qui è l'ancora dell'atterraggio, non una funzione da chiamare */
  {p:"punto",k:["evento","il mio compleanno","oggi compleanno","giornata particolare","oggi festa","oggi è speciale"],t:tr("Evento del giorno"),a:"eventoScegli"},
  {p:"punto",k:["nota","scrivere una nota","diario di oggi","annotare"],t:tr("Nota del giorno"),a:"notaScrivi"},
- {p:"piano",k:["scontrino","piano dalla spesa","dispensa","ho fatto la spesa","fotografa lo scontrino"],t:"Piano dalla spesa",a:"scontrinoScan"},
+ {p:"ricette",k:["scontrino","piano dalla spesa","dispensa","ho fatto la spesa","fotografa lo scontrino"],t:"Ricette dalla spesa",a:"scontrinoScan"},
  {p:"io",k:["vacanza","parto per le ferie","ferie","viaggio lungo"],t:"Modalità vacanza",a:"toggleVacanza"},
  {p:"sistema",k:["backup","drive","salvare i dati","sincronizza","esportare"],t:"Backup e Drive",a:"driveRestoreMenu"},
  {p:"sistema",k:["chiave","gemini","api key","attivare l'ai"],t:"Chiave AI (Gemini)",a:"saveAI"},
@@ -167,7 +177,7 @@ function assistFind(q){
      («sistema», «bilancia», «piano») no: erano loro a produrre gli
      scambi, perché vivono dentro altre parole — «ri-bilancia-mi»,
      «sistema-mi» — e portavano la persona nel posto sbagliato. */
-  const INTERE=["sistema","bilancia","piano","peso","spesa","oggi","punto","regole","acqua","serie","fame"];
+  const INTERE=["sistema","bilancia","ricette","peso","spesa","oggi","punto","regole","acqua","serie","fame"];
   const parola=(testo,kk)=>{
     if(kk.indexOf(" ")>=0)return testo.includes(kk);   /* frasi: confronto diretto */
     const esc2=kk.replace(/[.*+?^${}()|[\]\\]/g,"\\$&");
@@ -231,7 +241,7 @@ function assistContext(){
       (cycPhase()?", fase della dieta: "+cycPhase()+" (giorno "+cycPhaseDay()+" di "+cycPhaseLen()+")":"")+
       (physDelta()?", stato fisiologico attivo: "+physNote():"")+".",
     (S.family&&S.family.length)?("In casa ci sono "+S.family.length+" familiari."):"Nessun familiare inserito.",
-    planIsEmpty()?"Non ha ancora un piano alimentare.":"Ha un piano alimentare attivo.",
+    ricetteVuote()?"Non ha ancora un piano alimentare.":"Ha un piano alimentare attivo.",
     aiOn()?"":"Non ha inserito la chiave AI: molte funzioni sono spente."
   ];
   return righe.filter(Boolean).join(" ");}
@@ -413,7 +423,7 @@ let ASSIST_MENU;
  ["Piano e spesa",[
    ["Vedere o cambiare il piano","Piano"],
    ["La lista della spesa","Spesa"],
-   ["Ho fatto la spesa: fotografo lo scontrino","Piano dalla spesa"]]],
+   ["Ho fatto la spesa: fotografo lo scontrino","Ricette dalla spesa"]]],
  ["Corpo e progressi",[
    ["Registrare una pesata","Nuova pesata"],
    ["Peso, grafici e progressi","Progressi"],

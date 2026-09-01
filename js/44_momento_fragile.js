@@ -30,7 +30,7 @@
 /* ── i giorni, in ordine, come li vede il telefono ────────────── */
 function fragGiorni(n){
   let out=[];
-  try{out=(typeof flattenDiet==="function"?flattenDiet():[])||[];}catch(e){out=[];}
+  try{out=(typeof flattenDiario==="function"?flattenDiario():[])||[];}catch(e){out=[];}
   /* la settimana in corso non è ancora nello storico: si aggiunge */
   try{
     const w=S.week||{};

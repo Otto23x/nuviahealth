@@ -86,8 +86,8 @@ function segTecnici(){
   try{r.push("Installata: "+(window.matchMedia("(display-mode: standalone)").matches?"sì (PWA)":"no (browser)"));}catch(e){}
   try{r.push("Rete: "+(navigator.onLine?"online":"offline"));}catch(e){}
   try{r.push("AI configurata: "+(typeof aiOn==="function"&&aiOn()?"sì":"no"));}catch(e){}
-  try{r.push("Piano: "+(typeof planIsEmpty==="function"&&planIsEmpty()?"vuoto":
-    (S&&S.customPlan?"personalizzato":"originale")));}catch(e){}
+  try{r.push("Piano: "+(typeof ricetteVuote==="function"&&ricetteVuote()?"vuoto":
+    (S&&S.ricette?"personalizzato":"originale")));}catch(e){}
   return r.join("\n");}
 window.segTecnici=segTecnici;
 

@@ -9,7 +9,7 @@
    che dice «controlla tu che non ci sia niente che ti fa male» sposta
    il lavoro sulla persona senza darle uno strumento; una nota nel
    prompt è un promemoria che il modello può dimenticare al piano
-   successivo. Una regola invece finisce in `S.diet.no` — il campo che
+   successivo. Una regola invece finisce in `S.pref.no` — il campo che
    il prompt legge da sempre — e da lì in `vietatiElenco()`, cioè
    nell'elenco che `validaSettimana` CONTROLLA IN JAVASCRIPT a ogni
    generazione. Da quel momento non è più una preghiera: è una
@@ -20,7 +20,7 @@
       «basta legumi», «niente fritti».
    2. L'AI (o, senza AI, una pulizia locale) ESTRAE gli alimenti, le
       categorie o le preparazioni da evitare. Solo quello.
-   3. I termini entrano in S.diet.no, senza doppioni.
+   3. I termini entrano in S.pref.no, senza doppioni.
    4. Si cercano nel piano ATTUALE i giorni che li contengono — con
       `vietatoDentro`, lo stesso confronto della validazione — e si
       rifanno SOLO quelli, con la chiamata mirata che esiste già.
@@ -38,7 +38,7 @@
    una scrollata di spalle («verifica tu»), ma una porta — la frase
    dice il limite E consegna lo strumento per agire. */
 function correzioniCardHTML(){
-  const attive=String((S.diet&&S.diet.no)||"").trim();
+  const attive=String((S.pref&&S.pref.no)||"").trim();
   return `<div class="card"><h2>${tr("Correzioni")}</h2>
   <div class="hint">${esc(tr("Il piano è costruito sulle tue risposte, non è una prescrizione: se un piatto non ti va, o non è compatibile con una tua condizione, scrivilo qui — lo tolgo e non torna più."))}</div>
   <label for="corrIn" style="margin-top:12px">${esc(tr("Cosa togliere o cambiare"))}</label>
@@ -83,15 +83,15 @@ window.correzioneApplica=async()=>{
     return;}
 
   /* ── 1 · la regola si scrive, senza doppioni ── */
-  const attuali=vietatiElenco(String(S.diet.no||""),"");
+  const attuali=vietatiElenco(String(S.pref.no||""),"");
   const nuovi=puliti.filter(x=>attuali.indexOf(x)<0);
   if(nuovi.length){
-    S.diet.no=[String(S.diet.no||"").trim(),nuovi.join(", ")].filter(Boolean).join(", ");
+    S.pref.no=[String(S.pref.no||"").trim(),nuovi.join(", ")].filter(Boolean).join(", ");
     save();}
 
   /* ── 2 · i giorni colpiti si trovano col confronto della validazione ── */
   const colpiti=[];
-  (PLAN||[]).forEach((d,i)=>{
+  (RICETTE||[]).forEach((d,i)=>{
     const trovato=(d.meals||[]).some(m=>{
       if((m.type||"norm")!=="norm")return false;      /* liberi e mensa non si toccano */
       const desc=(m.o&&m.o[0]&&m.o[0].d)||"";
@@ -119,11 +119,11 @@ window.correzioneApplica=async()=>{
       if(box)box.textContent=tr("La riscrittura non è arrivata: la regola resta registrata, riprova fra poco o cambia i pasti con il dado.");
       return;}
     snapSave("prima di: correzione applicata");
-    esito.fatti.forEach(f=>{PLAN[f.i]=f.day;});
-    S.customPlan=PLAN;
-    if(typeof pianoCambiato==="function")pianoCambiato();
+    esito.fatti.forEach(f=>{RICETTE[f.i]=f.day;});
+    S.ricette=RICETTE;
+    if(typeof ricetteCambiate==="function")ricetteCambiate();
     save();
-    const nomi=esito.fatti.map(f=>giorno(PLAN[f.i].day)).join(", ");
+    const nomi=esito.fatti.map(f=>giorno(RICETTE[f.i].day)).join(", ");
     if(box)box.innerHTML=esc(trh("Fatto: {v1} non compare più. Ho riscritto {v2}, il resto del piano non è stato toccato.",{v1:puliti.join(", "),v2:nomi}))+
       (esito.rimasti.length?"<br>"+esc(trh("In {v1} non sono riuscito a toglierlo: scegli lì un'alternativa.",{v1:esito.rimasti.join(", ")})):"");
     try{render(cur);}catch(e){}
@@ -134,12 +134,12 @@ window.correzioneApplica=async()=>{
 /* ── LA RISCRITTURA MIRATA ──────────────────────────────────────
    Usa gli stessi mattoni della generazione — askWeekAI, il contratto,
    normDayAI, la validazione — e le stesse regole del piano
-   (rulesForPlan, target, pasti). I giorni tornano al loro posto per
+   (regoleRicette, target, pasti). I giorni tornano al loro posto per
    NOME; un giorno in cui il termine resta NON si applica: sarebbe
    sostituire un giorno buono con uno che ha lo stesso difetto. */
 async function correzioneRifai(colpiti,vietati){
   const target=dayTargetK(),protG=dayTargetP();
-  const slots=parseSlots(S.diet.slots||"Colazione, Metà mattina, Pranzo, Metà pomeriggio, Cena");
+  const slots=parseSlots(S.pref.slots||"Colazione, Metà mattina, Pranzo, Metà pomeriggio, Cena");
   /* ══ ANCHE QUESTA È UNA STRADA CHE SCRIVE UN PIANO (audit 27/08) ══
      Riscrive uno o più giorni interi, e lo faceva sapendo solo: i
      termini appena corretti, l'età, il target e le regole nutrizionali.
@@ -152,11 +152,11 @@ async function correzioneRifai(colpiti,vietati){
   const q='Stai correggendo un piano alimentare settimanale italiano già scritto. Rifai SOLO questi giorni, lasciando stare gli altri: '+
     colpiti.map(c=>c.giorno).join(", ")+'. Il motivo della correzione: la persona NON vuole più questi alimenti o preparazioni, in nessuna forma: '+
     vietati.join(", ")+'. Persona: '+age()+' anni. Target di OGNI giorno: circa '+target+' kcal (tolleranza ±5%) e almeno '+protG+' g di proteine. '+
-    ((typeof dietStr==="function")?dietStr()+' ':'')+
-    rulesForPlan()+((typeof rigaPasto==="function")?rigaPasto():'')+
+    ((typeof vincoliStr==="function")?vincoliStr()+' ':'')+
+    regoleRicette()+((typeof rigaPasto==="function")?rigaPasto():'')+
     ' Pasti da prevedere, in questo ordine esatto: '+slots.join(", ")+'.'+
     ' Regole: solo alimenti veri, porzioni in grammi, valori nutrizionali REALI.'+
-    weekJSONContract(colpiti.map(c=>c.giorno),false)
+    weekJSONContract(colpiti.map(c=>c.giorno),false,slots)
       .replace('ESATTAMENTE sette oggetti','ESATTAMENTE '+colpiti.length+(colpiti.length===1?' oggetto':' oggetti'));
   const r=await askWeekAI(q);
   const fatti=[],rimasti=[];
@@ -174,8 +174,8 @@ async function correzioneRifai(colpiti,vietati){
       const controllo=validaSettimana([d],{giorni:[c.giorno],kcal:target,prot:protG,
         tollPct:5,slots:slots,nPasti:slots.length,
         vietati:vietati.concat((typeof vietatiElenco==="function")
-          ?vietatiElenco(S.diet.no||"",S.diet.intol||""):[]),
-        allergeni:(typeof allergeniElenco==="function")?allergeniElenco(S.diet.allergie||""):[],
+          ?vietatiElenco([S.pref.no,S.pref.religiose].filter(Boolean).join("; "),S.pref.intol||""):[]),
+        allergeni:(typeof allergeniElenco==="function")?allergeniElenco(S.pref.allergie||""):[],
         ripetizioni:"libera"});
       const grave=controllo.problemi.some(p=>p.grave);
       if(grave){rimasti.push(giorno(c.giorno));return;}

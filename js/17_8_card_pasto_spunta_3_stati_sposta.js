@@ -3,7 +3,7 @@
       nello stesso giorno, modifica AI , alternativa AI )
    ═══════════════════════════════════════════════════════════════ */
 function mealCard(pdi,mi){
-  const m=PLAN[pdi].meals[mi],st=S.week.days[pdi].meals[mi],o=mealOpt(pdi,mi);
+  const m=RICETTE[pdi].meals[mi],st=S.week.days[pdi].meals[mi],o=mealOpt(pdi,mi);
   const dispName=st.movedAs||m.n;
   const cls="meal "+(m.type==="free"?"free ":"")+(m.type==="mensa"?"mensa ":"")+(st.done?"done ":"")+(st.skip?"skip":"");
   const sym=st.done?"✓":(st.skip?"✗":"");
@@ -20,12 +20,12 @@ function mealCard(pdi,mi){
   /* i fulmini dell'energia mancavano in Oggi (riscontro 25/08): la
      stessa domanda del Punto, sulla card del pasto da segnare */
   if(!st.done&&!st.skip)h+=energyHTML(pdi,mi);
-  if(((PLAN[pdi].meals[mi]||{}).o||[]).length>1&&!st.custom){h+=`<div class="mopts">`+(m.o||[]).map((x,oi)=>
+  if(((RICETTE[pdi].meals[mi]||{}).o||[]).length>1&&!st.custom){h+=`<div class="mopts">`+(m.o||[]).map((x,oi)=>
     `<button class="${oi===st.opt?"sel":""}" onclick="setOpt(${pdi},${mi},${oi})">${optLabel(x,oi)}</button>`).join("")+`</div>`;}
   h+=`<div class="mtools">
     <select aria-label="${tr("Sposta il pasto in un altro giorno")}" onchange="moveDay(${pdi},${mi},this.value)">
-      <option value="-1" ${st.movedTo===-1?"selected":""}> ${giorno(PLAN[pdi].day)}</option>`;
-  PLAN.forEach((d,di)=>{if(di!==pdi)h+=`<option value="${di}" ${st.movedTo===di?"selected":""}>→ ${giorno(d.day)}</option>`;});
+      <option value="-1" ${st.movedTo===-1?"selected":""}> ${giorno(RICETTE[pdi].day)}</option>`;
+  RICETTE.forEach((d,di)=>{if(di!==pdi)h+=`<option value="${di}" ${st.movedTo===di?"selected":""}>→ ${giorno(d.day)}</option>`;});
   h+=`</select>
     <select aria-label="${tr("Sposta il pasto in un'altra fascia")}" onchange="moveSlot(${pdi},${mi},this.value)">`;
   /* Il valore che si salva resta la fascia in italiano (moveSlot lo
@@ -71,7 +71,7 @@ function mealCard(pdi,mi){
     <button class="btn small" onclick="tgl(${pdi},${mi})">${esc(tr("L'ho mangiato"))}</button>
     <button class="btn ghost small" onclick="saltaPasto(${pdi},${mi})">${esc(tr("Non l'ho mangiato"))}</button>
   </div>`;
-  if(st.movedTo!==-1||st.movedAs&&st.movedAs!==m.n)h+=`<span class="badge moved">da ${giorno(PLAN[pdi].day)} · ${fascia(m.n)}</span><button class="ibtn" title="${tr("Riporta questo pasto (e quello scambiato) al giorno di origine")}" onclick="unmoveMeal(${pdi},${mi})">${ic("undo",17)}</button>`;
+  if(st.movedTo!==-1||st.movedAs&&st.movedAs!==m.n)h+=`<span class="badge moved">da ${giorno(RICETTE[pdi].day)} · ${fascia(m.n)}</span><button class="ibtn" title="${tr("Riporta questo pasto (e quello scambiato) al giorno di origine")}" onclick="unmoveMeal(${pdi},${mi})">${ic("undo",17)}</button>`;
   h+=`</div></div></div>`;return h;}
 /* `filaIconeSegna` è stata tolta nella v13.86 insieme alla fila che
    segnava. Serviva a mettere la sfumatura sul bordo destro quando le
@@ -179,15 +179,15 @@ window.setOpt=(d,m,o)=>{S.week.days[d].meals[m].opt=o;save();render(cur);};
    scambio solo, senza dover ricordare cosa hai preso da dove. */
 function findCounterpart(toDi,slot,excludePdi,excludeMi){
   // trova il pasto che occupa (toDi, slot) in questo momento
-  for(let pdi=0;pdi<7;pdi++)for(let mi=0;mi<PLAN[pdi].meals.length;mi++){
+  for(let pdi=0;pdi<7;pdi++)for(let mi=0;mi<RICETTE[pdi].meals.length;mi++){
     if(pdi===excludePdi&&mi===excludeMi)continue;
-    const st=S.week.days[pdi].meals[mi];const m=PLAN[pdi].meals[mi];
+    const st=S.week.days[pdi].meals[mi];const m=RICETTE[pdi].meals[mi];
     const effDay=(st.movedTo!==-1&&st.movedTo!=null)?st.movedTo:pdi;
     const effSlot=st.movedAs||m.n;
     if(effDay===toDi&&effSlot===slot)return{pdi,mi};}
   return null;}
 function applyMove(pdi,mi){
-  const st=S.week.days[pdi].meals[mi];const m=PLAN[pdi].meals[mi];
+  const st=S.week.days[pdi].meals[mi];const m=RICETTE[pdi].meals[mi];
   const toDi=(st.movedTo!==-1&&st.movedTo!=null)?st.movedTo:pdi;
   const toSlot=st.movedAs||m.n;
   if(toDi===pdi&&toSlot===m.n){save();render(cur);return;} // tornato a casa: niente scambio
@@ -196,11 +196,11 @@ function applyMove(pdi,mi){
     const ost=S.week.days[other.pdi].meals[other.mi];
     if(!ost.done&&!ost.skip){
       ost.movedTo=(pdi===other.pdi)?-1:pdi;ost.movedAs=m.n;
-      toast(tr("Scambiati: {a} ⇄ {b} (Annulla per tornare indietro)",{a:m.n,b:PLAN[other.pdi].meals[other.mi].n}));}}
+      toast(tr("Scambiati: {a} ⇄ {b} (Annulla per tornare indietro)",{a:m.n,b:RICETTE[other.pdi].meals[other.mi].n}));}}
   save();render(cur);}
 /*  Riporta il pasto (e il suo gemello scambiato) al giorno di origine */
 window.unmoveMeal=(pdi,mi)=>{
-  const st=S.week.days[pdi].meals[mi];const m=PLAN[pdi].meals[mi];
+  const st=S.week.days[pdi].meals[mi];const m=RICETTE[pdi].meals[mi];
   // il gemello è chi ora occupa la MIA posizione originale
   const twin=findCounterpart(pdi,m.n,pdi,mi);
   st.movedTo=-1;st.movedAs=null;
@@ -208,7 +208,7 @@ window.unmoveMeal=(pdi,mi)=>{
     tst.movedTo=-1;tst.movedAs=null;} // sempre: l'altro pasto è invisibile da qui
   save();render(cur);toast(tr("Pasti riportati al giorno di origine ✓"));}
 window.moveDay=(d,m,v)=>{const st=S.week.days[d].meals[m];st.movedTo=parseInt(v);
-  if(!st.movedAs)st.movedAs=PLAN[d].meals[m].n;applyMove(d,m);};
+  if(!st.movedAs)st.movedAs=RICETTE[d].meals[m].n;applyMove(d,m);};
 window.moveSlot=(d,m,v)=>{S.week.days[d].meals[m].movedAs=v;applyMove(d,m);};
 window.resetMeal=(d,m)=>{S.week.days[d].meals[m].custom=null;save();render(cur);};
 /*  Modifica pasto + stima AI */
@@ -233,7 +233,7 @@ window.editMealGo=async(d,m)=>{
      descrizione resta indicativa e nello stesso stile corto del piano.
      Per i pasti normali il TUO testo non si tocca: le grammature che
      scrivi sono legge. */
-  const fuori=(PLAN[d]&&PLAN[d].meals[m]&&(PLAN[d].meals[m].type==="free"||PLAN[d].meals[m].type==="mensa"));
+  const fuori=(RICETTE[d]&&RICETTE[d].meals[m]&&(RICETTE[d].meals[m].type==="free"||RICETTE[d].meals[m].type==="mensa"));
   let k=o.k,p=o.p,j=null;
   if(aiOn()){
     try{
@@ -261,7 +261,7 @@ window.editMealGo=async(d,m)=>{
 window.altMeal=async(d,m)=>{const o=mealOpt(d,m);
   if(!aiOn())return aiFail(new Error("nokey"));
   try{
-    const slot=(PLAN[d]&&PLAN[d].meals[m]&&PLAN[d].meals[m].n)||"pasto";
+    const slot=(RICETTE[d]&&RICETTE[d].meals[m]&&RICETTE[d].meals[m].n)||"pasto";
     /* memoria breve per pasto: senza, «Alternativa» ripropone sempre
        le stesse 2-3 idee. La chiave è giorno_pasto, si tengono le ultime 6. */
     S.altSeen=S.altSeen||{};const akey=d+"_"+m;const visti=S.altSeen[akey]||[];
@@ -270,12 +270,18 @@ window.altMeal=async(d,m)=>{const o=mealOpt(d,m);
       'IMPORTANTE: il pasto è «'+slot+'», quindi il piatto deve essere adatto a QUEL momento della giornata. '+
       'A colazione e a metà mattina si mangiano latticini, cereali, pane, frutta secca, frutta, uova, dolci da colazione — MAI carne, pesce o piatti da pranzo. '+
       'A metà pomeriggio spuntini piccoli. A pranzo e cena piatti completi. '+
-      dietStr()+' Ingredienti comuni nella tradizione culinaria indicata sopra, con grammature. Rispondi SOLO JSON: {"piatto":"descrizione con grammature","kcal":numero,"prot":numero,"carb":numero,"gras":numero}');
+      vincoliStr()+' Ingredienti comuni nella tradizione culinaria indicata sopra, con grammature. Rispondi SOLO JSON: {"piatto":"descrizione con grammature","kcal":numero,"prot":numero,"carb":numero,"gras":numero}');
     const j=parseAIJSON(t);
+    /* LA RETE VALE ANCHE QUI (29/08): il prompt porta i vincoli, ma il
+       piatto che TORNA va riletto dal codice come fa il piano — uno
+       scivolone del modello non deve mettere un alimento vietato nel
+       piano da questa porta. Se c'è, si ripara in silenzio con la
+       stessa macchina del piano (pastoSicuro → riparaDesc). */
+    if(typeof pastoSicuro==="function")j.piatto=pastoSicuro(j.piatto).d;
     if(!await dlgConfirm(tr("Alternativa AI:\n{p}\n~{k} kcal · ~{pr} g prot\n\nOK = usala",{p:j.piatto,k:Math.round(j.kcal),pr:Math.round(j.prot)})))return;
     const perm=await dlgConfirm(tr("Renderla FISSA anche per le prossime settimane?"),{ok:tr("Sempre"),ko:tr("Solo questa settimana")});
     const val={d:j.piatto,k:Math.round(j.kcal),p:Math.round(j.prot)};
-    if(perm){S.permMeals[d+"_"+m]=val;pianoCambiato();S.week.days[d].meals[m].custom=null;S.week.days[d].meals[m].opt=0;}
+    if(perm){S.permMeals[d+"_"+m]=val;ricetteCambiate();S.week.days[d].meals[m].custom=null;S.week.days[d].meals[m].opt=0;}
     else S.week.days[d].meals[m].custom=val;
     save();render(cur);
     if(await dlgConfirm(tr("Vuoi salvare questo piatto anche in ⭐ I miei piatti?")))addRecipe(val.d,val.k,val.p,null,null);
@@ -293,12 +299,16 @@ window.subIngr=async(pdi,mi)=>{
 function subPrompt(){
   return 'Pasto del mio piano: "'+SUB.o.d+'" (~'+SUB.o.k+' kcal · '+SUB.o.p+' g prot). Non ho in casa: '+SUB.miss+'.'+
   (SUB.excluded.length?' Ho già scartato questi sostituti, NON riproporli: '+SUB.excluded.join(", ")+'.':'')+
-  ' Proponi 3 alternative DIVERSE per sostituire SOLO quegli ingredienti, mantenendo le kcal (±10%) e le proteine (±5 g): per ciascuna indica il sostituto con grammatura e la descrizione completa del pasto risultante. '+dietStr()+
+  ' Proponi 3 alternative DIVERSE per sostituire SOLO quegli ingredienti, mantenendo le kcal (±10%) e le proteine (±5 g): per ciascuna indica il sostituto con grammatura e la descrizione completa del pasto risultante. '+vincoliStr()+
   ' Rispondi SOLO JSON: [{"sost":"sostituto con grammi","piatto":"descrizione completa","k":kcal,"p":prot,"c":carboidrati,"f":grassi},{...},{...}]';}
 async function subFetch(){
   const st=document.getElementById("subStatus");if(st)st.textContent="Cerco proposte…";
   try{
-    const arr=parseAIJSON(await aiAsk(subPrompt()));
+    let arr=parseAIJSON(await aiAsk(subPrompt()));
+    /* stessa rete dell'alternativa: ogni proposta si rilegge e, se
+       serve, si ripara PRIMA di comparire a schermo (29/08) */
+    if(typeof pastoSicuro==="function"&&Array.isArray(arr))
+      arr=arr.map(x=>x&&x.piatto?Object.assign({},x,{piatto:pastoSicuro(x.piatto).d}):x);
     if(!Array.isArray(arr)||!arr.length)throw new Error("formato");
     SUB.opts=arr.slice(0,3).map(a=>({sost:String(a.sost),piatto:String(a.piatto),k:Math.round(+a.k)||SUB.o.k,p:Math.round(+a.p)||SUB.o.p,c:Math.round(+a.c)||null,f:Math.round(+a.f)||null,src:"ai"}));
     SUB.sel=-1;renderSub();
@@ -309,7 +319,7 @@ window.subPhotoAsk=async()=>{
   if(!SUB.photos.length)return dlgAlert(tr("Prima scatta almeno una foto del cibo che hai in casa."));
   const st=document.getElementById("subStatus");if(st)st.textContent="Guardo le foto…";
   try{
-    const t=await aiAskVision('Pasto del mio piano: "'+SUB.o.d+'" (~'+SUB.o.k+' kcal · '+SUB.o.p+' g prot). Non ho in casa: '+SUB.miss+'. Nelle '+SUB.photos.length+' FOTO vedi il cibo che ho a disposizione: scegli il MIGLIOR sostituto tra ciò che vedi, con grammatura per mantenere kcal (±10%) e proteine (±5 g). '+dietStr()+' Rispondi SOLO JSON: {"sost":"sostituto con grammi","piatto":"descrizione completa","k":kcal,"p":prot,"c":carboidrati,"f":grassi}',SUB.photos);
+    const t=await aiAskVision('Pasto del mio piano: "'+SUB.o.d+'" (~'+SUB.o.k+' kcal · '+SUB.o.p+' g prot). Non ho in casa: '+SUB.miss+'. Nelle '+SUB.photos.length+' FOTO vedi il cibo che ho a disposizione: scegli il MIGLIOR sostituto tra ciò che vedi, con grammatura per mantenere kcal (±10%) e proteine (±5 g). '+vincoliStr()+' Rispondi SOLO JSON: {"sost":"sostituto con grammi","piatto":"descrizione completa","k":kcal,"p":prot,"c":carboidrati,"f":grassi}',SUB.photos);
     const j=parseAIJSON(t);
     SUB.opts.push({sost:" "+String(j.sost),piatto:String(j.piatto),k:Math.round(+j.k)||SUB.o.k,p:Math.round(+j.p)||SUB.o.p,c:Math.round(+j.c)||null,f:Math.round(+j.f)||null,src:"foto"});
     SUB.sel=SUB.opts.length-1;renderSub();
@@ -684,7 +694,7 @@ window.rebalance=async(di)=>{
   const dayPlan=plannedOfDay(di).k;                 // la "giornata tipo"
   const eaten=eatenOfDay(di).k;                     // mangiato finora (pasti ✓ + extra)
   const remaining=dayItems(di).filter(it=>{const st=S.week.days[it.pdi].meals[it.mi];
-    return !st.done&&!st.skip&&PLAN[it.pdi].meals[it.mi].type==="norm";});
+    return !st.done&&!st.skip&&RICETTE[it.pdi].meals[it.mi].type==="norm";});
   const remPlanned=remaining.reduce((a,it)=>a+mealOpt(it.pdi,it.mi).k,0);
   const budget=dayPlan-eaten;
   const excess=Math.round(remPlanned-budget);
@@ -694,7 +704,7 @@ window.rebalance=async(di)=>{
   const list=remaining.map(it=>{const o=mealOpt(it.pdi,it.mi);return {slot:it.slot,desc:o.d,kcal:o.k,prot:o.p};});
   const targetRem=Math.max(remaining.length*minMealKcal(),budget); // mai sotto ~250 kcal/pasto
   try{
-    const arr=await aiAskJSON('Devo restare dentro un budget di circa '+Math.round(targetRem)+' kcal TOTALI per questi pasti rimanenti di oggi (ora sommano '+remPlanned+' kcal): '+JSON.stringify(list)+'. '+REBAL_RULES+' La SOMMA delle kcal proposte deve essere vicina a '+Math.round(targetRem)+'. '+dietStr()+' Rispondi SOLO JSON array: [{"slot":"...","desc":"descrizione COMPLETA con le nuove grammature","kcal":n,"prot":n}]');
+    const arr=await aiAskJSON('Devo restare dentro un budget di circa '+Math.round(targetRem)+' kcal TOTALI per questi pasti rimanenti di oggi (ora sommano '+remPlanned+' kcal): '+JSON.stringify(list)+'. '+REBAL_RULES+' La SOMMA delle kcal proposte deve essere vicina a '+Math.round(targetRem)+'. '+vincoliStr()+' Rispondi SOLO JSON array: [{"slot":"...","desc":"descrizione COMPLETA con le nuove grammature","kcal":n,"prot":n}]');
     // scarta le proposte "furbe": kcal più basse ma descrizione identica = barare
     const valid=arr.filter(a=>{const it=remaining.find(r=>r.slot===a.slot);if(!it)return false;
       const o=mealOpt(it.pdi,it.mi);
@@ -717,29 +727,29 @@ window.rebalance=async(di)=>{
 window.rebalanceNextDay=async(fromDi,toDi)=>{
   // eccesso del giorno passato = mangiato − pianificato dell'INTERA giornata
   const sg=Math.max(0,Math.round(eatenOfDay(fromDi).k-plannedOfDay(fromDi).k));
-  if(sg<=50)return dlgAlert(tr("{a} non risulta sforato (mangiate {b} su {c} pianificate): pasti di oggi invariati.",{a:PLAN[fromDi].day,b:eatenOfDay(fromDi).k,c:plannedOfDay(fromDi).k}));
+  if(sg<=50)return dlgAlert(tr("{a} non risulta sforato (mangiate {b} su {c} pianificate): pasti di oggi invariati.",{a:RICETTE[fromDi].day,b:eatenOfDay(fromDi).k,c:plannedOfDay(fromDi).k}));
   if(!aiOn())return aiFail(new Error("nokey"));
   const mains=dayItems(toDi).filter(it=>{const st=S.week.days[it.pdi].meals[it.mi];
-    return !st.done&&!st.skip&&PLAN[it.pdi].meals[it.mi].type==="norm";});
+    return !st.done&&!st.skip&&RICETTE[it.pdi].meals[it.mi].type==="norm";});
   if(!mains.length)return dlgAlert(tr("Non c'è più niente da alleggerire oggi."));
   const list=mains.map(it=>{const o=mealOpt(it.pdi,it.mi);return {slot:it.slot,desc:o.d,kcal:o.k,prot:o.p};});
   const remPlanned=list.reduce((a,x)=>a+x.kcal,0);
   const targetRem=Math.max(mains.length*minMealKcal(),remPlanned-sg);
   try{
-    const arr=await aiAskJSON('Ieri ho ecceduto di '+sg+' kcal. Alleggerisci i pasti di OGGI ancora da consumare (ora sommano '+remPlanned+' kcal) portandone la SOMMA vicino a '+Math.round(targetRem)+' kcal. '+REBAL_RULES+' Pasti: '+JSON.stringify(list)+'. '+dietStr()+' Rispondi SOLO JSON array: [{"slot":"...","desc":"descrizione COMPLETA con le nuove grammature","kcal":n,"prot":n}]');
+    const arr=await aiAskJSON('Ieri ho ecceduto di '+sg+' kcal. Alleggerisci i pasti di OGGI ancora da consumare (ora sommano '+remPlanned+' kcal) portandone la SOMMA vicino a '+Math.round(targetRem)+' kcal. '+REBAL_RULES+' Pasti: '+JSON.stringify(list)+'. '+vincoliStr()+' Rispondi SOLO JSON array: [{"slot":"...","desc":"descrizione COMPLETA con le nuove grammature","kcal":n,"prot":n}]');
     const valid=arr.filter(a=>{const it=mains.find(r=>r.slot===a.slot);if(!it)return false;
       const o=mealOpt(it.pdi,it.mi);
       if(String(a.desc).trim()===String(o.d).trim()&&Math.round(a.kcal)<o.k)return false;
       return proteineTenute(a,o);});
     if(!valid.length)return dlgAlert(tr("L'AI non ha proposto grammature nuove valide: riprova."));
-    let msg="Recupero dello sforo di "+PLAN[fromDi].day+" (~"+sg+" kcal):\n";
+    let msg="Recupero dello sforo di "+RICETTE[fromDi].day+" (~"+sg+" kcal):\n";
     valid.forEach(a=>{const it=mains.find(r=>r.slot===a.slot);const o=mealOpt(it.pdi,it.mi);
       msg+="\n• "+a.slot+" ("+o.k+"→"+Math.round(a.kcal)+" kcal): "+a.desc+" (~"+a.prot+"p)";});
     if(!await dlgConfirm(tr("{a}\n\nOK = applica ai pasti di oggi",{a:msg})))return;
     valid.forEach(a=>{const it=mains.find(r=>r.slot===a.slot);if(it)
       S.week.days[it.pdi].meals[it.mi].custom={d:a.desc+" (recupero)",k:Math.round(a.kcal),p:Math.round(a.prot)};});
     S.week.days[toDi].rebalancedFrom=fromDi;save();render(cur);
-    dlgAlert(tr("Fatto: pasti di oggi alleggeriti per recuperare lo sforo di {g}.",{g:PLAN[fromDi].day}));
+    dlgAlert(tr("Fatto: pasti di oggi alleggeriti per recuperare lo sforo di {g}.",{g:RICETTE[fromDi].day}));
   }catch(e){aiFail(e);}};
 /* ═══ RGP — Recupero dei giorni precedenti (v5.2) ═══════════════════
    Principi:
@@ -780,7 +790,7 @@ function rgpControlHTML(di){
   if(!over.length)return `<span class="coff" title="${tr("Nessuno degli ultimi giorni supera la soglia di recupero")}">niente da recuperare</span>`;
   const tot=over.reduce((a,d)=>a+d.res,0);
   const opts=[`<option value="">${tr("— non recuperare —")}</option>`,`<option value="all">${trh("tutti · +{v1} kcal",{v1:tot})}</option>`]
-    .concat(over.map(d=>`<option value="${d.di}">${giorno(PLAN[d.di].day)} · +${d.res} kcal</option>`)).join("");
+    .concat(over.map(d=>`<option value="${d.di}">${giorno(RICETTE[d.di].day)} · +${d.res} kcal</option>`)).join("");
   return `<select id="rgpSel" title="${tr("Scegli cosa recuperare, poi conferma con ✓")}">${opts}</select>`;}
 /* Un solo pulsante ✓ rende effettivi evento e recupero della giornata. */
 window.applyCtl=(dISO,di,isToday)=>{
@@ -802,7 +812,7 @@ window.rgpRun=async(toDi)=>{
   if(!tot)return dlgAlert(tr(" Non c'è nulla da recuperare: pasti di oggi invariati."));
   if(!aiOn())return aiFail(new Error("nokey"));
   const mains=dayItems(toDi).filter(it=>{const st=S.week.days[it.pdi].meals[it.mi];
-    return !st.done&&!st.skip&&PLAN[it.pdi].meals[it.mi].type==="norm";});
+    return !st.done&&!st.skip&&RICETTE[it.pdi].meals[it.mi].type==="norm";});
   if(!mains.length)return dlgAlert(tr("Non c'è più niente da alleggerire oggi."));
   const list=mains.map(it=>{const o=mealOpt(it.pdi,it.mi);return {slot:it.slot,desc:o.d,kcal:o.k,prot:o.p};});
   const remPlanned=list.reduce((a,x)=>a+x.kcal,0);
@@ -812,9 +822,9 @@ window.rgpRun=async(toDi)=>{
   const cut=Math.max(0,Math.min(tot,capDay,remPlanned-floor));
   if(cut<50)return dlgAlert(tr("Oggi non c'è margine per recuperare senza farti saltare un pasto (restano {a} pasti da ~{b} kcal). Meglio rimandare a domani.",{a:mains.length,b:Math.round(remPlanned/mains.length)}));
   const targetRem=remPlanned-cut;
-  const nomi=sel.map(d=>PLAN[d].day).join(", ");
+  const nomi=sel.map(d=>RICETTE[d].day).join(", ");
   try{
-    const arr=await aiAskJSON('Devo recuperare '+cut+' kcal di sforo dei giorni '+nomi+' alleggerendo i pasti di OGGI ancora da consumare (ora sommano '+remPlanned+' kcal): la loro SOMMA deve arrivare vicino a '+targetRem+' kcal. '+REBAL_RULES+' Pasti: '+JSON.stringify(list)+'. '+dietStr()+' Rispondi SOLO JSON array: [{"slot":"...","desc":"descrizione COMPLETA con le nuove grammature","kcal":n,"prot":n}]');
+    const arr=await aiAskJSON('Devo recuperare '+cut+' kcal di sforo dei giorni '+nomi+' alleggerendo i pasti di OGGI ancora da consumare (ora sommano '+remPlanned+' kcal): la loro SOMMA deve arrivare vicino a '+targetRem+' kcal. '+REBAL_RULES+' Pasti: '+JSON.stringify(list)+'. '+vincoliStr()+' Rispondi SOLO JSON array: [{"slot":"...","desc":"descrizione COMPLETA con le nuove grammature","kcal":n,"prot":n}]');
     const valid=arr.filter(a=>{const it=mains.find(r=>r.slot===a.slot);if(!it)return false;
       const o=mealOpt(it.pdi,it.mi);
       return String(a.desc).trim()!==String(o.d).trim()||Math.round(a.kcal)>=o.k;});
@@ -856,7 +866,7 @@ window.fridge=async(di)=>{
   const tgt=selTarget("frTarget",di);
   const box=document.getElementById("fridgeOut");box.textContent="Sto creando il piatto…";
   try{
-    const t=await aiAsk('Ho a disposizione: '+ing+'. In questo momento dovrei mangiare: '+tgt.slot+' da circa '+tgt.k+' kcal e '+tgt.p+' g di proteine.'+compNote(tgt)+' Crea UN piatto semplice da circa '+tgt.kAdj+' kcal e '+tgt.p+' g di proteine con dosi esatte (al massimo 1-2 basi da dispensa). '+dietStr()+' Rispondi SOLO JSON: {"titolo":"...","ricetta":"passaggi brevi con grammature","kcal":n,"prot":n}');
+    const t=await aiAsk('Ho a disposizione: '+ing+'. In questo momento dovrei mangiare: '+tgt.slot+' da circa '+tgt.k+' kcal e '+tgt.p+' g di proteine.'+compNote(tgt)+' Crea UN piatto semplice da circa '+tgt.kAdj+' kcal e '+tgt.p+' g di proteine con dosi esatte (al massimo 1-2 basi da dispensa). '+vincoliStr()+' Rispondi SOLO JSON: {"titolo":"...","ricetta":"passaggi brevi con grammature","kcal":n,"prot":n}');
     const j=parseAIJSON(t);
     LASTDISH={di:di,pdi:tgt.pdi,mi:tgt.mi,titolo:String(j.titolo||"Piatto"),ricetta:String(j.ricetta||""),
       kcal:Math.round(j.kcal)||0,prot:Math.round(j.prot)||0,
@@ -875,7 +885,7 @@ window.frCreate=async(di)=>{
   const extra=document.getElementById("fridgeIn").value.trim();
   const box=document.getElementById("fridgeOut");box.textContent="Guardo le "+FR.length+" foto e invento…";
   try{
-    const t=await aiAskVision('Queste '+FR.length+' FOTO mostrano il cibo che ho tra frigo, congelatore e dispensa.'+(extra?' In più ho: '+extra+'.':'')+' In questo momento dovrei mangiare: '+tgt.slot+' da circa '+tgt.k+' kcal e '+tgt.p+' g di proteine.'+compNote(tgt)+' Crea UN piatto semplice da circa '+tgt.kAdj+' kcal e '+tgt.p+' g di proteine, con dosi esatte, usando SOLO ciò che vedi (al massimo 1-2 basi da dispensa come olio o sale). '+dietStr()+' Rispondi SOLO JSON: {"visti":"ingredienti riconosciuti in breve","titolo":"...","ricetta":"passaggi brevi con grammature","kcal":n,"prot":n}',FR);
+    const t=await aiAskVision('Queste '+FR.length+' FOTO mostrano il cibo che ho tra frigo, congelatore e dispensa.'+(extra?' In più ho: '+extra+'.':'')+' In questo momento dovrei mangiare: '+tgt.slot+' da circa '+tgt.k+' kcal e '+tgt.p+' g di proteine.'+compNote(tgt)+' Crea UN piatto semplice da circa '+tgt.kAdj+' kcal e '+tgt.p+' g di proteine, con dosi esatte, usando SOLO ciò che vedi (al massimo 1-2 basi da dispensa come olio o sale). '+vincoliStr()+' Rispondi SOLO JSON: {"visti":"ingredienti riconosciuti in breve","titolo":"...","ricetta":"passaggi brevi con grammature","kcal":n,"prot":n}',FR);
     const j=parseAIJSON(t);FR=[];
     LASTDISH={di:di,pdi:tgt.pdi,mi:tgt.mi,titolo:String(j.titolo||"Piatto"),ricetta:String(j.ricetta||""),
       kcal:Math.round(j.kcal)||0,prot:Math.round(j.prot)||0,
@@ -895,14 +905,14 @@ window.dishExtra=()=>{const d=LASTDISH;if(!d)return;
   S.week.days[d.di].extras.push({d:"Piatto creato: "+d.titolo,k:d.kcal,p:d.prot});
   save();render(cur);toast(tr("Aggiunto come extra ✓"));};
 window.dishReplace=()=>{const d=LASTDISH;if(!d)return;
-  if(d.pdi===undefined||!PLAN[d.pdi])return dlgAlert(tr("Nessun pasto selezionabile in questo giorno."));
+  if(d.pdi===undefined||!RICETTE[d.pdi])return dlgAlert(tr("Nessun pasto selezionabile in questo giorno."));
   S.week.days[d.pdi].meals[d.mi].custom={d:d.titolo+" (piatto creato)",k:d.kcal,p:d.prot};
   save();render(cur);toast(tr("Pasto sostituito ✓"));};
 window.dishSave=()=>{const d=LASTDISH;if(!d)return;
   addRecipe(d.titolo+(d.ricetta?" — "+d.ricetta:""),d.kcal,d.prot,d.carb,d.gras,d.fib,d.zuc);
   render(cur);};
 window.addFridge=(di,k,p,n)=>{S.week.days[di].extras.push({d:"Piatto creato: "+n,k,p});save();render(cur);};
-window.subFridge=(pdi,mi,k,p,n)=>{if(pdi===undefined||!PLAN[pdi])return;
+window.subFridge=(pdi,mi,k,p,n)=>{if(pdi===undefined||!RICETTE[pdi])return;
   S.week.days[pdi].meals[mi].custom={d:n+" (piatto creato)",k,p};save();render(cur);
   dlgAlert(tr("Fatto: il pasto selezionato ora è «{n}».",{n:n}));};
 /*  Selezionatore di menù v5: più foto, poi "Cerca" per confermare */
@@ -948,7 +958,7 @@ window.menuSearch=async(di,ancora)=>{
     const vuoi=voglio.length
       ? 'Voglio ordinare esattamente queste portate: '+voglio.join(", ")+'. Scegline UNA per ciascuna e nient\'altro; se una di queste sezioni non c\'è nel menù dillo e salta quella.'
       : 'Decidi tu come comporre il pasto (una o più portate fra antipasto, stuzzicherie, primo, secondo, contorno, pizza, panino, dolce, bevanda o qualunque sezione presente nel menù), scegliendo la combinazione più sensata per questo momento.';
-    const t=await aiAskVision('Queste '+MNPHOTOS.length+' FOTO sono le pagine di un menù di ristorante. In questo momento, secondo il mio piano alimentare, dovrei mangiare: '+tgt.slot+' da circa '+tgt.kAdj+' kcal e '+tgt.p+' g di proteine in TOTALE per l\'intero pasto.'+compNote(tgt)+' '+dietStr()+
+    const t=await aiAskVision('Queste '+MNPHOTOS.length+' FOTO sono le pagine di un menù di ristorante. In questo momento, secondo il mio piano alimentare, dovrei mangiare: '+tgt.slot+' da circa '+tgt.kAdj+' kcal e '+tgt.p+' g di proteine in TOTALE per l\'intero pasto.'+compNote(tgt)+' '+vincoliStr()+
       ' '+vuoi+
       ' Il TOTALE della combinazione deve avvicinarsi al target, non ogni singola portata. Prendi i nomi esattamente come sono scritti sul menù.'+
       ' Per ogni portata indica anche come ordinarla per stare nei numeri (porzione, condimento a parte, contorno al posto delle patatine…).'+
@@ -991,7 +1001,7 @@ let MNPICK=null;
 function mnDesc(){if(!MNPICK)return "";
   return MNPICK.port.map(x=>(x.cat?x.cat+": ":"")+x.nome).join(" + ");}
 window.mnUse=()=>{if(!MNPICK)return;
-  if(MNPICK.pdi===undefined||!PLAN[MNPICK.pdi])return dlgAlert(tr("Nessun pasto selezionabile in questo giorno: aggiungilo come extra."));
+  if(MNPICK.pdi===undefined||!RICETTE[MNPICK.pdi])return dlgAlert(tr("Nessun pasto selezionabile in questo giorno: aggiungilo come extra."));
   S.week.days[MNPICK.pdi].meals[MNPICK.mi].custom={d:"Al ristorante — "+mnDesc(),k:MNPICK.tot.k,p:MNPICK.tot.p};
   save();render(cur);toast(tr("Pasto impostato ✓"));};
 window.mnExtra=()=>{if(!MNPICK)return;
@@ -1064,7 +1074,7 @@ window.setEnergy=(pdi,mi,n)=>{
    altrimenti è aneddoto, non pattern. */
 function energyStats(){
   const per={};
-  for(const d of flattenDiet())for(const m of (d.meals||[])){
+  for(const d of flattenDiario())for(const m of (d.meals||[])){
     if(!m.energy||!m.d)continue;
     const k=(m.d||"").toLowerCase().slice(0,40);
     (per[k]=per[k]||[]).push(+m.energy);}
@@ -1093,7 +1103,7 @@ window.setHunger=(pdi,mi,n)=>{const st=S.week.days[pdi].meals[mi];
 /* I dati di fame e cali vivevano solo nei prompt: le *Stats li espongono
    anche a te, in Numeri. Stessi numeri, due lettori. */
 function hungerStats(){
-  const rows=flattenDiet().filter(d=>d.hungerAvg>0).slice(-14);
+  const rows=flattenDiario().filter(d=>d.hungerAvg>0).slice(-14);
   if(rows.length<3)return null;
   const avg=Math.round(rows.reduce((a,d)=>a+d.hungerAvg,0)/rows.length*10)/10;
   return {avg,n:rows.length};}
@@ -1189,7 +1199,7 @@ window.calibraGiornata=async()=>{
 let CALI=null;
 window.calibraApply=()=>{if(!CALI)return;
   CALI.forEach(x=>{const pdi=+x.pdi,mi=+x.mi;
-    if(PLAN[pdi]&&PLAN[pdi].meals[mi])
+    if(RICETTE[pdi]&&RICETTE[pdi].meals[mi])
       S.week.days[pdi].meals[mi].custom={d:String(x.nuovo),k:Math.round(x.kcal)||0,p:Math.round(x.prot)||0};});
   save();render(cur);toast(tr("Giornata calibrata ✓"));};
 /* ═══ INFRASTRUTTURA DEI TOOL ══════════════════════════════════════
@@ -1245,8 +1255,8 @@ function toolBtns(di,pdi,mi,slot,d,k,p){
     <button class="btn ghost small" onclick="toolSave()">${tr("Salva")}</button></div>`;}
 window.toolUse=()=>{const x=TOOLPICK;if(!x)return;
   let pdi=x.pdi,mi=x.mi;
-  if(pdi===undefined||!PLAN[pdi]){const t=targetMealOf(x.di);
-    if(t&&t.pdi!==undefined&&PLAN[t.pdi]){pdi=t.pdi;mi=t.mi;}
+  if(pdi===undefined||!RICETTE[pdi]){const t=targetMealOf(x.di);
+    if(t&&t.pdi!==undefined&&RICETTE[t.pdi]){pdi=t.pdi;mi=t.mi;}
     else return dlgAlert(tr("Nessun pasto selezionabile: usa «+ Extra»."));}
   S.week.days[pdi].meals[mi].custom={d:x.d,k:x.k,p:x.p};
   save();render(cur);toast(tr("Pasto impostato ✓"));};
@@ -1257,13 +1267,13 @@ window.toolSave=()=>{const x=TOOLPICK;if(!x)return;addRecipe(x.d,x.k,x.p,null,nu
 /* riscrive i pasti indicati dall'AI (usato da più strumenti) */
 function applyMealEdits(arr){
   (arr||[]).forEach(x=>{const pdi=+x.pdi,mi=+x.mi;
-    if(PLAN[pdi]&&PLAN[pdi].meals[mi])
+    if(RICETTE[pdi]&&RICETTE[pdi].meals[mi])
       S.week.days[pdi].meals[mi].custom={d:String(x.nuovo||x.d||""),k:Math.round(x.kcal)||0,p:Math.round(x.prot)||0};});
   save();render(cur);}
 /* elenco dei pasti ancora da fare, pronto per i prompt */
 function pendingMeals(di){
   return dayItems(di).filter(it=>{const st=S.week.days[it.pdi].meals[it.mi];return !st.done&&!st.skip;})
-    .map(it=>{const o=mealOpt(it.pdi,it.mi);const m=PLAN[it.pdi].meals[it.mi];
+    .map(it=>{const o=mealOpt(it.pdi,it.mi);const m=RICETTE[it.pdi].meals[it.mi];
       return {pdi:it.pdi,mi:it.mi,slot:it.slot,t:(m&&m.t)||"",d:o.d,k:o.k,p:o.p,c:o.c||0,f:o.f||0};});}
 /* ── Qual è «il prossimo pasto» ────────────────────────────────────
    Regola: il PRIMO pasto non ancora segnato, in ordine di orario. Non
@@ -1471,7 +1481,7 @@ let TREAT=null;
 
 /* ═══  FAME DA LUPI (volume eating) ══════════════════════════════ */
 window.volumeSOS=(di)=>{
-  const t=selTarget("volTarget",di);const o=(t.pdi!==undefined&&PLAN[t.pdi])?mealOpt(t.pdi,t.mi):null;
+  const t=selTarget("volTarget",di);const o=(t.pdi!==undefined&&RICETTE[t.pdi])?mealOpt(t.pdi,t.mi):null;
   if(!o)return dlgAlert(tr("Non c'è un pasto su cui lavorare in questo momento."));
   return toolRun("volOut",
     'Ho una fame incontrollabile e devo mangiare «'+o.d+'» ('+o.k+' kcal, '+o.p+' g prot) per il pasto «'+t.slot+'». '+rulesForAI()+
@@ -1508,7 +1518,7 @@ window.predFillMeals=()=>{
   const dEl=document.getElementById("predDay"),sel=document.getElementById("predMeal");
   if(!dEl||!sel)return;
   const pdi=+dEl.value;
-  sel.innerHTML=(PLAN[pdi]?PLAN[pdi].meals:[]).map((m,mi)=>`<option value="${mi}" ${/cena/i.test(m.n||"")?"selected":""}>${esc(cap(fascia(m.n)))}</option>`).join("");};
+  sel.innerHTML=(RICETTE[pdi]?RICETTE[pdi].meals:[]).map((m,mi)=>`<option value="${mi}" ${/cena/i.test(m.n||"")?"selected":""}>${esc(cap(fascia(m.n)))}</option>`).join("");};
 /* Tutti i pasti pendenti da adesso fino al pasto dell'occasione (escluso) */
 function pendingBefore(di,pdi,mi){
   const out=[];
@@ -1517,7 +1527,7 @@ function pendingBefore(di,pdi,mi){
 window.predictive=async(di)=>{
   const dEl=document.getElementById("predDay"),mEl=document.getElementById("predMeal");
   const pdi=dEl?+dEl.value:NaN,mi=mEl?+mEl.value:NaN;
-  if(isNaN(pdi)||isNaN(mi)||!PLAN[pdi]||!PLAN[pdi].meals[mi])return dlgAlert(tr("Scegli il giorno e il pasto dell'occasione."));
+  if(isNaN(pdi)||isNaN(mi)||!RICETTE[pdi]||!RICETTE[pdi].meals[mi])return dlgAlert(tr("Scegli il giorno e il pasto dell'occasione."));
   const cosa=((document.getElementById("predWhat")||{}).value||"").trim();
   if(!cosa)return dlgAlert(tr("Scrivi cosa prevedi di mangiare (es. «pizza e birra», «cena aziendale»)."));
   const stE=S.week.days[pdi].meals[mi]||{};
@@ -1526,7 +1536,7 @@ window.predictive=async(di)=>{
   const prima=pendingBefore(di,pdi,mi);
   if(!prima.length)return dlgAlert(tr("Non ci sono pasti ancora da fare fra adesso e l'occasione su cui distribuire il delta."));
   return toolRun("predOut",
-    'OCCASIONE PREVISTA: '+PLAN[pdi].day+', pasto «'+PLAN[pdi].meals[mi].n+'». Mangerò: «'+cosa+'». '+
+    'OCCASIONE PREVISTA: '+RICETTE[pdi].day+', pasto «'+RICETTE[pdi].meals[mi].n+'». Mangerò: «'+cosa+'». '+
     'Il piano prevedeva per quel pasto: «'+evento.d+'» (~'+evento.k+' kcal). '+rulesForAI()+
     ' 1) Stima quante kcal costerà davvero ciò che mangerò. 2) Calcola il DELTA = stima − '+evento.k+' kcal già previste. '+
     '3) Se il delta è positivo, distribuiscilo TOGLIENDOLO in piccoli tagli dai pasti ancora da fare da qui ad allora (elenco sotto), '+
@@ -1540,7 +1550,7 @@ window.predictive=async(di)=>{
     '. Rispondi SOLO JSON: {"costo":n,"giaPrevisto":'+evento.k+',"delta":n,"pasti":[{"pdi":n,"mi":n,"slot":"...","nuovo":"...","kcal":n,"prot":n,"tolto":n}],"strategia":["",""],"messaggio":"una riga rassicurante"}',
     j=>{PRED=j.pasti||[];
       const tot=PRED.reduce((a,x)=>a+(+x.tolto||0),0);
-      return '<b>'+esc(cosa)+'</b> — '+PLAN[pdi].day+', '+esc(PLAN[pdi].meals[mi].n)+
+      return '<b>'+esc(cosa)+'</b> — '+RICETTE[pdi].day+', '+esc(RICETTE[pdi].meals[mi].n)+
         /* il «+» mancava: senza, JavaScript chiudeva il return qui e tutto
            il resto del risultato (tesoretto, strategia, bottone) era codice
            morto. Il tool sembrava funzionare e non diceva nulla. */
@@ -1561,22 +1571,22 @@ let PRED=null;
 function prepUntilOpts(di){
   const anyDone=dayItems(di).some(it=>{const st=S.week.days[it.pdi].meals[it.mi];return st.done||st.skip;});
   const start=anyDone?di+1:di;let o="";
-  for(let k=start;k<Math.min(7,start+3);k++){if(!PLAN[k])continue;
-    o+=`<option value="${k}">${trh("fino a {v1} a cena",{v1:giorno(PLAN[k].day)+(k===di?" ("+tr("oggi")+")":"")})}</option>`;}
+  for(let k=start;k<Math.min(7,start+3);k++){if(!RICETTE[k])continue;
+    o+=`<option value="${k}">${trh("fino a {v1} a cena",{v1:giorno(RICETTE[k].day)+(k===di?" ("+tr("oggi")+")":"")})}</option>`;}
   return o;}
 function prepHomeType(m){return m.type==="norm"||(m.type==="mensa"&&outTypeIsPorto());}
 window.mealPrep=(di)=>{
   const sel=document.getElementById("prepUntil");
   const end=(sel&&sel.value!=="")?+sel.value:NaN;
-  if(isNaN(end)||!PLAN[end])return dlgAlert(tr("La settimana è quasi finita: non ci sono giornate intere da coprire. Riprova da lunedì."));
+  if(isNaN(end)||!RICETTE[end])return dlgAlert(tr("La settimana è quasi finita: non ci sono giornate intere da coprire. Riprova da lunedì."));
   const gg=[];
-  pendingMeals(di).forEach(m=>{if(prepHomeType(PLAN[m.pdi].meals[m.mi]))gg.push({giorno:PLAN[di].day+" (oggi, ancora da fare)",slot:m.slot,d:m.d});});
+  pendingMeals(di).forEach(m=>{if(prepHomeType(RICETTE[m.pdi].meals[m.mi]))gg.push({giorno:RICETTE[di].day+" (oggi, ancora da fare)",slot:m.slot,d:m.d});});
   for(let k=di+1;k<=end;k++){
-    (PLAN[k]?PLAN[k].meals:[]).forEach((m,mi)=>{if(!prepHomeType(m))return;
-      const o=mealOpt(k,mi);gg.push({giorno:PLAN[k].day,slot:m.n,d:o.d});});}
+    (RICETTE[k]?RICETTE[k].meals:[]).forEach((m,mi)=>{if(!prepHomeType(m))return;
+      const o=mealOpt(k,mi);gg.push({giorno:RICETTE[k].day,slot:m.n,d:o.d});});}
   if(!gg.length)return dlgAlert(tr("Non ci sono pasti da coprire nel periodo scelto."));
   return toolRun("prepOut",
-    'Questi sono i pasti da coprire con il batch cooking, da adesso fino a '+PLAN[end].day+' a cena compresa (i pasti di oggi già consumati sono esclusi): '+JSON.stringify(gg)+'. '+rulesForAI()+
+    'Questi sono i pasti da coprire con il batch cooking, da adesso fino a '+RICETTE[end].day+' a cena compresa (i pasti di oggi già consumati sono esclusi): '+JSON.stringify(gg)+'. '+rulesForAI()+
     ' Estrai le PREPARAZIONI BASE comuni e costruisci un piano di batch cooking da fare tutto in una volta oggi, che copra ESATTAMENTE quel periodo. '+
     'Per ogni preparazione: quanto cucinarne in totale (a crudo), come conservarla e in quali pasti verrà usata. '+
     'Aggiungi anche un ordine di esecuzione sensato (cosa mettere sul fuoco per primo) e quanto tempo si risparmia. '+
@@ -1659,7 +1669,7 @@ window.reverseToggle=async()=>{
   if(reverseOn()){
     if(!await dlgConfirm(tr("Chiudo l'uscita morbida?\n\nHai risalito {a} kcal in {b} settimane. Il target torna al calcolo normale.",{a:reverseBonus(),b:(S.reverse.step||0)})))return;
     S.reverse={on:false,start:null,step:0,kcal:0,lastCheck:null};save();render(cur);
-    if(!planIsEmpty()&&aiOn()&&await dlgConfirm(tr("Uscita morbida chiusa.\n\nIl target torna al calcolo normale: ritaro piano e spesa?"),
+    if(!ricetteVuote()&&aiOn()&&await dlgConfirm(tr("Uscita morbida chiusa.\n\nIl target torna al calcolo normale: ritaro piano e spesa?"),
        {ok:tr("Ritara ora"),ko:tr("Più tardi")}))
       return recalibrate();
     return toast(tr("Uscita morbida chiusa"));}
@@ -1669,7 +1679,7 @@ window.reverseToggle=async()=>{
   /* Il target è cambiato: se il piano resta sulle vecchie calorie
      l'uscita morbida non esiste nei fatti, esiste solo nello stato.
      Prima si limitava a salvare e non ricalcolava niente. */
-  if(!planIsEmpty()&&aiOn()&&await dlgConfirm(tr(" Uscita morbida attiva.\n\nDa adesso il target sale di 60 kcal a settimana. Ritaro subito piano e spesa sulle nuove calorie?"),
+  if(!ricetteVuote()&&aiOn()&&await dlgConfirm(tr(" Uscita morbida attiva.\n\nDa adesso il target sale di 60 kcal a settimana. Ritaro subito piano e spesa sulle nuove calorie?"),
      {ok:tr("Ritara ora"),ko:tr("Più tardi")}))
     return recalibrate();
   toast(tr("Uscita morbida attiva · +60 kcal a settimana"));};
@@ -1770,7 +1780,7 @@ window.splitCook=async(di)=>{
   }catch(e){box.textContent="";aiFail(e);}};
 let SPLITDISH=null;
 window.splitUse=()=>{if(!SPLITDISH)return;
-  if(SPLITDISH.pdi===undefined||!PLAN[SPLITDISH.pdi])return dlgAlert(tr("Nessun pasto selezionabile: aggiungilo come extra."));
+  if(SPLITDISH.pdi===undefined||!RICETTE[SPLITDISH.pdi])return dlgAlert(tr("Nessun pasto selezionabile: aggiungilo come extra."));
   S.week.days[SPLITDISH.pdi].meals[SPLITDISH.mi].custom={d:SPLITDISH.nome+" — "+SPLITDISH.d,k:SPLITDISH.k,p:SPLITDISH.p};
   save();render(cur);toast(tr("Pasto impostato ✓"));};
 window.splitExtra=()=>{if(!SPLITDISH)return;
@@ -1782,7 +1792,7 @@ window.fuelApply=async()=>{if(!FUEL)return;
   const asExtra=await dlgConfirm(tr("Registro subito lo spuntino pre-allenamento come extra già mangiato?\n\n«{a}» — ~{b} kcal",{a:FUEL.sp.d,b:FUEL.sp.k}),{ok:tr("Sì, aggiungi come extra"),ko:tr("No, solo i pasti")});
   if(asExtra)S.week.days[FUEL.di].extras.push({d:"Pre-allenamento: "+FUEL.sp.d,k:FUEL.sp.k,p:0});
   FUEL.da.forEach(x=>{const pdi=+x.pdi,mi=+x.mi;
-    if(PLAN[pdi]&&PLAN[pdi].meals[mi])
+    if(RICETTE[pdi]&&RICETTE[pdi].meals[mi])
       S.week.days[pdi].meals[mi].custom={d:String(x.nuovo),k:Math.round(x.kcal)||0,p:Math.round(x.prot)||0};});
   save();render(cur);toast(asExtra?tr("Spuntino registrato e pasti aggiornati ✓"):tr("Pasti aggiornati ✓ (segna lo spuntino quando lo mangi)"));};
 
@@ -1877,7 +1887,13 @@ window.cycleToggle=async()=>{
     S.phys.cycleOn=false;S.phys.cycleStart=null;stampPhys();save();render(cur);
     return toast(tr("Fase luteale chiusa ✓"));}
   if(!physAllowed())return dlgAlert(tr("Il ciclo si può attivare solo su un profilo femminile.\n\nSe il genere non è corretto, cambialo in Io → Anagrafica."));
-  if(!await dlgConfirm(tr("Attivo la fase luteale?\n\nPer i prossimi {a} giorni il fabbisogno sale di circa il {b}% del metabolismo basale (~{c} kcal al giorno), che si SOMMANO al target.\n\nSi spegne da sola alla scadenza. In questi giorni la bilancia può salire di 1-2 kg per la ritenzione idrica: è acqua, non grasso.{d}",{a:cycleDaysMax(),b:cyclePct(),c:Math.round(bmr()*cyclePct()/100),d:PHYS_NEUTRAL_WARN})))
+  /* "1-2 kg" era un intervallo scritto a mano, non un dato letto: in
+     imperiale restava kg. Ricostruito con pesoNum() (numero nudo) +
+     unitaPeso() così il range segue il paese (28/08, audit unità). */
+  const ritenzioneRange=(typeof pesoNum==="function"&&typeof unitaPeso==="function")
+    ?dec2loc(pesoNum(1,0))+"-"+dec2loc(pesoNum(2,0))+" "+unitaPeso()
+    :"1-2 kg";
+  if(!await dlgConfirm(tr("Attivo la fase luteale?\n\nPer i prossimi {a} giorni il fabbisogno sale di circa il {b}% del metabolismo basale (~{c} kcal al giorno), che si SOMMANO al target.\n\nSi spegne da sola alla scadenza. In questi giorni la bilancia può salire di {r} per la ritenzione idrica: è acqua, non grasso.{d}",{a:cycleDaysMax(),b:cyclePct(),c:Math.round(bmr()*cyclePct()/100),r:ritenzioneRange,d:PHYS_NEUTRAL_WARN})))
     {render(cur);return;}
   S.phys.cycleOn=true;S.phys.cycleStart=iso(new Date());
   /* ogni attivazione a mano insegna: da due in poi l'app conosce
@@ -1916,7 +1932,7 @@ window.illSet=async(on)=>{
   toast(on?tr("Malattia attiva · deficit sospeso"):tr("Malattia disattivata"));};
 /* Ritara il piano e la spesa sui numeri di adesso: fisiologia compresa */
 window.recalibrate=async()=>{
-  if(planIsEmpty())return dlgAlert(tr("Non c'è ancora un piano da ricalibrare."));
+  if(ricetteVuote())return dlgAlert(tr("Non c'è ancora un piano da ricalibrare."));
   if(!aiOn())return aiFail(new Error("nokey"));
   const righe=[
     "• fabbisogno di base: "+tdeeTarget()+" kcal",
@@ -1930,15 +1946,15 @@ window.recalibrate=async()=>{
   ].filter(Boolean).join("\n");
   if(!await dlgConfirm(tr("Ricalibro i 7 giorni che partono da oggi?\n\n{a}\n\nI piatti restano gli stessi: cambiano le grammature. Poi rigenero la lista della spesa.\n\nVale solo per questa settimana: il piano di base resta quello che è, e la settimana prossima si riparte da lì.",{a:righe}),
     {ok:tr("Ricalibra la settimana"),ko:tr("Lascia com'è")}))return;
-  if(await retunePlan()){S.planW=S.profile.w;save();
+  if(await ritaraRicette()){S.ricetteW=S.profile.w;save();
     await genShop(true);            /* lista SETTIMANALE ricalcolata sul piano nuovo */
-    return planForecast(true,true);}};
+    return stimaRicette(true,true);}};
 /* Ricalibra i soli pasti di OGGI ancora da fare, sui numeri del momento.
    Non tocca gli altri giorni né la lista della spesa. */
 window.recalibrateToday=async()=>{
   const di=viewIdx();
   if(di<0)return dlgAlert(tr("Torna a Oggi per ricalibrare i pasti di oggi."));
-  if(planIsEmpty())return dlgAlert(tr("Non c'è ancora un piano da ricalibrare."));
+  if(ricetteVuote())return dlgAlert(tr("Non c'è ancora un piano da ricalibrare."));
   if(!aiOn())return aiFail(new Error("nokey"));
   const dopo=pendingMeals(di);
   if(!dopo.length)return dlgAlert(tr("Oggi non ci sono più pasti da ricalibrare: sono tutti spuntati o saltati."));
@@ -1962,7 +1978,7 @@ window.geoReset=async(di)=>{
 function geoDish(i){return GEO.dishes[i]||null;}
 window.geoUse=(di,i)=>{const x=geoDish(i);if(!x)return;
   const tgt=selTarget("geoTarget",di);
-  if(tgt.pdi===undefined||!PLAN[tgt.pdi])return dlgAlert(tr("Nessun pasto selezionabile in questo giorno."));
+  if(tgt.pdi===undefined||!RICETTE[tgt.pdi])return dlgAlert(tr("Nessun pasto selezionabile in questo giorno."));
   S.week.days[tgt.pdi].meals[tgt.mi].custom={d:x.nome+" (piatto tipico)",k:Math.round(x.kcal)||0,p:Math.round(x.prot)||0};
   save();render(cur);toast(tr("Pasto sostituito ✓"));};
 window.geoExtra=(di,i)=>{const x=geoDish(i);if(!x)return;
@@ -2002,7 +2018,7 @@ window.dopoAI=async(di)=>{
   try{
     const resto=pendingMeals(di);   /* i pasti di oggi non ancora fatti */
     const t=await aiAsk('Ieri sera è stata una serata '+stato+' (alcol e cibo fuori piano). Oggi mi sento appesantito e stanco. '+
-      dietStr()+rulesForAI()+
+      vincoliStr()+rulesForAI()+
       ' Pasti di oggi ancora da fare: '+JSON.stringify(resto)+'.'+
       ' Riscrivili in versione più digeribile e più ricca di acqua e potassio (verdura, frutta, brodi, cereali semplici), '+
       'MANTENENDO le calorie totali della giornata e le proteine: oggi non si recupera con la fame, si recupera con acqua e cibo leggero. '+
@@ -2022,7 +2038,7 @@ window.domicilioAI=async(di)=>{
   try{
     const tgt=selTarget("domTarget",di);
     const t=await aiAsk('Sto per ordinare a domicilio. Questi sono i piatti disponibili: """'+txt.slice(0,3000)+'""". '+
-      'Secondo il piano ora dovrei mangiare: '+tgt.slot+' da circa '+tgt.kAdj+' kcal e '+tgt.p+' g di proteine.'+compNote(tgt)+' '+dietStr()+
+      'Secondo il piano ora dovrei mangiare: '+tgt.slot+' da circa '+tgt.kAdj+' kcal e '+tgt.p+' g di proteine.'+compNote(tgt)+' '+vincoliStr()+
       ' ATTENZIONE: le porzioni da asporto sono più abbondanti e più condite di quelle di casa — stima al rialzo, non al ribasso. '+
       'Scegli la combinazione MIGLIORE (anche più piatti insieme, o mezza porzione), con stima kcal e proteine e una riga di motivo. '+
       'Aggiungi 2 alternative e, se serve, come compensare nel resto della giornata. Testo semplice, niente markdown, massimo 10 righe.');
@@ -2042,7 +2058,7 @@ window.rapidoAI=async(di)=>{
     const inCasa=p.items.map(i=>i.n).slice(0,40).join(", ");
     const frz=(p.freezer||[]).map(f=>f.n).join(", ");
     const t=await aiAsk('Ho dieci minuti in tutto, cottura compresa, e devo fare: '+tgt.slot+
-      ' da circa '+tgt.kAdj+' kcal e '+tgt.p+' g di proteine.'+compNote(tgt)+' '+dietStr()+
+      ' da circa '+tgt.kAdj+' kcal e '+tgt.p+' g di proteine.'+compNote(tgt)+' '+vincoliStr()+
       (inCasa?' In casa ho: '+inCasa+'.':' Non so cosa ho in casa: usa ingredienti comuni della tradizione culinaria indicata sopra.')+
       (frz?' Nel freezer: '+frz+' (scongelabile al microonde).':'')+
       ' VINCOLO DURO: preparazione e cottura entro 10 minuti reali, massimo 4 ingredienti, niente forno né lievitazioni né cotture lunghe. '+
@@ -2065,7 +2081,7 @@ window.scafAI=async()=>{
       "Sono al supermercato davanti a questo scaffale (foto). Leggi le etichette dei prodotti che vedi e dimmi QUALE prendere."+
       (lista.length?" Nella mia lista della spesa ho: "+lista.slice(0,40).join("; ")+".":"")+
       (mancano?" Mi mancano soprattutto: "+mancano+".":"")+
-      " "+dietStr()+rulesForAI()+
+      " "+vincoliStr()+rulesForAI()+
       " Scegli 1 prodotto CONSIGLIATO fra quelli visibili nella foto, più 1 alternativa. Per ciascuno: nome come sta sull'etichetta, QUANTO prenderne per la mia settimana, e il PERCHÉ in una riga (confronto concreto: proteine, zuccheri, sale, grassi saturi, additivi, prezzo al chilo se leggibile). "+
       " Se nella foto c'è un prodotto da EVITARE per le mie caratteristiche alimentari, dillo in una riga. "+
       " Se le etichette non sono leggibili, dillo invece di inventare. Testo semplice, niente markdown, massimo 10 righe.";
@@ -2080,7 +2096,7 @@ window.menuAI=async(di)=>{
   const box=document.getElementById("menuOut");box.textContent="Analizzo il menù…";
   try{
     const tgt=selTarget("menuTarget",di);
-    const t=await aiAsk('Menù del ristorante: """'+txt.slice(0,3000)+'""". In questo momento, secondo il mio piano, dovrei mangiare: '+tgt.slot+' da circa '+tgt.k+' kcal e '+tgt.p+' g di proteine.'+compNote(tgt)+' '+dietStr()+' SCEGLI il piatto più COMPATIBILE con circa '+tgt.kAdj+' kcal e '+tgt.p+' g prot più 2 riserve, con stima kcal/prot e 1 riga di motivo; evidenzia la scelta n.1. Testo semplice, niente markdown.');
+    const t=await aiAsk('Menù del ristorante: """'+txt.slice(0,3000)+'""". In questo momento, secondo il mio piano, dovrei mangiare: '+tgt.slot+' da circa '+tgt.k+' kcal e '+tgt.p+' g di proteine.'+compNote(tgt)+' '+vincoliStr()+' SCEGLI il piatto più COMPATIBILE con circa '+tgt.kAdj+' kcal e '+tgt.p+' g prot più 2 riserve, con stima kcal/prot e 1 riga di motivo; evidenzia la scelta n.1. Testo semplice, niente markdown.');
     box.textContent=t;
   }catch(e){box.textContent="";aiFail(e);}};
 

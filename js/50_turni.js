@@ -79,7 +79,7 @@ window.turnoNeutro=turnoNeutro;
 /* L'ordine canonico degli slot: serve per dire QUALE pasto è.
    Se il piano ha slot personalizzati si usa quello che c'è. */
 function turnoSlotOrdine(){
-  const base=(S.diet&&S.diet.slots)||"Colazione, Metà mattina, Pranzo, Metà pomeriggio, Cena";
+  const base=(S.pref&&S.pref.slots)||"Colazione, Metà mattina, Pranzo, Metà pomeriggio, Cena";
   return String(base).split(",").map(x=>x.trim()).filter(Boolean);}
 
 /* La sostituzione del nome: «Colazione» → «Pasto 1». Se lo slot non

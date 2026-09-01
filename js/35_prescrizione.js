@@ -90,13 +90,13 @@ function prescrizioneApplica(){
     if(S.profile.goalW!==prima)cambiato=true;}
   metti(S.profile,"h",p.altezza);
   metti(S.profile,"act",p.attivita);
-  if(p.kcal){S.diet=S.diet||{};metti(S.diet,"kcalImposte",p.kcal);}
+  if(p.kcal){S.pref=S.pref||{};metti(S.pref,"kcalImposte",p.kcal);}
   if(p.proteine||p.carboidrati||p.grassi){
-    S.diet=S.diet||{};
-    S.diet.macroImposte=S.diet.macroImposte||{};
-    metti(S.diet.macroImposte,"p",p.proteine);
-    metti(S.diet.macroImposte,"c",p.carboidrati);
-    metti(S.diet.macroImposte,"g",p.grassi);}
+    S.pref=S.pref||{};
+    S.pref.macroImposte=S.pref.macroImposte||{};
+    metti(S.pref.macroImposte,"p",p.proteine);
+    metti(S.pref.macroImposte,"c",p.carboidrati);
+    metti(S.pref.macroImposte,"g",p.grassi);}
   if(cambiato)save();
   return cambiato;}
 window.prescrizioneApplica=prescrizioneApplica;
@@ -164,3 +164,66 @@ window.lasciaStudio=async()=>{
   }catch(e){}
   try{await contoAggiorna();}catch(e){}
   try{toast(tr("Fatto. Da qui in poi decidi tu."));render(cur);}catch(e){}};
+
+/* ═══ LE MISURE ARRIVATE DALLO STUDIO (v15.13.0) ═══════════════════
+   Deciso col founder (30/08): il peso sulla bilancia dello studio, le
+   pliche, l'altezza sono FATTI misurati dal professionista — li
+   inserisce lui dal pannello, e qui entrano nell'evoluzione della
+   persona. Tre regole:
+
+   1. STESSO SCRITTORE DI TUTTI. La visita passa da `misureRegistra`
+      (la porta unica delle misure) e il peso si fonde nella serie
+      delle pesate con la stessa regola del giorno di `saveWeighIn`.
+      Un secondo magazzino per le misure «di studio» divergerebbe dal
+      primo — è la lezione dei due elenchi della ruota.
+   2. UNA VOLTA SOLA. Ogni misura ha un id e gli id già fusi stanno in
+      S.studio.misureViste: il conto si riaggiorna dieci volte al
+      giorno, la misura entra una volta.
+   3. IL DIARIO NON SI TOCCA. Questa funzione scrive visite, pesate e
+      altezza — MAI S.week, mai un pasto, mai un extra. «Il
+      professionista può modificare i consigli di alimentazione, non
+      quello che si è mangiato realmente» (founder). Il collaudo lo
+      inchioda: sabotare questa regola deve essere rosso. */
+window.misureStudioApplica=()=>{
+  let nuove=0;
+  try{
+    const v=(S.conto&&S.conto.vista)||{};
+    const arr=Array.isArray(v.misure)?v.misure:[];
+    if(!arr.length)return 0;
+    S.studio=S.studio||{visite:[],pro:""};
+    const viste=S.studio.misureViste=Array.isArray(S.studio.misureViste)?S.studio.misureViste:[];
+    arr.forEach(m=>{
+      if(!m||!m.id||viste.includes(m.id))return;
+      /* la visita: stessa porta di chi misura in casa, con la firma */
+      const rec={d:m.d,fat:m.fat,mus:m.mus,acqua:m.acqua,ossa:m.ossa,
+        bmr:m.bmr,pa:m.pa,note:m.note,da:m.da,fonte:"studio",
+        pliche:Object.assign({},m.pliche||{}),circ:{}};
+      if(m.vita!=null)rec.circ.vita=m.vita;
+      if(m.fianchi!=null)rec.circ.fianchi=m.fianchi;
+      try{if(typeof misureRegistra==="function")misureRegistra(rec);}catch(e){}
+      /* il peso: nella serie delle pesate, fuso per giorno — la
+         bilancia dello studio non cancella quella di casa, la
+         completa (campo per campo, come fa saveWeighIn) */
+      if(m.w!=null){
+        try{
+          const W=S.profile.weights=S.profile.weights||[];
+          const i=W.findIndex(x=>x&&x.d===m.d);
+          const voce={d:m.d,w:m.w,fonte:"studio",da:m.da};
+          if(m.fat!=null)voce.fat=m.fat;
+          if(i>=0)W[i]=Object.assign({},W[i],voce);
+          else W.push(voce);
+          W.sort((a,b)=>a.d<b.d?-1:1);
+        }catch(e){}}
+      /* l'altezza: misurata allo stadiometro vale più del ricordo */
+      if(m.h!=null)S.profile.h=m.h;
+      viste.push(m.id);
+      nuove++;});
+    if(viste.length>400)viste.splice(0,viste.length-400);
+    if(nuove){
+      save();
+      try{toast(nuove===1
+        ? tr("È arrivata una misura dal tuo studio: la trovi nell'andamento.")
+        : trh("Sono arrivate {v1} misure dal tuo studio: le trovi nell'andamento.",{v1:nuove}));}catch(e){}
+    }
+  }catch(e){}
+  return nuove;};

@@ -213,7 +213,7 @@ window.budgetValido=budgetValido;
    che gridano non ne ha nessuno che si sente. */
 function dispensaHTML(){
   const D=dispensa();
-  const g=cancello("piano");
+  const g=cancello("ricette");
   const roba=dispensaPriorita();
 
   if(!roba.length){
@@ -224,7 +224,7 @@ function dispensaHTML(){
         ? `<button class="btn ghost" type="button" onclick="dispensaFoto()">${esc(tr("Fotografa la dispensa"))}</button>
            <div class="mtools"><button class="btn ghost small" type="button" onclick="dispensaMano()">${esc(tr("Scrivo io cosa c'è"))}</button></div>`
         : `<button class="btn ghost" type="button" onclick="dispensaMano()">${esc(tr("Scrivo io cosa c'è"))}</button>
-           ${cancelloHTML("piano")}`}
+           ${cancelloHTML("ricette")}`}
     </div>`;}
 
   const pill=(x)=>`<button class="chip${x.scade==="presto"?" pri":""}" type="button"
@@ -236,7 +236,7 @@ function dispensaHTML(){
     <div class="chips">${roba.map(pill).join("")}</div>
     ${roba.some(x=>x.scade==="presto")
       ? `<div class="hint" style="margin-top:12px">${esc(tr("Metto per primi i piatti che usano quello che scade prima."))}</div>`:""}
-    ${g.ok?`<button class="btn ghost" type="button" onclick="dispensaPiatti()">${esc(tr("Cosa posso cucinare"))}</button>`:cancelloHTML("piano")}
+    ${g.ok?`<button class="btn ghost" type="button" onclick="dispensaPiatti()">${esc(tr("Cosa posso cucinare"))}</button>`:cancelloHTML("ricette")}
     <div class="mtools">
       <button class="btn ghost small" type="button" onclick="dispensaMano()">${esc(tr("Aggiungi"))}</button>
       <button class="btn ghost small" type="button" onclick="dispensaSvuota()">${esc(tr("Svuota"))}</button>
@@ -300,7 +300,7 @@ window.piattoInDiario=(i)=>{
 /* ── Il budget ──────────────────────────────────────────────────── */
 function budgetHTML(){
   const D=dispensa();
-  const g=cancello("piano");
+  const g=cancello("ricette");
   const av=budgetAvviso(D.budget,7);
   return `<div class="card" data-budget="${D.budget||0}"><h2>${esc(tr("La spesa con un budget"))}</h2>
     <div class="hint">${esc(tr("Dimmi quanto vuoi spendere e ti preparo la lista: uso quello che hai già in casa e resto dentro la cifra."))}</div>
@@ -308,7 +308,7 @@ function budgetHTML(){
     <input type="number" id="budgetEuro" inputmode="decimal" min="0" step="1"
       value="${D.budget?(D.budget/100).toFixed(0):""}" placeholder="45">
     ${av?`<div class="hint" style="margin-top:12px">${esc(tr(av.t))}</div>`:""}
-    ${g.ok?`<button class="btn ghost" type="button" onclick="budgetFai()">${esc(tr("Preparami la lista"))}</button>`:cancelloHTML("piano")}
+    ${g.ok?`<button class="btn ghost" type="button" onclick="budgetFai()">${esc(tr("Preparami la lista"))}</button>`:cancelloHTML("ricette")}
     <div class="aibox" id="budgetOut" aria-live="polite" style="display:none"></div>
   </div>`;}
 window.budgetHTML=budgetHTML;

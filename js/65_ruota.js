@@ -68,7 +68,11 @@ function RUOTA(){return [
  /* Aett I — le fondamenta */
  {k:"fehu",   r:"ᚠ",n:tr("Fehu"),    t:tr("Tre giorni dentro i tuoi numeri"),
   s:tr("Bestiame, la ricchezza che si conta ogni giorno — come le prime giornate dentro i numeri"),
-  q:()=>ruotaConta(d=>d&&d.meals&&Object.keys(d.meals).length>0)>=3},
+  /* anche la serie di tre giorni accende (v15.5.0): era la condizione
+     della costellazione, e chi l'aveva soddisfatta di là non deve
+     ripartire da zero di qua */
+  q:()=>ruotaConta(d=>d&&d.meals&&Object.keys(d.meals).length>0)>=3
+      ||(function(){try{return (S.streak.count||0)>=3;}catch(e){return false;}})()},
  {k:"uruz",   r:"ᚢ",n:tr("Uruz"),    t:tr("La prima settimana con del movimento"),
   s:tr("Il bue selvatico: forza grezza da addomesticare, come il movimento all'inizio"),
   q:()=>ruotaConta(d=>d&&(d.workouts||[]).length>0)>=3},
@@ -113,7 +117,10 @@ function RUOTA(){return [
   q:()=>{try{return (S.recipes||[]).length>=1||ruotaUso("cucina")>=1;}catch(e){return false;}}},
  {k:"algiz",  r:"ᛉ",n:tr("Algiz"),   t:tr("Hai segnato una fame che veniva dalla testa"),
   s:tr("L'alce e le corna alzate: accorgersi in tempo di quello che sale dentro"),
-  q:()=>ruotaConta(d=>d&&d.hunger!=null&&+d.hunger>=3)>=1},
+  /* la fame emotiva scritta (emoWhy) vale quanto il punteggio di fame:
+     sono due modi di dire la stessa onestà (v15.5.0, dalla costellazione) */
+  q:()=>ruotaConta(d=>d&&d.hunger!=null&&+d.hunger>=3)>=1
+      ||ruotaConta(d=>d&&(d.emoWhy||[]).length>0)>=1},
  {k:"sowilo", r:"ᛋ",n:tr("Sowilo"),  t:tr("Sette notti di sonno registrate"),
   s:tr("Il sole: la luce che torna dopo la notte, cioè dormire bene"),
   q:()=>ruotaConta(d=>d&&d.sleep!=null&&+d.sleep>0)>=7},
@@ -130,7 +137,9 @@ function RUOTA(){return [
   q:()=>{try{return (S.progressLog||[]).length>=1;}catch(e){return false;}}},
  {k:"ehwaz",  r:"ᛖ",n:tr("Ehwaz"),   t:tr("Il backup collegato al tuo Drive"),
   s:tr("Il cavallo: due che vanno insieme, come l'app e i tuoi strumenti"),
-  q:()=>{try{return !!(S.drive&&S.drive.on);}catch(e){return false;}}},
+  /* anche l'account collegato conta (v15.5.0, dalla costellazione):
+     l'obiettivo è «i tuoi dati non vivono solo su questo telefono» */
+  q:()=>{try{return !!(S.drive&&S.drive.on)||!!(S.conto&&S.conto.email);}catch(e){return false;}}},
  {k:"mannaz", r:"ᛗ",n:tr("Mannaz"),  t:tr("Il profilo completo"),
   s:tr("L'essere umano: chi sei, i tuoi dati, il profilo completo"),
   q:()=>{try{const p=S.profile;return !!(p.name&&p.dob&&p.h>0&&p.w>0&&p.goalW>0);}catch(e){return false;}}},
@@ -139,13 +148,16 @@ function RUOTA(){return [
   q:()=>ruotaConta(d=>d&&+(d.water||0)>=6)>=14},
  {k:"ingwaz", r:"ᛝ",n:tr("Ingwaz"),  t:tr("Una settimana intera pianificata"),
   s:tr("Il seme messo sotto terra: pianificare adesso per la settimana che viene"),
-  q:()=>{try{return !!S.customPlan&&(typeof planIsEmpty!=="function"||!planIsEmpty());}catch(e){return false;}}},
+  q:()=>{try{return !!S.ricette&&(typeof ricetteVuote!=="function"||!ricetteVuote());}catch(e){return false;}}},
  {k:"dagaz",  r:"ᛞ",n:tr("Dagaz"),   t:tr("Sei mesi: non è più una dieta, è come vivi"),
   s:tr("L'alba, il passaggio che non torna indietro: sei mesi cambiano un'abitudine"),
   q:()=>ruotaStorico().length>=24},
  {k:"othala", r:"ᛟ",n:tr("Othala"),  t:tr("La tua dispensa e i tuoi piatti, salvati"),
   s:tr("La casa e ciò che si tramanda: le tue ricette, quelle che restano"),
-  q:()=>{try{return ((pantry().items||[]).length>=1)&&((S.recipes||[]).length>=1);}catch(e){return false;}}}
+  /* anche un piatto fissato come alternativa permanente è «un piatto
+     tuo» (v15.5.0, dalla costellazione) */
+  q:()=>{try{return (((pantry().items||[]).length>=1)&&((S.recipes||[]).length>=1))
+      ||Object.keys(S.permMeals||{}).length>=1;}catch(e){return false;}}}
 ];}
 
 /* ── Lo stato ─────────────────────────────────────────────────────
@@ -154,6 +166,22 @@ function RUOTA(){return [
 function ruotaStato(){
   const G=(typeof gioco==="function")?gioco():(S.gioco=S.gioco||{});
   if(!Array.isArray(G.ruota))G.ruota=[];
+  /* ── LA MIGRAZIONE DALLA COSTELLAZIONE (v15.5.0) ────────────────
+     Fino alla v15.4.0 esistevano DUE elenchi degli stessi ventiquattro
+     segni: questo (S.gioco.ruota) e quello di 65_costellazione.js
+     (S.cost.attivi), con condizioni diverse e stati che non si
+     parlavano. Risultato: un segno poteva essere acceso su una pagina
+     e spento sull'altra, e la Zen si sbloccava solo dal conteggio
+     della costellazione. Il founder (29/08): una ruota sola, con gli
+     stati. Chi aveva segni accesi di là se li ritrova qui — accesi:
+     la regola «un segno acceso non si spegne mai» vale anche
+     attraverso una migrazione. */
+  try{if(S.cost&&Array.isArray(S.cost.attivi)){
+    const validi=RUOTA().map(x=>x.k);
+    S.cost.attivi.forEach(k=>{if(validi.includes(k)&&!G.ruota.includes(k))G.ruota.push(k);});
+    if(S.cost.zen)G.zen=true;
+    delete S.cost;}}catch(e){}
+  if(typeof G.zen!=="boolean")G.zen=false;
   return G;}
 
 window.ruotaControlla=()=>{
@@ -162,7 +190,16 @@ window.ruotaControlla=()=>{
     if(G.ruota.includes(x.k))return;      /* già acceso: non si tocca */
     let ok=false;try{ok=!!x.q();}catch(e){ok=false;}
     if(ok){G.ruota.push(x.k);nuovi.push(x);}});
-  if(nuovi.length&&!RUOTA_DENTRO_SAVE){try{save();}catch(e){}}
+  /* Il premio, e l'unico posto che lo assegna (v15.5.0, prima era
+     nella costellazione): con tutti e ventiquattro si sblocca la
+     Modalità Zen, e lo si DICE nel momento in cui succede — è la
+     regola del founder (25/08): «va detto che sbloccare tutto
+     sblocca la modalità zen». */
+  let sbloccata=false;
+  if(!G.zen&&G.ruota.length>=RUOTA_MIN){
+    G.zen=true;sbloccata=true;
+    try{toast(tr("Ventiquattro su ventiquattro: la Modalità Zen è tua."));}catch(e){}}
+  if((nuovi.length||sbloccata)&&!RUOTA_DENTRO_SAVE){try{save();}catch(e){}}
   return nuovi;};
 
 /* Il controllo gira DOPO ogni salvataggio, non a comando: è così che
@@ -244,6 +281,15 @@ window.renderRuota=()=>{
   let h=`<div class="gsec">${esc(tr("Il tuo percorso"))}</div>`;
   h+=`<div class="card ruotaCard">${ruotaSVG()}
     <div class="ruotaRiga">${esc(ruotaRiga())}</div></div>`;
+  /* La medaglia e il bottone Zen vivono QUI dalla v15.5.0: la pagina
+     Costellazione è confluita in questa (erano gli stessi ventiquattro
+     segni raccontati due volte, con stati separati — vedi ruotaStato).
+     La regola del 25/08 resta: lo sblocco si dichiara, prima e dopo. */
+  h+=`<div class="costmed ${G.zen?"on":""}">
+    <div class="costmedn">${G.ruota.length}<span>/${RUOTA_MIN}</span></div>
+    <div class="costmedt">${esc(G.zen?tr("Modalità Zen sbloccata"):tr("Con tutti e ventiquattro, l'app smette di mostrarti i numeri"))}</div>
+    ${G.zen?`<button class="btn small" onclick="zenAttiva()">${esc(S.ui.zen?tr("Torna ai numeri"):tr("Accendi la Modalità Zen"))}</button>`:""}
+  </div>`;
   h+=ruotaAlfabetoHTML();
   h+=`<div class="card"><h2>${esc(tr("I ventiquattro"))}</h2>
     <div class="hint">${esc(tr("Ogni segno porta il nome, il significato antico e l'obiettivo a cui è legato: è il motivo per cui quel simbolo sta in quel posto."))}</div>
@@ -275,24 +321,31 @@ function ruotaAlfabetoHTML(){
       <p>${esc(tr("Li abbiamo scelti per questo: ventiquattro segni, ventiquattro abitudini, e un significato che c'entra davvero con l'obiettivo — non un badge con una stellina. Il tasso che regge l'inverno per il lunedì dopo un weekend storto, la grandine per l'imprevisto, il sole per il sonno."))}</p>
     </div></div>`;}
 
-/* ── LA MODALITÀ ZEN NON VIVE QUI (decisione del founder, 25/08) ──
-   Questa pagina («Il tuo percorso») e 65_costellazione.js («La tua
-   costellazione») sono nate lo stesso giorno (22/08) come lo stesso
-   alfabeto di ventiquattro segni raccontato due volte: prima come
-   ruota a raggiera, poi — per lo stesso motivo di forma spiegato
-   nell'intestazione di 65_costellazione.js (la somiglianza col
-   Sole Nero di Wewelsburg) — come tre gruppi. Ogni file dichiarava
-   un proprio `zenAttiva`: quello di qui IMPOSTAVA un valore passato,
-   quello della costellazione lo INVERTIVA e prima controllava se
-   fosse sbloccato. Nel monolite l'ultimo vinceva in silenzio, e il
-   bottone qui sotto — quando lo Zen non era ancora sbloccato —
-   toccava una funzione che non faceva letteralmente niente.
-   Deciso (25/08): **la costellazione comanda**. «Zen si accende solo
-   con tutti e ventiquattro i segni, e va detto chiaramente che
-   finirli lo sblocca» — è la pagina Costellazione a dirlo, prima e
-   dopo lo sblocco (vedi 65_costellazione.js). Qui il controllo non
-   si duplica più: chi ha finito i ventiquattro segni de «Il tuo
-   percorso» trova il bottone vero nella Costellazione. */
+/* ── LA MODALITÀ ZEN VIVE QUI, E SOLO QUI (v15.5.0) ──────────────
+   Storia in tre atti, da tenere. (1) Il 22/08 lo stesso alfabeto di
+   ventiquattro segni nacque DUE volte: qui come ruota, in
+   65_costellazione.js come tre gruppi. (2) Il 25/08, per evitare due
+   `zenAttiva` in collisione nel monolite, si decise «la costellazione
+   comanda» — ma i due elenchi restarono separati: condizioni diverse,
+   stati diversi, e la Zen contava solo i segni della costellazione.
+   Un segno poteva essere acceso di qua e spento di là. (3) Il 29/08
+   il founder ha chiesto UNA ruota con gli stati: la costellazione è
+   confluita qui (la migrazione sta in ruotaStato), la pagina doppia
+   non c'è più, e questo è tornato l'unico `zenAttiva` del sorgente.
+   La regola di forma del 22/08 resta rispettata: segni DRITTI, nessun
+   raggio verso il centro (vedi ruotaSVG). */
+window.ruotaZen=()=>!!ruotaStato().zen;
+window.zenAttiva=()=>{
+  if(!ruotaZen())return;
+  S.ui.zen=!S.ui.zen;
+  /* La classe si accende ADESSO, non al prossimo avvio: prima il
+     toggle scriveva lo stato ma la classe sul body la metteva solo il
+     setTimeout di avvio — la Zen «accesa» non cambiava niente finché
+     non si riapriva l'app. */
+  try{document.body.classList.toggle("zen",!!S.ui.zen);}catch(e){}
+  save();
+  try{toast(S.ui.zen?tr("Modalità Zen accesa: restano i colori."):tr("Numeri di nuovo visibili."));}catch(e){}
+  try{render(cur);}catch(e){}};
 
 /* All'avvio la classe segue lo stato salvato: senza questo la Zen
    sparirebbe a ogni riapertura. Resta qui perché è l'unico posto che

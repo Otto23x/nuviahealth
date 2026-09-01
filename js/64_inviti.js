@@ -61,7 +61,7 @@ const INVITI=[
    riga:"Un'ora oggi e i piatti dei prossimi giorni sono pronti."},
 
   /* ── DOMENICA sera: la settimana che arriva ── */
-  {k:"settimana",giorni:[0],ore:[17,21],azione:"show('piano')",
+  {k:"settimana",giorni:[0],ore:[17,21],azione:"show('ricette')",
    titolo:"Come si mette la settimana?",
    riga:"Se sai già di una cena o di una trasferta, dimmelo adesso: il piano si sistema da solo."},
 

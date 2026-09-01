@@ -275,8 +275,66 @@ function frenoMedico(testo){
     if(t.indexOf(FRASI_MEDICHE[i])>-1)return FRASI_MEDICHE[i];
   return null;}
 
+/* ═══ LE MISURE DEL CORPO HANNO UN INTERVALLO (founder, 29/08) ═════
+   «Ci sono dei valori massimi e minimi accettati per altezza e peso,
+   pliche e metriche varie?» Per peso e altezza sì, da sempre. Per
+   tutto il resto no: massa grassa, circonferenze e pliche accettavano
+   qualunque numero maggiore di zero — una massa grassa del 250% o una
+   vita di 9 cm entravano nei calcoli senza un fiato, e da lì nel
+   fabbisogno e nel piano.
+   Gli intervalli sono LARGHI apposta: servono a fermare l'errore di
+   battitura (il 250 che voleva essere 25, la vita in millimetri),
+   non a giudicare un corpo. Dentro questi estremi ci sta chiunque. */
+var MISURE={
+  peso:      [30,300],    /* kg  */
+  altezza:   [120,230],   /* cm  */
+  grassoPct: [3,70],      /* %   — sotto il 3% non è compatibile con la vita */
+  muscoloPct:[15,65],     /* %   */
+  acquaPct:  [30,75],     /* %   — acqua corporea da bilancia impedenziometrica */
+  ossaKg:    [1,10],      /* kg  */
+  bmr:       [700,4000],  /* kcal — metabolismo basale da bilancia */
+  circonf:   [15,250],    /* cm  — dal polso alla vita più ampia   */
+  plica:     [2,60],      /* mm  — la scala di un plicometro       */
+  spo2:      [70,100]};   /* %   */
+function misuraOk(campo,valore){
+  var n=num(valore);
+  if(n===null)return false;
+  var m=MISURE[campo];
+  if(!m)return true;                      /* campo sconosciuto: non si inventa un limite */
+  return n>=m[0]&&n<=m[1];}
+
+/* ═══ L'ETÀ MINIMA È UNA REGOLA, NON UNA SVISTA (founder, 29/08) ═══
+   «Se scarica l'app un bambino di 11 anni? Il sistema rischia di dare
+   diete sbagliate. È legale? Dovrebbe bloccare?»
+   Dovrebbe, e adesso blocca. Il confine è 18, per tre ragioni che
+   stanno in piedi da sole:
+   1. CLINICA: un corpo che cresce non si mette in deficit con un'app.
+      I fabbisogni dell'età evolutiva sono un'altra materia, e le
+      formule di quest'app (Mifflin-St Jeor su adulti) lì sbagliano.
+   2. LEGALE: i termini dell'API di Google vietano l'uso in app
+      «likely to be accessed by individuals under the age of 18» —
+      è la voce n.1 della lista delle cose da decidere prima di
+      pubblicare, e un'app che accetta un undicenne la viola in
+      partenza.
+   3. ONESTÀ: dire «questa app non fa per te, parlane con il pediatra»
+      è un servizio, non un rifiuto.
+   La soglia sta QUI, nel guardrail condiviso, perché la data di
+   nascita si scrive in tre posti diversi (onboarding, Io → Anagrafica,
+   percorso vecchio) e tre copie della soglia divergerebbero. E il
+   motore ha la sua rete a valle: sotto quest'età il deficit è zero,
+   qualunque cosa dica lo stato. */
+var ETA_MINIMA=18;
+function etaDa(dob){
+  var t=Date.parse(dob);
+  if(!isFinite(t))return null;
+  return Math.floor((Date.now()-t)/(365.25*864e5));}
+function etaAmmessa(dob){
+  var e=etaDa(dob);
+  return e!==null&&e>=ETA_MINIMA&&e<=100;}
+
 return {SOGLIE,IMC,MOTIVO_MINIMO,verifica,motivoValido,num,
         STIMA_PORTATA,portataValida,
+        MISURE,misuraOk,ETA_MINIMA,etaDa,etaAmmessa,
         CODA_MEDICA,FRASI_MEDICHE,frenoMedico};
 })();
 

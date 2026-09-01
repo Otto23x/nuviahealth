@@ -130,7 +130,7 @@ window.comeCucino=async(pdi,mi)=>{
       'indica tempi realistici e la pentola o teglia adatta a questa quantità. '+
       'Niente ingredienti nuovi oltre a sale, olio, acqua e spezie comuni. '+
       'Tono pratico e gentile, mai giudicante, come un amico che cucina con te. '+
-      dietStr()+
+      vincoliStr()+
       ' Rispondi SOLO JSON: {"dosi":["ingrediente e quantità totale",...],'+
       '"passi":[{"t":"titolo breve","d":"cosa fare","min":numero_minuti_o_0},...],'+
       '"nota":"una riga di consiglio o avvertenza"}',"cucina");

@@ -64,9 +64,9 @@ window.vuoto=vuoto;
    una struttura viva, che il registro delle chiavi dinamiche legge
    da sé: aggiungendo una voce, la traduzione si controlla da sola. */
 const VUOTI={
-  piano:   ["cucina","Il tuo piano è una pagina bianca. Vuoi che ti prepari la settimana?","wizStart(1)","Prepara la settimana"],
-  oggi:    ["cucina","Oggi è una pagina bianca. Vuoi che ti prepari la settimana?","show('piano')","Genera il piano"],
-  spesa:   ["cerca","La lista si riempie da sola con gli ingredienti del piano. Appena c'è un piano, qui c'è la spesa.","show('piano')","Vai al piano"],
+  ricette: ["cucina","Il tuo piano è una pagina bianca. Vuoi che ti prepari la settimana?","wizStart(1)","Prepara la settimana"],
+  oggi:    ["cucina","Oggi è una pagina bianca. Vuoi che ti prepari la settimana?","show('ricette')","Chiedi le ricette"],
+  spesa:   ["cerca","La lista si riempie da sola con gli ingredienti del piano. Appena c'è un piano, qui c'è la spesa.","show('ricette')","Vai al piano"],
   sport:   ["sport","Questa settimana è ancora tutta da scrivere. Anche una camminata conta.","portaInVista(document.getElementById('wSport')||document.body)","Segna il primo"],
   schemi:  ["pensa","Gli schemi si vedono col tempo: ancora qualche giorno segnato e qui comincia il tuo racconto.","portaInVista(document.getElementById('pg-comestai')||document.body)","Segna come stai oggi"],
   storico: ["pensa","Le settimane si archiviano da sole alla domenica: fra qualche giorno qui ci sarà il tuo racconto.","show('oggi')","Torna a oggi"],

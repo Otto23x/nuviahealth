@@ -42,6 +42,13 @@
   --shadow:0 1px 2px rgba(12,31,23,.04),0 8px 24px -18px rgba(12,31,23,.22);
   --shadow-lift:0 2px 4px rgba(14,60,30,.06),0 18px 44px -10px rgba(14,60,30,.18);
   --hdr1:#083E39; --hdr2:#00AFA3; --hdr3:#0C7C74;
+  /* v15.11.0 — i token che mancavano al tema scuro: il velo
+     dell'intestazione, il fondo dei fogli, la pillola dell'energia.
+     color-scheme dice al BROWSER in che mondo siamo: tendine, date e
+     barre di scorrimento native seguono il tema invece di restare
+     chiare su fondo scuro. */
+  --hdrbg:rgba(243,246,243,.86); --cremina:#F5F5F5; --energiabg:#FFF3E2;
+  color-scheme:light;
   --r-lg:20px;   /* angolo delle card: sulla scala 4/8/12/16/20/24 */
   --ease:cubic-bezier(.22,1,.36,1);
   /* Scala tipografica: pochi passi, distanze nette. Prima i titoli erano
@@ -70,6 +77,8 @@ html[data-theme="dark"]{
   --shadow:0 1px 2px rgba(0,0,0,.5),0 10px 28px -6px rgba(0,0,0,.45);
   --shadow-lift:0 2px 4px rgba(0,0,0,.5),0 20px 48px -10px rgba(0,0,0,.6);
   --hdr1:#083E39; --hdr2:#00AFA3; --hdr3:#0C7C74;
+  --hdrbg:rgba(13,22,20,.86); --cremina:#0E1817; --energiabg:#2C1A10;
+  color-scheme:dark;
 }
 *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
 /* ═══ SOLO SCORRIMENTO VERTICALE ═══════════════════════════════════
@@ -100,7 +109,7 @@ h1,h2,.dayname{font-family:'Fraunces',Georgia,'Noto Serif',serif}
 ::-webkit-scrollbar-thumb{background:var(--linea);border-radius:8px}
 ::-webkit-scrollbar-thumb:hover{background:var(--grigio)}
 /* ══ HEADER: aurora animata + shrink allo scroll ══ */
-header{background:rgba(243,246,243,.86);backdrop-filter:saturate(1.5) blur(14px);
+header{background:var(--hdrbg);backdrop-filter:saturate(1.5) blur(14px);
   color:var(--ink);padding:12px 16px 12px;position:sticky;top:0;z-index:50;
   border-bottom:1px solid var(--linea);transition:background .3s,border-color .3s}
 
@@ -639,12 +648,32 @@ body.onb .fab{display:none}
 /* La freccia del ritorno: stessa misura del ⋯, a sinistra di esso.
    Compare solo fuori dalle quattro pagine della barra. */
 .hback{font-size:20px;padding:8px 16px;font-weight:700}
+/* ── La prova ────────────────────────────────────────────────────
+   Il numero grande, la frase sotto, la barra di chi si è rimesso in
+   piedi. La barra riusa .ttrack (quella del bilancio di Oggi): stessa
+   lingua visiva per la stessa idea — quanto, su quanto. */
+.provanum{font-size:17px;line-height:1.4;margin:4px 0}
+.provanum b{font-size:32px;font-weight:800;color:var(--bosco);margin-right:4px}
+.provafrase{font-size:14.5px;color:var(--ink);margin:4px 0 8px}
+.provabar{margin:8px 0 12px}
+.provabar i{background:var(--bosco);display:block;height:100%;border-radius:inherit}
+.provaregola{font-size:12.5px;opacity:.8}
+/* ── I documenti legali ──────────────────────────────────────────
+   Una riga di consenso è una casella e un testo che si legge: la
+   casella non si stringe (flex-shrink) e sta in alto, allineata alla
+   PRIMA riga del testo, non centrata su un paragrafo di quattro. */
+.lgriga{display:flex;align-items:flex-start;gap:12px;margin:12px 0;line-height:1.45;font-size:var(--t-sm)}
+.lgriga input{width:auto;flex:0 0 auto;margin-top:4px}
+.lgsep{height:1px;background:var(--linea);margin:16px 0}
+/* Il corpo di un documento: paragrafi staccati e righe larghe, che
+   è l'unico modo perché un testo lungo si legga su un telefono. */
+.lgdoc p{margin:0 0 12px;line-height:1.55}
 /* ── La costellazione ────────────────────────────────────────────
    Tre gruppi sparsi, MAI un cerchio a raggiera: la forma circolare
    a ventiquattro raggi somiglia a un simbolo estremista noto, e il
    problema era il contenitore, non i segni. */
 .costmed{text-align:center;padding:20px 16px;border-radius:20px;background:var(--menta);margin:16px 0}
-.costmed.on{background:linear-gradient(160deg,var(--menta),#fff)}
+.costmed.on{background:linear-gradient(160deg,var(--menta),var(--card))}
 .costmedn{font-size:40px;font-weight:800;color:var(--bosco);line-height:1}
 .costmedn span{font-size:20px;color:var(--grigio);font-weight:600}
 .costmedt{font-size:14px;color:var(--grigio);margin:8px 0 12px;line-height:1.4}
@@ -878,7 +907,7 @@ label{font-size:11.5px;font-weight:700;letter-spacing:.09em;text-transform:upper
 .energy span{width:26px;height:26px;border-radius:50%;border:1.5px solid var(--linea);
   background:var(--card);cursor:pointer;display:inline-flex;align-items:center;justify-content:center;transition:.15s}
 .energy span svg{width:15px;height:15px;fill:var(--linea)}
-.energy span.on{background:#FFF3E2;border-color:var(--zaff)}
+.energy span.on{background:var(--energiabg);border-color:var(--zaff)}
 .energy span.on svg{fill:var(--zaff)}
 .energy small{color:var(--grigio);margin-left:4px}
 .energy-nota{font-size:11px;color:var(--grigio);margin-top:4px}
@@ -1412,6 +1441,14 @@ body.onb{padding-bottom:0}
 /* Le giornate: due gruppi, un titolo per gruppo */
 .o2gr{margin-bottom:16px}
 .o2grt{display:block;font-size:15px;font-weight:700;color:var(--ink);margin-bottom:8px}
+/* La riga che spiega di che gruppo si tratta: senza, due elenchi di
+   quadratini uno sotto l'altro sembrano lo stesso elenco. */
+.o2grs{display:block;font-size:13px;line-height:1.45;color:var(--grigio);margin:0 0 12px}
+/* IL SECONDO GRUPPO E' UN'ALTRA COSA (founder, 29/08): «vincoli
+   religiosi ed etici sotto il tipo di dieta cosa c'entra?». La linea
+   e lo stacco dicono a colpo d'occhio che qui comincia una domanda
+   diversa — uno schema si sceglie, un vincolo non si discute. */
+.o2gr2{margin-top:24px;padding-top:20px;border-top:1px solid var(--linea)}
 @keyframes o2in{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
 /* ── LE DOMANDE HANNO UN COLORE SOLO (founder, 27/08) ─────────────
    «Alcune schermate hanno il testo delle domande in nero, altre in
@@ -1461,6 +1498,23 @@ body.onb{padding-bottom:0}
 .o2ins b{font-size:17px}
 .o2hint{display:block;color:var(--grigio);font-size:var(--t-sm);margin-top:4px;line-height:1.45}
 .o2mini{color:var(--grigio);font-size:var(--t-xs);margin-top:8px}
+/* La riga che AVVERTE non puo' avere lo stesso grigio di quella che
+   informa: il tetto di sicurezza e il controllo medico si devono
+   leggere prima delle altre, non insieme (founder, 29/08). */
+.o2mini-av{color:var(--ink);font-weight:600}
+/* LA SCELTA DEL RITMO (founder, 29/08): quattro bottoni con il numero
+   e cosa comporta. In colonna e non in fila perche' la riga che
+   spiega e' il contenuto, non un sottotitolo: in fila resterebbe
+   tagliata sul telefono, ed e' proprio la parte da leggere. */
+.o2ritmi{display:grid;gap:8px;margin-top:8px}
+.o2ritmo{display:flex;align-items:baseline;gap:12px;text-align:left;width:100%;
+  padding:12px 16px;border-radius:16px;border:1px solid var(--linea);
+  background:var(--card);cursor:pointer;transition:border-color .2s,background .2s}
+.o2ritmo b{font-family:'Fraunces',Georgia,'Noto Serif',serif;font-size:19px;
+  color:var(--bosco);flex:0 0 auto;min-width:2.6em}
+.o2ritmo span{font-size:13px;line-height:1.45;color:var(--grigio)}
+.o2ritmo.scelta{border-color:var(--azione);background:var(--menta)}
+.o2ritmo.scelta span{color:var(--ink)}
 .o2cons{background:var(--card);border:1.5px solid var(--linea);border-left:3px solid var(--zaff);
   border-radius:16px;padding:12px 16px;margin-bottom:16px;font-size:var(--t-sm);line-height:1.5}
 .o2cons b{display:block;margin-bottom:4px}
@@ -1608,6 +1662,21 @@ body.onb{padding-bottom:0}
 .genbar i{display:block;height:100%;background:var(--azione);border-radius:99px;
   transition:width .35s var(--ease)}
 .o2pausa{display:flex;justify-content:center;padding:12px 0 4px}
+/* IL PREMIO DELLA PAUSA (founder, 29/08): un numero grande che la
+   persona si e' guadagnata rispondendo, e una riga che dice da dove
+   viene. Sta dentro un riquadro perche' e' una RESTITUZIONE, non
+   un'altra frase del percorso: si deve vedere che l'app sta dando
+   qualcosa invece di chiedere. */
+.o2prem{margin:16px 0 4px;padding:16px 20px;border-radius:16px;
+  background:var(--menta);border:1px solid var(--linea);text-align:center}
+.o2prem-n{display:flex;align-items:baseline;justify-content:center;gap:8px;flex-wrap:wrap}
+.o2prem-n b{font-family:'Fraunces',Georgia,'Noto Serif',serif;font-size:34px;line-height:1.05;color:var(--bosco)}
+.o2prem-n span{font-size:14px;color:var(--grigio)}
+.o2prem-d{margin-top:8px;font-size:14px;line-height:1.5;color:var(--ink)}
+.o2prem-d+.o2prem-d{margin-top:12px;color:var(--grigio)}
+/* I tre piatti del secondo premio: righe a sinistra dentro la carta
+   centrata — un elenco di cibo si legge, non si contempla. */
+.o2prem-p{margin-top:8px;font-size:14px;line-height:1.5;color:var(--ink);text-align:left}
 .o2entra{width:100%;margin-top:20px}
 /* Lo stato del piano: cosa è fatto, cosa manca. */
 .o2genl{list-style:none;margin:16px 0 0;padding:0;display:grid;gap:8px}
@@ -1635,8 +1704,8 @@ body.onb{padding-bottom:0}
 .ruotaCard{text-align:center}
 .ruotaSvg{width:100%;max-width:320px;height:auto;margin:0 auto;display:block}
 .ruotaSvg .rgiro{fill:none;stroke:var(--linea);stroke-width:1.5;stroke-dasharray:4 8}
-.ruotaSvg .rn circle{fill:#fff;stroke:var(--linea);stroke-width:1.5;transition:all .3s var(--ease)}
-.ruotaSvg .rn text{font-size:17px;fill:#B7BFC7;font-weight:600}
+.ruotaSvg .rn circle{fill:var(--card);stroke:var(--linea);stroke-width:1.5;transition:all .3s var(--ease)}
+.ruotaSvg .rn text{font-size:17px;fill:var(--grigio);font-weight:600}
 /* I DUE COLORI DI NUVIA, alternati: dispari corallo, pari turchese.
    Non è una gerarchia (non esistono livelli): è il marchio che si
    accende un segno alla volta. */
@@ -1649,7 +1718,7 @@ body.onb{padding-bottom:0}
 /* l'elenco: ogni segno col suo nome e il suo obiettivo, sempre */
 .rlist{list-style:none;margin:16px 0 0;padding:0;display:grid;gap:8px}
 .rlist li{display:flex;gap:12px;align-items:flex-start;padding:8px 0;border-top:1px solid var(--linea)}
-.rlist li i{flex:0 0 28px;font-size:20px;font-style:normal;text-align:center;color:#B7BFC7;line-height:1.2}
+.rlist li i{flex:0 0 28px;font-size:20px;font-style:normal;text-align:center;color:var(--grigio);line-height:1.2}
 .rlist li.on i{color:var(--azione)}
 .rlist li.on.c i{color:var(--zaff)}
 .rlist li.on.c em{color:var(--zafft)}
@@ -1664,6 +1733,16 @@ body.onb{padding-bottom:0}
 .card .hint p{margin:0 0 8px}
 .card .hint p:last-child{margin-bottom:0}
 /* Modalità Zen: i numeri vanno via, i colori restano. */
+/* ── MODALITÀ ZEN: i numeri spariscono, i colori restano ──────────
+   Fino alla v15.4.0 questa regola nascondeva .kcalNum/.macroNum, ma
+   NESSUN elemento portava quelle classi: la Zen accesa non cambiava
+   letteralmente niente. Ora la regola punta agli elementi veri della
+   schermata del giorno (#pg-oggi): le kcal e i macro si spengono,
+   l'arco colorato, le barre e gli stati dei pasti restano. opacity e
+   non display: il layout non salta quando si accende. */
+body.zen #pg-oggi .arcon,body.zen #pg-oggi .arcol,body.zen #pg-oggi .arcos,
+body.zen #pg-oggi .pillv,body.zen #pg-oggi .mkcal,body.zen #pg-oggi .daytotal,
+body.zen #pg-oggi .trow b,body.zen #pg-oggi .tnext .m,body.zen #pg-oggi .stat3 .v,
 body.zen .kcalNum,body.zen .macroNum{opacity:0;pointer-events:none}
 /* Primo avvio: le azioni stanno in riga, non incolonnate. */
 .o2gen{margin-top:16px}
@@ -1765,3 +1844,18 @@ html[data-theme="dark"]{--masc-corpo:#2FC9BC;--masc-tratto:#0E2C29;
   border-radius:12px;padding:12px 16px}
 .consriga input{margin-top:4px;flex:0 0 auto}
 .consriga .hint{margin:4px 0 0}
+
+/* ── CAPIRE COSA PARTE (v15.22.0) ───────────────────────────────
+   La vista leggibile del prompt, per chi non legge l'italiano.
+   Righe etichetta/valore, non un muro di testo: la persona cerca
+   una cosa alla volta («cosa sa delle mie allergie?»). */
+.pcap{margin-top:8px}
+.pcap-t{font-weight:700;margin-bottom:4px}
+.pcap-r{display:flex;gap:8px;padding:4px 0;border-bottom:1px solid var(--linea)}
+.pcap-r:last-child{border-bottom:0}
+.pcap-e{flex:0 0 40%;color:var(--grigio);font-size:13px}
+/* dati grezzi in monospazio (il pacchetto dei dati d'uso): 11,5 è
+   giusto per un JSON, e la classe col nome per esteso lascia che il
+   collaudo della tipografia lo riconosca invece di accusarlo */
+.monospace{font-family:ui-monospace,monospace;font-size:11.5px;white-space:pre-wrap}
+.pcap-v{flex:1;font-size:14.5px}

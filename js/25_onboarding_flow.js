@@ -33,7 +33,7 @@ function ONB2_SEZt(){return [
   {k:"alimentazione", t:tr("Come mangi")},
   {k:"vita",          t:tr("Corpo & vita")},
   {k:"conoscerti",    t:tr("Per conoscerti")},
-  {k:"piano",         t:tr("Il tuo piano")}
+  {k:"ricette",       t:tr("Le tue ricette")}
 ];}
 
 /* ── Le schermate ─────────────────────────────────────────────────
@@ -97,9 +97,13 @@ function ONB2t(){return [
     È tutta facoltativa, e lo dice: la maggior parte delle persone
     questi numeri non ce l'ha, e chiederli come obbligatori sarebbe il
     modo più rapido di far chiudere l'app al terzo passo. */
- {k:"pausa1",sez:"profilo",tipo:"pausa",posa:"pensa",
-  q:tr("I numeri ci sono. Adesso la parte che conta."),
-  sub:tr("Da qui in poi il piano smette di essere un calcolo e comincia a somigliarti: cosa mangi, quando, quanto tempo hai.")},
+ /* ── PAUSA1 NON STA PIÙ QUI (founder, 29/08) ─────────────────────
+    «Piccoli premi ogni 8 risposte per tenere agganciato l'utente:
+    l'ultimo è il piano, mancano i primi due.» La pausa era alla
+    QUARTA schermata: troppo presto per premiare, e il ritmo era
+    3 — 17 — 5 invece di 8 — 8 — il resto. Ora sta dopo gli
+    integratori (ottava risposta) e il suo contenuto è un premio
+    vero: vedi onb2PremioHTML. */
 
  {k:"dieta",sez:"alimentazione",tipo:"dieta",
   q:tr("Come mangi, per scelta o abitudine?")},
@@ -182,6 +186,15 @@ function ONB2t(){return [
     tavola — il ferro non va col caffè, la vitamina K di chi prende
     anticoagulanti deve restare COSTANTE, il pompelmo con le statine
     non ci va. Il confine è scritto nella schermata, non sottinteso. */
+ /* ── IL PRIMO PREMIO: dopo otto risposte (founder, 29/08) ────────
+    La chiave resta `pausa1` — rinominarla romperebbe risposte salvate
+    e collaudi per un guadagno estetico — ma la posizione e il senso
+    sono nuovi: ottava schermata, e il contenuto è il primo numero che
+    l'app RESTITUISCE invece di chiedere. */
+ {k:"pausa1",sez:"alimentazione",tipo:"pausa",posa:"festeggia",
+  q:tr("Otto risposte. Questo è già tuo."),
+  sub:tr("Il primo numero che ti restituisco: da qui in poi ogni risposta lo affina.")},
+
  /* ── I FARMACI E IL MEDICO, INSIEME (founder, 28/08) ────────────
     Erano due schermate di fila che chiedono la stessa cosa da due
     lati: cosa prendi, e cosa ti ha detto chi ti segue. Il confine
@@ -206,9 +219,12 @@ function ONB2t(){return [
   q:tr("Segui regole particolari a tavola?"),
   sub:tr("Uno schema che segui o vuoi seguire, e i vincoli che rispetti. Li applico a ogni proposta, e non ti chiedo perché."),
   gr1:tr("Schemi alimentari"),
+  gr1sub:tr("Un modo di mangiare che scegli tu: orienta le proposte e si cambia quando vuoi."),
   op:[["nessuno",tr("Nessuno schema"),""]]
      .concat((typeof PROT_LIST!=="undefined"?PROT_LIST:[]).map(x=>[x.k,tr(x.l).trim(),""])),
   gr2:tr("Vincoli religiosi o etici"),
+  /* la riga che spiega la differenza: qui non si «orienta», si VIETA */
+  gr2sub:tr("Un'altra cosa: questi non sono preferenze. Quello che segni qui non entra mai nel piano, per nessun motivo."),
   op2:[["nessuno",tr("Nessun vincolo"),""]]
      .concat((typeof REL_LIST!=="undefined"?REL_LIST:[]).map(x=>[x,O2CAP(x),""]))},
 
@@ -312,6 +328,16 @@ function ONB2t(){return [
   q:tr("Ci sono pasti che non fai a casa?"),
   sub:tr("Mensa, bar, ristorante — o la schiscetta che ti prepari. Cambia come li scrivo e cosa finisce nella spesa.")},
 
+ /* ── IL SECONDO PREMIO: dopo altre otto (founder, 29/08) ─────────
+    A questo punto l'app sa come mangi, cosa eviti e a cosa sei
+    allergico: il premio è la prova che le risposte LAVORANO — tre
+    piatti già filtrati su di te, passati dalla stessa rete di
+    sicurezza del piano vero (vietatiElenco/vietatoDentro), non da
+    una lista decorativa. */
+ {k:"pausa2",sez:"vita",tipo:"pausa",posa:"cucina",
+  q:tr("Sedici risposte. Guarda cosa ne esce."),
+  sub:tr("Tre piatti scelti con quello che mi hai detto finora — è un assaggio, il piano vero arriva alla fine.")},
+
  {k:"pasti",sez:"vita",tipo:"pasti",
   q:tr("Quali pasti fai davvero?"),
   sub:tr("Il piano non proporrà quelli spenti.")},
@@ -394,10 +420,10 @@ function ONB2t(){return [
       ["parziale",tr("In parte"),tr("Qualche risultato, non quello che speravo")],
       ["male",tr("Non aveva funzionato"),tr("Troppo rigido, o non faceva per me")]]},
 
- {k:"avvisi",sez:"piano",tipo:"avvisi",
+ {k:"avvisi",sez:"ricette",tipo:"avvisi",
   q:tr("Quanto vuoi che mi faccia sentire?")},
 
- {k:"fine",sez:"piano",tipo:"fine",
+ {k:"fine",sez:"ricette",tipo:"fine",
   q:tr("Come vuoi che ti segua?"),
   sub:tr("Puoi cambiare idea quando vuoi, da Io.")}
 ];}
@@ -508,7 +534,18 @@ function onb2MicBarra(campo,passo){
    ── Render ───────────────────────────────────────────────────── */
 function renderOnb2(){
   const el=document.getElementById("pg-onb2");if(!el)return;
-  /* PRIMA DI TUTTO: l'account. È la schermata che decide se una
+  /* ── PRIMA ANCORA DELL'ACCOUNT: I DOCUMENTI (v15.7.0) ───────────
+     Collegare un account Google è già un trattamento di dati:
+     chiederlo prima di aver detto come si trattano sarebbe l'ordine
+     sbagliato, e un consenso raccolto dopo il fatto non è un
+     consenso. Quindi il gate legale sta davanti a tutto. */
+  try{
+    if(typeof legaleServe==="function"&&legaleServe()){
+      el.innerHTML=legaleGateHTML();
+      try{if(typeof a11yLega==="function")a11yLega("onb2");}catch(e){}
+      return;}
+  }catch(e){}
+  /* Poi l'account. È la schermata che decide se una
      persona resta, e va prima delle domande — non dopo, quando
      ha già investito dieci minuti e scopre che serviva un
      collegamento. */
@@ -591,21 +628,28 @@ function onb2Scelta(sc){
   let h="";
   if(sc.sensibile)h+=onb2Consenso();
   h+=onb2Chip(sc.k);
-  h+=`<div class="o2ops">`+sc.op.map(([v,t,d])=>
-    `<button class="o2op${val===v?" scelta":""}" type="button" onclick="onb2Rispondi('${esc(sc.k)}','${esc(v)}')">
+  h+=`<div class="o2ops" data-gruppo="${esc(sc.k)}">`+sc.op.map(([v,t,d])=>
+    `<button class="o2op${val===v?" scelta":""}" type="button" data-v="${esc(v)}"
+       aria-pressed="${val===v?"true":"false"}" onclick="onb2Rispondi('${esc(sc.k)}','${esc(v)}')">
        <b>${esc(t)}</b>${d?`<span>${esc(d)}</span>`:""}</button>`).join("")+`</div>`;
   /* ── LA SECONDA DOMANDA, QUANDO SERVE (28/08) ────────────────────
      Una scelta può portarne dietro un'altra che ha senso solo dopo la
      prima («hai già provato?» → «e com'era andata?»). Prima era una
      schermata condizionale a sé: adesso il gruppo compare qui sotto,
      e sparisce se la risposta cambia. Una schermata in meno, e la
-     seconda domanda arriva dove la si sta pensando. */
-  if(sc.k2&&sc.op2&&(!sc.se2||sc.se2())){
+     seconda domanda arriva dove la si sta pensando.
+     Dal 29/08 il gruppo c'è SEMPRE nel documento e si nasconde con
+     `hidden` quando non serve: comparire e sparire riscrivendo la
+     pagina era metà del lampo che il founder vedeva. */
+  if(sc.k2&&sc.op2){
     const v2=o.ris[sc.k2];
-    h+=`<div class="o2gr" style="margin-top:16px"><b class="o2grt">${esc(sc.gr2||"")}</b></div>`;
-    h+=`<div class="o2ops">`+sc.op2.map(([v,t,d])=>
-      `<button class="o2op${v2===v?" scelta":""}" type="button" onclick="onb2Set('${esc(sc.k2)}','${esc(v)}')">
-         <b>${esc(t)}</b>${d?`<span>${esc(d)}</span>`:""}</button>`).join("")+`</div>`;}
+    let serve=true;try{serve=!sc.se2||!!sc.se2();}catch(e){serve=true;}
+    h+=`<div data-gruppo2="${esc(sc.k2)}"${serve?"":" hidden"}>
+      <div class="o2gr" style="margin-top:16px"><b class="o2grt">${esc(sc.gr2||"")}</b></div>
+      <div class="o2ops" data-gruppo="${esc(sc.k2)}">`+sc.op2.map(([v,t,d])=>
+      `<button class="o2op${v2===v?" scelta":""}" type="button" data-v="${esc(v)}"
+         aria-pressed="${v2===v?"true":"false"}" onclick="onb2Set('${esc(sc.k2)}','${esc(v)}')">
+         <b>${esc(t)}</b>${d?`<span>${esc(d)}</span>`:""}</button>`).join("")+`</div></div>`;}
   h+=onb2Mic(sc.k);
   return h;}
 
@@ -623,7 +667,7 @@ function onb2Intoll(sc){
   h+=`<div class="o2itesta"><span></span><b>${esc(tr("Intollerante"))}</b><b>${esc(tr("Allergico"))}</b></div>`;
   h+=`<div class="o2ops o2intoll">`+sc.op.map(([v,t])=>{
     const i=intol.includes(v),g=gravi.includes(v);
-    return `<div class="o2irow${(i||g)?" scelta":""}">
+    return `<div class="o2irow${(i||g)?" scelta":""}" data-riga="${esc(v)}">
       <span class="o2inome">${esc(t)}</span>
       <button class="o2ibox${i?" on":""}" type="button" aria-pressed="${i}"
         aria-label="${esc(trh("{v1}: intollerante",{v1:t}))}"
@@ -643,7 +687,18 @@ window.onb2IntollTag=(v,tipo)=>{
   const via=(l,x)=>{const i=l.indexOf(x);if(i>-1)l.splice(i,1);};
   if(tipo==="grave"){ if(dentro(G,v))via(G,v); else{G.push(v);via(A,v);} }
   else{ if(dentro(A,v))via(A,v); else{A.push(v);via(G,v);} }
-  onb2Salva();renderOnb2();};
+  onb2Salva();
+  /* Sul posto come tutto il resto (29/08): le due caselle di UNA riga
+     e la classe della riga. La struttura non cambia mai — sono due
+     stati che si escludono, non due forme diverse — quindi non c'è
+     niente da ricostruire. */
+  const riga=document.querySelector('.o2irow[data-riga="'+(window.CSS&&CSS.escape?CSS.escape(v):v)+'"]');
+  if(!riga)return renderOnb2();
+  const i2=dentro(A,v),g2=dentro(G,v);
+  const box=riga.querySelectorAll(".o2ibox");
+  if(box[0]){box[0].classList.toggle("on",i2);box[0].setAttribute("aria-pressed",i2?"true":"false");box[0].textContent=i2?"✓":"";}
+  if(box[1]){box[1].classList.toggle("on",g2);box[1].setAttribute("aria-pressed",g2?"true":"false");box[1].textContent=g2?"✓":"";}
+  riga.classList.toggle("scelta",i2||g2);};
 
 /* ── Integratori: la frequenza accanto a ogni voce, SEMPRE ────────
    Founder, 27/08: «La doppia colonna deve essere sempre visibile
@@ -703,8 +758,9 @@ function onb2Integ(sc){
     }).join("")+`</div>`;
   /* il secondo gruppo: se i conti non tornano, ti va di integrare? */
   if(sc.op2)h+=`<div class="o2gr"><b class="o2grt">${esc(sc.gr2)}</b>
-    <div class="o2ops">`+sc.op2.map(([v,t,d])=>
-    `<button class="o2op${o.ris.integrareOk===v?" scelta":""}" type="button" onclick="onb2Set('integrareOk','${esc(v)}')">
+    <div class="o2ops" data-gruppo="integrareOk">`+sc.op2.map(([v,t,d])=>
+    `<button class="o2op${o.ris.integrareOk===v?" scelta":""}" type="button" data-v="${esc(v)}"
+       aria-pressed="${o.ris.integrareOk===v?"true":"false"}" onclick="onb2Set('integrareOk','${esc(v)}')">
        <b>${esc(t)}</b>${d?`<span>${esc(d)}</span>`:""}</button>`).join("")+`</div></div>`;
   return h;}
 /* Ogni quanto prende QUESTO integratore: un lettore solo, usato dalla
@@ -812,7 +868,7 @@ function onb2Famiglia(sc){
      <label>${esc(tr("Chi altro mangia a casa"))}</label>
      <div id="o2famRighe">${onb2FamBox()}</div>
      <button class="btn ghost small" type="button" onclick="onb2FamAdd()">${esc(tr("+ Aggiungi una persona"))}</button>
-     <label class="ckline" style="margin-top:12px"><input type="checkbox" id="o2famPiano" ${f.piano!==false?"checked":""}
+     <label class="ckline" style="margin-top:12px"><input type="checkbox" id="o2famRicette" ${f.piano!==false?"checked":""}
        onchange="onb2FamFlag('piano',this.checked)"> ${esc(tr("Scegli piatti che posso cucinare per tutti"))}</label>
      <label class="ckline"><input type="checkbox" id="o2famSpesa" ${f.spesa!==false?"checked":""}
        onchange="onb2FamFlag('spesa',this.checked)"> ${esc(tr("La spesa la faccio per tutti"))}</label>
@@ -1028,15 +1084,52 @@ function onb2Medico(sc){
 function onb2Giornate(sc){
   const o=onb2Stato();
   const gruppo=(titolo,ops,k)=>`<div class="o2gr"><b class="o2grt">${esc(titolo)}</b>
-    <div class="o2ops">`+ops.map(([v,t,d])=>
-    `<button class="o2op${o.ris[k]===v?" scelta":""}" type="button" onclick="onb2Set('${k}','${esc(v)}')">
+    <div class="o2ops" data-gruppo="${esc(k)}">`+ops.map(([v,t,d])=>
+    `<button class="o2op${o.ris[k]===v?" scelta":""}" type="button" data-v="${esc(v)}"
+       aria-pressed="${o.ris[k]===v?"true":"false"}" onclick="onb2Set('${k}','${esc(v)}')">
        <b>${esc(t)}</b>${d?`<span>${esc(d)}</span>`:""}</button>`).join("")+`</div></div>`;
   return onb2Chip("attivita")
     +gruppo(sc.gr1,sc.op,"attivita")
     +gruppo(sc.gr2,sc.op2,"ritmi");}
+/* ── UNA SCELTA NON RIDISEGNA LA PAGINA (founder, 29/08) ───────────
+   «Queste tre pagine vengono rirenderizzate con un effetto fastidioso:
+   fai in modo che quando l'utente le vede siano già complete e che
+   nessuna scelta faccia rirenderizzare la pagina.»
+   È la stessa correzione già fatta per le spunte multiple il 25/08 e
+   per le tendine degli integratori il 27/08, arrivata all'ultimo
+   posto in cui era rimasta: i gruppi a scelta singola. Cambiava lo
+   stato e poi rifaceva TUTTO l'innerHTML per accendere una card.
+   Adesso si accende la card e basta — il resto della pagina non si
+   muove, e lo scorrimento nemmeno.
+   Il ripiego (renderOnb2) resta per il caso in cui il gruppo non si
+   trovi: meglio un ridisegno che una scelta persa. */
+function onb2SegnaScelta(k,v){
+  const g=document.querySelector('.o2ops[data-gruppo="'+(window.CSS&&CSS.escape?CSS.escape(k):k)+'"]');
+  if(!g)return false;
+  g.querySelectorAll(".o2op").forEach(b=>{
+    const on=b.getAttribute("data-v")===String(v);
+    b.classList.toggle("scelta",on);
+    b.setAttribute("aria-pressed",on?"true":"false");});
+  return true;}
+window.onb2SegnaScelta=onb2SegnaScelta;
+
+/* Il secondo gruppo che dipende dal primo («hai già provato?» → «e
+   com'era andata?») c'è SEMPRE nel documento: quando non serve si
+   nasconde con `hidden`, che è un attributo, non una ricostruzione.
+   Prima compariva e spariva riscrivendo la pagina — ed era l'altro
+   motivo del lampo. */
+function onb2Gruppo2Aggiorna(sc){
+  if(!sc||!sc.k2)return;
+  const box=document.querySelector('[data-gruppo2="'+(window.CSS&&CSS.escape?CSS.escape(sc.k2):sc.k2)+'"]');
+  if(!box)return;
+  let serve=true;
+  try{serve=!sc.se2||!!sc.se2();}catch(e){serve=true;}
+  box.hidden=!serve;}
+window.onb2Gruppo2Aggiorna=onb2Gruppo2Aggiorna;
+
 window.onb2Set=(k,v)=>{const o=onb2Stato();o.ris[k]=v;onb2Salva();
   /* niente messaggio di stato: vedi la nota in cima al file */
-  renderOnb2();};
+  if(!onb2SegnaScelta(k,v))renderOnb2();};
 
 /* ── Multi-selezione: si tocca più di una card, «Avanti» conferma. ──
    La voce `none` («nessuna») è esclusiva: toccarla spegne le altre,
@@ -1066,10 +1159,47 @@ function onb2Multi(sc){
      `op2` esisteva già per un gruppo a scelta singola (gli
      integratori): qui è a scelta multipla e ha una chiave sua. */
   if(sc.k2&&sc.op2){
+    /* ── I VINCOLI COERENTI CON LA DIETA ARRIVANO GIÀ SPUNTATI ─────
+       (founder, 29/08): «un vegetariano/vegano troverà questi vincoli
+       etici già spuntati, così come un pescetariano?» Adesso sì: la
+       dieta si sceglie DUE schermate prima, e chi ha detto «vegana»
+       non deve rispuntare «niente carne» come se non l'avesse già
+       detto. Il suggerimento si SCRIVE nello stato (non solo a
+       schermo): così vale anche per chi preme Avanti senza toccare
+       niente. E vale solo la prima volta (o.ris[k2] mai risposto):
+       una spunta tolta a mano resta tolta.
+       La sicurezza non dipende da qui — la dieta è già un divieto
+       assoluto per il controllo (VIETATI_DA_DIETA) — questo è il
+       percorso che dimostra di aver ascoltato. */
+    if(sc.k2==="vincoli"&&!Array.isArray(o.ris[sc.k2])){
+      const dt=((o.ris.dieta||{}).tipo||"").toLowerCase();
+      const sug=[];
+      if(dt==="vegana"){sug.push("niente carne di alcun tipo","niente pesce e frutti di mare");}
+      else if(dt==="vegetariana"){sug.push("niente carne di alcun tipo");
+        if(!(o.ris.dieta||{}).pesce)sug.push("niente pesce e frutti di mare");}
+      else if(dt==="pescetariana"){sug.push("niente carne di alcun tipo");}
+      if(sug.length){o.ris[sc.k2]=sug;onb2Salva();}}
     const sel2=Array.isArray(o.ris[sc.k2])?o.ris[sc.k2]:[];
     if(sc.gr1)h=h.replace('<div class="o2ops o2multi"',
-      `<div class="o2gr"><b class="o2grt">${esc(sc.gr1)}</b></div><div class="o2ops o2multi"`);
-    h+=`<div class="o2gr" style="margin-top:16px"><b class="o2grt">${esc(sc.gr2||"")}</b></div>`;
+      `<div class="o2gr"><b class="o2grt">${esc(sc.gr1)}</b>${sc.gr1sub?`<span class="o2grs">${esc(sc.gr1sub)}</span>`:""}</div><div class="o2ops o2multi"`);
+    /* ── DUE COSE DIVERSE, E ADESSO SI VEDE (founder, 29/08) ───────
+       «Vincoli religiosi ed etici sotto il tipo di dieta cosa
+       c'entra?» La schermata li teneva già in due liste con la loro
+       intestazione, ma a schermo erano una fila sola di quadratini
+       con una scritta grigia in mezzo: si leggeva come un unico
+       elenco, e infatti «Halal» sembrava un'altra dieta accanto a
+       «Iposodica».
+       Non sono la stessa cosa nemmeno per il motore: uno schema
+       finisce in `S.pref.protocolli` ed è una preferenza che orienta
+       il piano; un vincolo finisce in `S.pref.religiose` e da lì
+       entra fra i divieti ASSOLUTI (`vietatiElenco`), quelli che il
+       controllo di sicurezza non perdona mai. Due comportamenti
+       opposti dello stesso motore non possono sembrare la stessa
+       lista — è la stessa ragione per cui intolleranze e allergie
+       sono state separate il 27/08.
+       Quindi: una linea vera fra i due blocchi, e sotto il titolo la
+       riga che dice perché il secondo è diverso. */
+    h+=`<div class="o2gr o2gr2"><b class="o2grt">${esc(sc.gr2||"")}</b>${sc.gr2sub?`<span class="o2grs">${esc(sc.gr2sub)}</span>`:""}</div>`;
     h+=`<div class="o2ops o2multi" data-multi="${esc(sc.k2)}">`+sc.op2.map(([v,t,d])=>
       `<button class="o2op o2opm${sel2.includes(v)?" scelta":""}" type="button" data-v="${esc(v)}"
          onclick="onb2Toggle('${esc(sc.k2)}','${esc(v)}')" aria-pressed="${sel2.includes(v)}">
@@ -1305,6 +1435,25 @@ window.onb2FuoriOk=()=>{
    Adesso è una domanda di contesto e sta con le abitudini (schermata
    `cibi`), dove le risposte servono a conoscere la persona e non a
    comporre la settimana. */
+/* ── UNA DOMANDA SOLA SUL BUDGET (founder, 29/08) ─────────────────
+   «Budget della spesa non può essere sia medio che un numero, l'utente
+   si confonde: il numero mettilo in Spesa, non nell'onboarding.»
+
+   Aveva ragione, e il difetto era mio: la cifra è stata aggiunta il
+   28/08 SOTTO la tendina invece che al posto suo, e le due domande si
+   contraddicevano a vista — se scrivo 60 euro, «Medio» cosa aggiunge?
+   E se dicono cose diverse, quale vince?
+   Qui resta la domanda a cui si risponde a memoria: chi comincia il
+   percorso non ha in mano lo scontrino della settimana scorsa. La
+   cifra esatta vive dove serve — nella pagina Spesa, accanto alla
+   lista che la consuma e al numero di persone per cui si compra.
+
+   E QUESTA NOTA STA FUORI DAL TEMPLATE, non dentro come l'avevo
+   scritta la prima volta: un commento HTML dentro le backtick finisce
+   nella pagina a ogni disegno. Non si vede, ma pesa — ed è la seconda
+   volta in due consegne che ci cado (la prima fu il foglio dei
+   bicchieri, dove si VEDEVA). Qui l'ha preso `t_onb_domande`, che
+   cercava «alcol» e lo ha trovato dentro «calcolare». */
 function onb2Pref(sc){
   const o=onb2Stato(),r=o.ris.preferenze||{};
   const sel=(id,val,opts)=>`<select id="${id}">`+opts.map(x=>`<option value="${esc(x[0])}"${(val||opts[0][0])===x[0]?" selected":""}>${esc(x[1])}</option>`).join("")+`</select>`;
@@ -1312,17 +1461,7 @@ function onb2Pref(sc){
    `<div class="o2form">
       <label>${esc(tr("Budget spesa"))}</label>
       ${sel("o2pb",r.budget,[["medio",tr("Medio")],["contenuto",tr("Contenuto")],["senza limiti",tr("Senza limiti")]])}
-      <!-- ── LA CIFRA, SE VUOI DARLA (founder, 28/08) ─────────────
-           «Il sistema ti chiede 50 euro o dollari o rupie di budget:
-           che cosa posso comprare?» È la domanda giusta, e non è una
-           conversione: è sapere che 50 dollari, negli Stati Uniti,
-           nel 2026, comprano quello che comprano. Al modello arrivano
-           la cifra, la valuta, il paese e l'anno — e il divieto
-           esplicito di convertire alcunché. -->
-      <label for="o2pbn" style="margin-top:12px">${esc(trh("Quanto spendi in una settimana ({v1})",{v1:(typeof laValuta==="function")?laValuta()[0]:"EUR"}))}</label>
-      <input type="number" id="o2pbn" inputmode="decimal" min="0" max="100000" step="1"
-        value="${esc(r.budgetCifra||"")}" placeholder="${(typeof laValuta==="function"&&laValuta()[0]==="EUR")?"60":"80"}">
-      <span class="o2hint">${esc(tr("Facoltativo, e non lo converto in altre valute: mi serve per sapere cosa si compra davvero con questa cifra dove vivi tu."))}</span>
+      <span class="o2hint">${esc(tr("La cifra esatta la dai dalla Spesa, dove conto anche per quante persone compri."))}</span>
       <label>${esc(tr("Quanta varietà vuoi nel piano"))}</label>
       ${sel("o2pv",r.varieta,[["media",tr("Media")],["bassa",tr("Bassa: pochi piatti che tornano, spesa corta")],["alta",tr("Alta: ogni giorno diverso")]])}
     </div>`;}
@@ -1333,9 +1472,11 @@ window.onb2PrefOk=()=>{
   /* l'alcol si porta dietro quello che c'era: chi ha lasciato il
      percorso a metà prima del 28/08 non perde la risposta gia' data */
   const vecchio=(o.ris.preferenze||{}).alcol;
-  const cifra=parseFloat(g("o2pbn"));
+  /* la cifra non si chiede più qui (vedi la nota nel disegno), ma chi
+     l'aveva già data prima del 29/08 non la perde */
+  const cifraVecchia=(o.ris.preferenze||{}).budgetCifra;
   o.ris.preferenze={budget:g("o2pb")||"medio",varieta:g("o2pv")||"media"};
-  if(isFinite(cifra)&&cifra>0)o.ris.preferenze.budgetCifra=Math.round(cifra);
+  if(cifraVecchia>0)o.ris.preferenze.budgetCifra=+cifraVecchia;
   if(vecchio)o.ris.preferenze.alcol=vecchio;
   onb2Salva();onb2Avanti();};
 
@@ -1343,11 +1484,123 @@ window.onb2PrefOk=()=>{
    Non chiedono niente: dicono a che punto siamo e perché le domande
    fatte servivano. Sono il posto della mascotte — l'unica figura che
    la persona vede in tutto il percorso. */
+/* ═══ IL PREMIO, CHE PRIMA NON C'ERA ═══════════════════════════════
+   RICHIESTA DEL FOUNDER (29/08): «avevi parlato di dare dei premi
+   psicologici all'utente durante l'onboarding: quando arrivano le
+   mascotte non dice niente di speciale, non li vedo questi premi».
+
+   Aveva ragione: le due pause mostravano una figura e una frase
+   uguale per tutti. Una pausa che non restituisce niente è una
+   schermata in più fra la persona e il piano — cioè il contrario di
+   un premio.
+
+   Il premio vero non è un complimento: è un NUMERO che la persona non
+   aveva prima di rispondere, e che ha ottenuto rispondendo. «Bravo,
+   continua così» non si è guadagnato niente; «il tuo corpo consuma
+   2.897 kcal anche stando fermo» sì — e viene dalle sue tre risposte.
+
+   Regola, per chi aggiungerà pause: se per una schermata non c'è un
+   dato vero da restituire, il premio NON si scrive. Un premio
+   inventato vale meno di nessun premio, e questa app non finge. */
+function onb2PremioHTML(sc){
+  try{
+    const o=onb2Stato(),b=o.ris.bio||{};
+    /* IL NOME STA DENTRO LA FRASE, NON DAVANTI (29/08): la prima
+       stesura incollava il nome davanti a una frase che comincia
+       in minuscolo, cioè
+       una chiave che comincia in minuscolo e vale solo in italiano —
+       in inglese il nome va in un altro posto della frase. È il
+       difetto che `t_i18n` chiama «chiave frammentata», e l'ha preso
+       lui prima di me. */
+    const nome=String(b.nome||"").trim();
+    if(sc.k==="pausa1"){
+      const t=onb2Targets(b);
+      if(!t)return "";
+      const righe=[];
+      /* quello che il corpo consuma: il primo numero che l'app
+         RESTITUISCE, ed è tutto suo */
+      righe.push(`<div class="o2prem-n"><b>${esc(String(t.tdee))}</b> <span>${esc(tr("kcal al giorno"))}</span></div>`);
+      righe.push(`<div class="o2prem-d">${esc(nome
+        ? trh("{v1}, è quanto consumi in una giornata come le tue: non l'ha deciso una tabella, l'ho calcolato sui tuoi numeri.",{v1:nome})
+        : tr("È quanto consumi in una giornata come le tue: non l'ha deciso una tabella, l'ho calcolato sui tuoi numeri."))}</div>`);
+      const goal=+o.ris.pesoObiettivo||0;
+      const gk=(typeof pesoIn==="function"&&goal)?pesoIn(String(goal)):goal;
+      if(gk>0&&b.w>0){
+        const diff=Math.round((b.w-gk)*10)/10;
+        if(diff>=0.5){
+          const defG=Math.max(1,t.tdee-t.kcal);
+          const sett=Math.max(1,Math.round(diff*7700/(defG*7)));
+          righe.push(`<div class="o2prem-d">${esc(trh("E per i {v1} che ti mancano servono circa {v2} settimane: lo sai prima di cominciare, non dopo tre mesi.",
+            {v1:((typeof pesoTxt==="function")?pesoTxt(diff,1):diff+" kg"),v2:sett}))}</div>`);}}
+      return `<div class="o2prem">${righe.join("")}</div>`;}
+    if(sc.k==="pausa2"){
+      const r=o.ris||{};
+      /* ── TRE PIATTI CHE TI SOMIGLIANO GIÀ (premio 2, 29/08) ──────
+         La prova che le risposte lavorano. I candidati vengono dal
+         piano di partenza (BASE_RICETTE + PB_MODELLI) e passano dalla
+         STESSA rete del piano vero: vietatiElenco/allergeniElenco
+         costruiti sulle risposte date FINORA (S.pref non esiste
+         ancora: il travaso arriva alla fine). Un piatto mostrato qui
+         e vietato dopo sarebbe una promessa rotta alla prima
+         schermata utile. */
+      const no=[(Array.isArray(r.vincoli)?r.vincoli:[]).join(", "),
+                (Array.isArray(r.cibi_no)?r.cibi_no:[]).join(", ")].filter(Boolean).join(", ");
+      const intol=(Array.isArray(r.allergie)?r.allergie:[]).filter(x=>x!=="niente").join(", ");
+      const gravi=(Array.isArray(r.allergie_gravi)?r.allergie_gravi:[]).join(", ");
+      let vietati=[],assoluti=[];
+      try{vietati=(typeof vietatiElenco==="function")?vietatiElenco(no,intol):[];}catch(e){}
+      try{assoluti=(typeof allergeniElenco==="function")?allergeniElenco(gravi,"allergia"):[];}catch(e){}
+      /* i candidati: pranzi e cene normali del piano base, più i
+         modelli degli spuntini — descrizioni vere, non inventate qui */
+      const cand=[];
+      try{(typeof BASE_RICETTE!=="undefined"?BASE_RICETTE:[]).forEach(g=>(g.meals||[]).forEach(m=>{
+        if(m.type==="norm"&&m.o&&m.o[0]&&/pranzo|cena/i.test(m.n||""))cand.push(m.o[0].d);}));}catch(e){}
+      try{Object.keys(typeof PB_MODELLI!=="undefined"?PB_MODELLI:{}).forEach(k2=>{
+        const m=PB_MODELLI[k2];if(m&&m.o&&m.o[0])cand.push(m.o[0].d);});}catch(e){}
+      const passano=cand.filter(dsc=>{
+        try{return (typeof vietatoDentro==="function")?!vietatoDentro(dsc,vietati,assoluti):true;}
+        catch(e){return false;}});
+      if(passano.length<3)return "";     /* meglio nessun premio che uno finto */
+      /* tre piatti diversi, presi sparsi (inizio, metà, fine) così non
+         sono tre pranzi uguali dello stesso giorno */
+      const tre=[passano[0],passano[Math.floor(passano.length/2)],passano[passano.length-1]]
+        .filter((x,i,a)=>a.indexOf(x)===i).slice(0,3);
+      if(tre.length<3)return "";
+      const esclusi=vietati.length+assoluti.length;
+      const pezzi2=[];
+      pezzi2.push(`<div class="o2prem-d">${esc(tr("Potresti provare, per dire:"))}</div>`);
+      tre.forEach(dsc=>{pezzi2.push(`<div class="o2prem-p">• ${esc(dsc)}</div>`);});
+      if(esclusi>0)
+        pezzi2.push(`<div class="o2prem-d">${esc(trh("E ho già tolto dal tavolo {v1} alimenti per te: le risposte non finiscono in un cassetto.",{v1:esclusi}))}</div>`);
+      else
+        pezzi2.push(`<div class="o2prem-d">${esc(tr("Per ora non escludi niente: quando mi dirai di più, si adatteranno da soli."))}</div>`);
+      return `<div class="o2prem">${pezzi2.join("")}</div>`;}
+    if(sc.k==="pausa3"){
+      /* quante cose il piano sa DAVVERO di lei: si contano, non si
+         stimano — e se sono poche il numero è piccolo e va bene così */
+      const r=o.ris||{},d=S.pref||{};
+      const pezzi=[];
+      const conta=(v)=>{ if(!v)return 0;
+        if(Array.isArray(v))return v.filter(x=>x&&x!=="nessuno"&&x!=="niente").length;
+        return String(v).trim()?1:0;};
+      let n=0;
+      n+=conta(d.intol); n+=conta(d.allergie); n+=conta(d.no); n+=conta(d.si);
+      n+=conta(d.religiose); n+=conta(d.protocolli); n+=conta(d.farmaci); n+=conta(d.medico);
+      n+=conta(d.tipo); n+=conta(d.slots?1:0); n+=conta(d.mensaGiorni);
+      n+=conta(r.attivita); n+=conta(r.cucina); n+=conta(r.sportPref);
+      if(n<3)return "";
+      pezzi.push(`<div class="o2prem-n"><b>${esc(String(n))}</b> <span>${esc(tr("cose che il piano sa di te"))}</span></div>`);
+      pezzi.push(`<div class="o2prem-d">${esc(tr("Nessuna è un valore di serie: le hai dette tu, e ognuna cambia il piano."))}</div>`);
+      return `<div class="o2prem">${pezzi.join("")}</div>`;}
+  }catch(e){}
+  return "";}
+window.onb2PremioHTML=onb2PremioHTML;
+
 function onb2Pausa(sc){
   /* Più grande (founder, 27/08): «così si vedono meglio e sono più
      distintive». Su una pausa la figura È il contenuto della schermata,
      non un ornamento accanto al testo. */
-  return `<div class="o2pausa">${masc(sc.posa||"pensa",150)}</div>`;}
+  return `<div class="o2pausa">${masc(sc.posa||"pensa",150)}</div>`+onb2PremioHTML(sc);}
 
 /* ── Il piano che si scrive da solo, in sottofondo ──────────────
    Regola del founder (22/08): l'AI parte PRIMA delle domande che non
@@ -1494,13 +1747,90 @@ function pbPesi(giorno){
     if(m.type!=="free")mobile+=k;});
   return {tutto,mobile};}
 
-window.onb2PianoBase=(targetK)=>{
-  const base=(typeof BASE_PLAN!=="undefined")?BASE_PLAN:null;
+/* ── ANCHE IL PIANO DI BASE RISPETTA I PASTI SCELTI (29/08) ────────
+   La promessa della schermata è «il piano non proporrà quelli spenti»,
+   e il piano su misura la mantiene. Quello di BASE no: è il piano del
+   founder (Metà mattina, Pranzo, Metà pomeriggio, Cena) e arrivava
+   così a chiunque — a chi aveva scelto la colazione mancava la
+   colazione, a chi non aveva scelto la metà mattina restava la metà
+   mattina. Stessa malattia del contratto AI, su un'altra strada.
+   Qui si adatta PRIMA di riscalare le quantità:
+   · i pasti non scelti si tolgono;
+   · i pasti scelti che mancano si aggiungono da modelli con alimenti
+     e valori veri (gli stessi spuntini del piano di base, più una
+     colazione e un dopo cena scritti con lo stesso metro);
+   · l'ordine segue gli orari della giornata.
+   Poi il riscalo esistente porta la giornata al target: i modelli non
+   devono indovinare le calorie giuste, gliele sistema lui. */
+const PB_MODELLI={
+  "Colazione":{n:"Colazione",t:"07:30",type:"norm",o:[{d:"Yogurt greco 150g + fiocchi d'avena 40g + frutta fresca 100g + semi oleosi 10g",k:350,p:22,c:42,f:10}]},
+  "Metà mattina":{n:"Metà mattina",t:"10:30",type:"norm",o:[{d:"Kefir 150g + quinoa soffiata 25g + frutti di bosco 40g + semi oleosi 10g",k:250,p:9,c:30,f:9}]},
+  "Metà pomeriggio":{n:"Metà pomeriggio",t:"16:30",type:"norm",o:[{d:"Yogurt greco 150g + frutta di stagione 40g + semi oleosi 10g",k:170,p:17,c:10,f:8}]},
+  "Tardo pomeriggio":{n:"Tardo pomeriggio",t:"18:30",type:"norm",o:[{d:"Frutta secca 20g + un frutto fresco",k:190,p:5,c:20,f:11}]},
+  "Dopo cena":{n:"Dopo cena",t:"22:00",type:"norm",o:[{d:"Ricotta 100g + frutta fresca 80g",k:190,p:12,c:13,f:11}]}};
+function pbSlots(giorno,slots){
+  if(!Array.isArray(slots)||!slots.length)return giorno;
+  const nrm=s=>(typeof cibNorm==="function")?cibNorm(s):String(s||"").toLowerCase();
+  const scelti=slots.map(nrm);
+  /* si tengono i pasti scelti; gli altri se ne vanno — TRANNE i
+     liberi: un pasto libero è un'occasione del weekend, non uno slot
+     quotidiano, e toglierlo a chi non ha spuntato quella fascia
+     butterebbe via la libertà insieme all'orario (visto dal collaudo
+     dello scalo, 29/08: il primo taglio si portava via la birra del
+     venerdì) */
+  let meals=(giorno.meals||[]).filter(m=>m&&(scelti.indexOf(nrm(m.n))>=0||(m.type||"norm")==="free"));
+  /* un pasto LIBERO tenuto fuori fascia copre la fascia scelta più
+     vicina nell'ora: il venerdì del piano di base ha l'aperitivo AL
+     POSTO della merenda, non in aggiunta — inserire anche il modello
+     della merenda farebbe due spuntini dove il piano ne prevede uno
+     (visto dal collaudo dei liberi, 29/08) */
+  const ORA_F={"colazione":7.5,"metà mattina":10.5,"meta mattina":10.5,"pranzo":13,
+    "metà pomeriggio":16.5,"meta pomeriggio":16.5,"tardo pomeriggio":18.5,"cena":20,"dopo cena":22};
+  const coperti=new Set();
+  meals.filter(m=>(m.type||"norm")==="free"&&scelti.indexOf(nrm(m.n))<0).forEach(fm=>{
+    const oraFm=parseFloat(String(fm.t||"").replace(":","."))||ORA_F[nrm(fm.n)]||13;
+    let best=null,dist=99;
+    slots.forEach(s=>{
+      if(coperti.has(s))return;
+      if(meals.some(m=>nrm(m.n)===nrm(s)))return;
+      const d=Math.abs((ORA_F[nrm(s)]||13)-oraFm);
+      if(d<dist){dist=d;best=s;}});
+    if(best!=null&&dist<=4)coperti.add(best);});
+  /* i pasti scelti che mancano entrano dai modelli */
+  slots.forEach(s=>{
+    if(coperti.has(s))return;
+    if(meals.some(m=>nrm(m.n)===nrm(s)))return;
+    const mod=PB_MODELLI[s];
+    if(mod){meals.push(JSON.parse(JSON.stringify(mod)));return;}
+    /* uno slot senza modello (un nome futuro): si copia lo spuntino
+       più piccolo del giorno, rinominato — mai un giorno col buco */
+    const più=meals.filter(m=>(m.type||"norm")==="norm"&&m.o&&m.o[0])
+      .sort((a,b)=>((a.o[0]||{}).k||0)-((b.o[0]||{}).k||0))[0];
+    if(più){const c=JSON.parse(JSON.stringify(più));c.n=s;meals.push(c);}});
+  /* in ordine di GIORNATA, non di elenco: un pasto libero tenuto
+     anche se la sua fascia non è fra le scelte (vedi sopra) con
+     l'ordine dell'elenco finirebbe in testa (indexOf=-1). L'ora la
+     dice il pasto stesso, e per chi non ce l'ha la dice la fascia. */
+  const ORA_FASCIA={"colazione":7.5,"metà mattina":10.5,"meta mattina":10.5,"pranzo":13,
+    "metà pomeriggio":16.5,"meta pomeriggio":16.5,"tardo pomeriggio":18.5,"cena":20,"dopo cena":22};
+  const oraDi=m=>{
+    const t=parseFloat(String(m.t||"").replace(":","."));
+    if(isFinite(t)&&t>0)return t;
+    return ORA_FASCIA[nrm(m.n)]||13;};
+  meals.sort((a,b)=>oraDi(a)-oraDi(b));
+  return Object.assign({},giorno,{meals:meals});}
+window.pbSlots=pbSlots;
+
+window.onb2RicetteBase=(targetK)=>{
+  const base=(typeof BASE_RICETTE!=="undefined")?BASE_RICETTE:null;
   if(!base||!base.length)return null;
   const t=+targetK||0;
   if(!(t>0))return null;
+  /* i pasti scelti, se a questo punto sono già stati travasati */
+  const sceltiSlots=(typeof parseSlots==="function")?parseSlots((S.pref&&S.pref.slots)||""):[];
   let tagliato=false;
-  const piano=base.map(g=>{
+  const piano=base.map(g0=>{
+    const g=sceltiSlots.length?pbSlots(g0,sceltiSlots):g0;
     const {tutto,mobile}=pbPesi(g);
     /* il fattore si applica ai soli pasti ritoccabili: i liberi
        restano interi e la differenza la assorbono gli altri */
@@ -1537,7 +1867,7 @@ window.onb2GeneraOra=async()=>{
     let piano=null;
     try{
       const t=onb2Targets();
-      piano=t?onb2PianoBase(dayTargetK()||t.kcal):null;
+      piano=t?onb2RicetteBase(dayTargetK()||t.kcal):null;
     }catch(e){piano=null;}
     g.piano=piano;g.perc=100;
     if(piano){
@@ -1613,11 +1943,34 @@ async function onb2GeneraCore(dati,t){
        streaming, contando i giorni già scritti nel testo. La barra si
        muove con loro — 10% a giorno per sette giorni, poi controllo ed
        eventuale ritocco — invece di stare ferma a un numero recitato. */
+    /* ── QUANDO IL LAVORO VERO NON PARLA (v15.19.0) ──────────────
+       Chi passa dal nostro server non riceve lo streaming: la fase
+       «giorno» non arriva mai e questa barra restava a 8 per un
+       minuto intero — proprio a chi ha l'abbonamento. L'attesa
+       onesta si muove sul TEMPO (la memoria di quanto è durata
+       l'ultima volta), si ferma al 92% e cede il posto al lavoro
+       vero appena lo streaming apre bocca. Il perché sta in
+       `71_attesa.js`; la regola è scritta sotto la barra. */
+    /* La regola della barra è già dichiarata sotto di essa — «l'ultima
+       volta ci ha messo X» — quindi qui non serve una seconda frase:
+       due modi di dire la stessa cosa sono il difetto che abbiamo già
+       corretto altrove (il banner della settimana nuova). */
+    let att=null;
+    try{att=attesaAvvia((p)=>{
+      if(!mio()||g.stato!=="lavoro")return;
+      if(p>g.perc){g.perc=p;g.ultimo=Date.now();onb2GenTocca();}});}catch(e){}
     const plan=await wizGenDays(dati,t,null,(f,extra)=>{
       if(!mio())return;                 /* un tentativo vecchio non parla piu' */
       g.ultimo=Date.now();              /* la prova che qualcosa si muove */
+      /* Qualunque fase DOPO «settimana» è lavoro vero che parla: la
+         barra a tempo si spegne qui, una volta sola. Cedere solo su
+         «giorno» non bastava — senza streaming la prima fase vera è
+         «controllo», e la barra finta (arrivata a 92) sarebbe
+         tornata indietro a 82 sotto gli occhi della persona. */
+      if(f!=="settimana"){try{if(att&&!att.ceduta())att.vero();}catch(e){}}
       if(f==="settimana"){g.perc=8;g.riga=tr("Sto componendo il tuo piano…");g.righe=onb2GenRighe(0,"lavoro");}
-      else if(f==="giorno"){g.streamOk=true;g.fatti=extra.fatti;g.perc=8+Math.round(extra.fatti*10);
+      else if(f==="giorno"){g.streamOk=true;
+        g.fatti=extra.fatti;g.perc=8+Math.round(extra.fatti*10);
         g.riga=extra.ora?trh("Sto scrivendo {v1}…",{v1:extra.ora}):tr("Sto componendo il tuo piano…");
         g.righe=onb2GenRighe(extra.fatti,"lavoro");}
       else if(f==="controllo"){g.fatti=7;g.perc=82;g.riga=tr("Controllo i conti e quello che hai escluso…");g.righe=onb2GenRighe(7,"controllo");}
@@ -1637,8 +1990,26 @@ async function onb2GeneraCore(dati,t){
       g.notaAdatt=(q===1)
         ? tr("Un piatto l'ho adattato ai tuoi vincoli: lo trovi segnato nel Piano.")
         : trh("Ho adattato {v1} piatti ai tuoi vincoli: li trovi segnati nel Piano.",{v1:q});}
+    /* ── UN PASTO CHE MANCA SI DICE (founder, 29/08) ──────────────
+       «Ancora una volta il pasto del tardo pomeriggio non è stato
+       generato, perché?» — e la risposta più scomoda non è perché il
+       modello lo saltava (quello si ripara nel contratto, poco fa):
+       è che quando lo saltava DAVVERO, dopo il rifacimento, qui
+       compariva «Piano pronto, spesa compresa.» e nient'altro. Il
+       controllo lo sapeva — `validaSettimana` lo marca grave — ma la
+       persona no, e si ritrovava quattro pasti su cinque senza un
+       motivo. Un piano incompleto che si annuncia completo è la
+       versione peggiore di un piano incompleto. */
+    let notaMancanti="";
+    try{
+      const mancanti=(typeof pastiMancanti==="function")?pastiMancanti(plan&&plan.problemi):[];
+      if(mancanti.length)notaMancanti=" "+((mancanti.length===1)
+        ? trh("Un pasto però non è stato scritto ({v1}): lo aggiungi dal Piano, oppure rigeneri.",{v1:mancanti[0]})
+        : trh("Questi pasti però non sono stati scritti ({v1}): li aggiungi dal Piano, oppure rigeneri.",{v1:mancanti.join(", ")}));
+    }catch(e){}
+    try{if(att)att.ferma();}catch(e){}
     g.piano=plan||null;g.stato=plan?"fatto":"errore";g.perc=100;
-    g.riga=plan?(g.notaAdatt?(tr("Piano pronto, spesa compresa.")+" "+g.notaAdatt):tr("Piano pronto, spesa compresa."))
+    g.riga=plan?((g.notaAdatt?(tr("Piano pronto, spesa compresa.")+" "+g.notaAdatt):tr("Piano pronto, spesa compresa."))+notaMancanti)
                :tr("Il piano lo rifacciamo con calma da Piano: il diario intanto è già tuo.");
     g.righe=plan?onb2GenRighe(7,"fatto"):[];
   }catch(e){
@@ -1657,7 +2028,7 @@ async function onb2GeneraCore(dati,t){
        com'e' andata. Un piano vero addosso vale piu' di una promessa. */
     let ripiego=null;
     if(daProva){
-      try{const tt=onb2Targets();ripiego=tt?onb2PianoBase(dayTargetK()||tt.kcal):null;}catch(_){ripiego=null;}}
+      try{const tt=onb2Targets();ripiego=tt?onb2RicetteBase(dayTargetK()||tt.kcal):null;}catch(_){ripiego=null;}}
     if(ripiego){
       g.piano=ripiego;g.stato="base";g.perc=100;g.righe=[];
       g.riga=trh("Il modello non risponde ({v1}): intanto ti ho preparato il piano di base sui tuoi numeri, quello su misura lo rifai da Piano quando vuoi.",{v1:perche||"errore"});
@@ -1698,7 +2069,7 @@ function onb2Guardiano(){
   if(!p||g.riprese>O2_RIPRESE){
     g.ultimo=Date.now();
     let ripiego=null;
-    try{const tt=onb2Targets();ripiego=tt?onb2PianoBase(dayTargetK()||tt.kcal):null;}catch(_){ripiego=null;}
+    try{const tt=onb2Targets();ripiego=tt?onb2RicetteBase(dayTargetK()||tt.kcal):null;}catch(_){ripiego=null;}
     if(ripiego){g.piano=ripiego;g.stato="base";g.perc=100;g.righe=[];
       g.riga=tr("L'attesa si è interrotta: intanto ti ho preparato il piano di base sui tuoi numeri, quello su misura lo rifai da Piano quando vuoi.");}
     else{g.stato="errore";g.perc=100;g.righe=[];
@@ -1732,7 +2103,7 @@ function onb2GenChiusa(){
   if(buono){
     const spesa=(g.stato==="fatto"&&g.piano.spesa)?g.piano.spesa:null;
     if((S.onboard&&S.onboard.done)||g.applicaDaSolo){
-      onb2PianoApplica(g.piano,spesa,g.stato);
+      onb2RicetteApplica(g.piano,spesa,g.stato);
       try{genBoxVia();}catch(e){}
       try{toast(tr("Piano pronto ✓ — lo trovi in Piano."));}catch(e){}
       try{render(cur);}catch(e){}
@@ -1750,22 +2121,22 @@ function onb2GenChiusa(){
    le risposte del RACCONTO alle schermate) e l'hoisting della seconda
    dichiarazione avrebbe sepolto questa in silenzio — è successo, e
    l'ha trovato il collaudo del sottofondo. */
-function onb2PianoApplica(piano,spesa,origine){
+function onb2RicetteApplica(piano,spesa,origine){
   /* CHI ha scritto il piano si registra (riscontro del founder,
      25/08 sera): gli è arrivato il piano di partenza ricalibrato e
      l'app non gli ha detto che NON era quello dell'AI — l'ha
      scoperto riconoscendo i suoi piatti. La pagina Piano ora lo
-     dichiara (vedi renderPiano). */
-  try{S.ui.pianoOrigine=(origine==="base")?"base":"ai";}catch(e){}
-  S.customPlan=piano;PLAN=S.customPlan;S.permMeals={};
+     dichiara (vedi renderRicette). */
+  try{S.ui.ricetteOrigine=(origine==="base")?"base":"ai";}catch(e){}
+  S.ricette=piano;RICETTE=S.ricette;S.permMeals={};
   /* la lista passa dal normalizzatore anche qui: e' l'altra strada che
      scriveva la risposta del modello com'era (i «[object Object]») */
   S.customShop=((typeof normSpesaAI==="function")?normSpesaAI(spesa):spesa)||null;
   S.shop={};S.week=freshWeek();
-  try{S.ui.pianoProprio=0;}catch(e){}
+  try{S.ui.ricetteProprie=0;}catch(e){}
   try{delete S.genPronto;}catch(e){}
   save();}
-window.onb2PianoApplica=onb2PianoApplica;
+window.onb2RicetteApplica=onb2RicetteApplica;
 
 /* I dati del piano in un posto solo: li usano la generazione in
    sottofondo e la chiusura. Due copie diverse sarebbero due piani. */
@@ -1774,7 +2145,7 @@ function onb2DatiPiano(){
   const goalMap={perdere:"moderato",mantenere:"mantenimento",massa:"massa"};
   const nascita=b.dob?new Date(b.dob)
     :(function(){const d=new Date();d.setFullYear(d.getFullYear()-(+b.eta||30));return d;})();
-  const vietati=[S.diet.no,S.diet.religiose,S.diet.patologie?tr("tenere conto di: {v1}",{v1:S.diet.patologie}):""]
+  const vietati=[S.pref.no,S.pref.religiose,S.pref.patologie?tr("tenere conto di: {v1}",{v1:S.pref.patologie}):""]
     .filter(Boolean).join("; ");
   /* ── DUE COSE DIVERSE, E VANNO TENUTE SEPARATE ────────────────────
      `no` è il testo che legge il MODELLO, e contiene anche le
@@ -1785,8 +2156,8 @@ function onb2DatiPiano(){
      avrebbe messo fra le parole vietate «tenere» e «conto»: da lì in
      poi nessun piano sarebbe più passato, e il motivo sarebbe stato
      incomprensibile. */
-  const vietatiLista=vietatiElenco([S.diet.no,S.diet.religiose].filter(Boolean).join("; "),S.diet.intol);
-  const allergeniLista=(typeof allergeniElenco==="function")?allergeniElenco(S.diet.allergie||""):[];
+  const vietatiLista=vietatiElenco([S.pref.no,S.pref.religiose].filter(Boolean).join("; "),S.pref.intol);
+  const allergeniLista=(typeof allergeniElenco==="function")?allergeniElenco(S.pref.allergie||""):[];
   return {vietatiLista:vietatiLista,allergeniLista:allergeniLista,
     gen:b.gen||"m",dob:nascita.toISOString().slice(0,10),h:+b.h,w:+b.w,
     /* la massa grassa, se è stata data nella scheda Dettagli: il prompt
@@ -1794,29 +2165,29 @@ function onb2DatiPiano(){
     fat:(S.profile&&S.profile.fatp)||null,
     act:o2Att(o.ris.attivita)||1.375,goal:goalMap[o.ris.obiettivo]||"moderato",
     vita:o.ris.ritmi||"",sport:o.ris.attivita||"",
-    intol:S.diet.intol||"",allergie:S.diet.allergie||"",no:vietati,si:S.diet.si||"",
-    farmaci:S.diet.farmaci||"",medico:S.diet.medico||"",
-    integrareOk:S.diet.integrareOk||"chiedi",
-    varieta:(S.diet.varieta||"media"),
+    intol:S.pref.intol||"",allergie:S.pref.allergie||"",no:vietati,si:S.pref.si||"",
+    farmaci:S.pref.farmaci||"",medico:S.pref.medico||"",
+    integrareOk:S.pref.integrareOk||"chiedi",
+    varieta:(S.pref.varieta||"media"),
     pronto:(o.ris.cucina==="veloce")?"pronto":"semplice",
     /* -- I NOMI DEI PASTI, NON SOLO IL NUMERO (27/08) -------------
-       `S.diet.slots` esiste da sempre (lo scrive il travaso, con le
+       `S.pref.slots` esiste da sempre (lo scrive il travaso, con le
        spunte della schermata «Quali pasti fai»), ma da qui non usciva
        e il generatore riceveva solo `nPasti`. Da lì il piano con la
        colazione a chi la colazione non la fa. */
-    slots:S.diet.slots||"",
-    nPasti:S.diet.nPasti||5,colaz:"",liberi:(S.diet.pastiLiberi!=null?+S.diet.pastiLiberi:1),
+    slots:S.pref.slots||"",
+    nPasti:S.pref.nPasti||5,colaz:"",liberi:(S.pref.pastiLiberi!=null?+S.pref.pastiLiberi:1),
     /* ── LE RISPOSTE NUOVE ARRIVANO AL PIANO ──────────────────────
        `note` era una stringa vuota scritta a mano: adesso porta quello
        che la persona ha scritto. E i pasti fuori casa arrivano qui
        perché il generatore ha già le regole per trattarli — non
        inventare grammature, non comprarli nella spesa — e finora non
        si accendevano mai. */
-    note:S.diet.note||"",
-    integratori:S.diet.integratori||"",
-    integratoriFreq:S.diet.integratoriFreq||"",
-    mensaGiorni:S.diet.mensaGiorni||"",
-    outType:S.diet.outType||"fuori"};}
+    note:S.pref.note||"",
+    integratori:S.pref.integratori||"",
+    integratoriFreq:S.pref.integratoriFreq||"",
+    mensaGiorni:S.pref.mensaGiorni||"",
+    outType:S.pref.outType||"fuori"};}
 
 /* Le sole quattro cose che non si possono dedurre da nient'altro. */
 function onb2Modulo(sc){
@@ -1848,7 +2219,7 @@ function onb2Modulo(sc){
                le barrette le mette l'app mentre digiti. -->
           <input type="text" id="o2dob" inputmode="numeric" maxlength="10"
                  placeholder="${esc(tr("gg/mm/aaaa"))}"
-                 oninput="dateMask(this)"
+                 oninput="dateMask(this);onb2Proiezione()"
                  value="${esc(bz("o2dob",b.dob?dobPretty(b.dob):""))}"></div>
         <div><label>${esc(trh("Altezza ({v1})",{v1:(typeof unitaAlt==="function")?unitaAlt():"cm"}))}</label>
           ${/* IN PIEDI E POLLICI NON SI SCRIVE IN UN CAMPO NUMERICO
@@ -1860,11 +2231,12 @@ function onb2Modulo(sc){
                 telefono apre la tastiera dei numeri. */
             (typeof imperiale==="function"&&imperiale())
             ? `<input type="text" id="o2h" inputmode="numeric" maxlength="8" placeholder="5'10&quot;"
+                 oninput="onb2Proiezione()"
                  value="${esc(bz("o2h",b.h?altTxt(b.h):""))}">`
-            : `<input type="number" id="o2h" inputmode="numeric" min="120" max="230" value="${esc(bz("o2h",b.h||""))}" placeholder="175">`}</div>
+            : `<input type="number" id="o2h" inputmode="numeric" min="120" max="230" oninput="onb2Proiezione()" value="${esc(bz("o2h",b.h||""))}" placeholder="175">`}</div>
       </div>
       <label>${esc(trh("Peso di oggi ({v1})",{v1:(typeof unitaPeso==="function")?unitaPeso():"kg"}))}</label>
-      <input type="number" id="o2w" inputmode="decimal" step="0.1" min="30" max="700" value="${esc(bz("o2w",b.w||""))}" placeholder="${(typeof imperiale==="function"&&imperiale())?"175":"80"}">
+      <input type="number" id="o2w" inputmode="decimal" step="0.1" min="30" max="700" oninput="onb2Proiezione()" value="${esc(bz("o2w",b.w||""))}" placeholder="${(typeof imperiale==="function"&&imperiale())?"175":"80"}">
 
       <!-- ── DOVE VUOI ARRIVARE, NELLA STESSA SCHERMATA (28/08) ────
            Era una schermata a sé, due dopo questa. Ma la proiezione
@@ -1877,6 +2249,7 @@ function onb2Modulo(sc){
         value="${esc(bz("o2goal",o.ris.pesoObiettivo||""))}" placeholder="${(typeof imperiale==="function"&&imperiale())?"160":"72"}"
         oninput="onb2Proiezione()">
       <span class="o2hint">${esc(tr("Facoltativo: se non ce l'hai in mente, si va avanti lo stesso."))}</span>
+      ${onb2RitmoHTML()}
     </div>
     <div class="o2ins" id="o2ins" aria-live="polite">${onb2ProiezioneHTML()}</div>
 
@@ -1923,7 +2296,7 @@ function ONB2_PIANI(){return [
  {k:"free",n:tr("Free"),p:tr("sempre gratis"),
   d:tr("Il piano di base, con le quantità rifatte sui tuoi numeri. Diario, alimenti, peso, spesa e backup sul tuo Drive: tutto quello che serve per cominciare davvero.")},
  {k:"start",n:"Start",p:tr("presto"),
-  d:tr("L'AI ti scrive il piano su misura — i tuoi orari, i tuoi gusti, le tue intolleranze — e lo rifà da sola quando la settimana cambia. Tutto quello che c'è in Free, più questo.")},
+  d:tr("L'AI ti propone le ricette della settimana — sui tuoi orari, i tuoi gusti, le tue intolleranze — e te le riorganizza quando la settimana cambia. Ogni piatto si cambia con un tocco. Tutto quello che c'è in Free, più questo.")},
  {k:"complete",n:"Complete",p:tr("presto"),
   d:tr("Fotografi il piatto e l'AI lo pesa per te, lo scontrino diventa dispensa, e le domande all'AI non hanno più un limite. Tutto quello che c'è in Start, più questo.")},
  {k:"premium",n:"Premium",p:tr("presto"),
@@ -1958,8 +2331,53 @@ function onb2Numero(sc){
    wizTargets() legge WIZ.d, quindi si travasano lì le risposte e si
    chiede a lui. Nessuna formula duplicata: se un giorno cambia la
    formula del fabbisogno, cambia anche qui, da sola.               */
-function onb2Targets(){
-  const o=onb2Stato(),b=o.ris.bio||{};
+/* ── I CAMPI CHE SI STANNO SCRIVENDO, NON QUELLI GIÀ SALVATI ───────
+   RICHIESTA DEL FOUNDER (29/08): «quando l'utente inserisce il peso
+   obiettivo non si vede neanche più in quanto tempo perderà quei kg».
+
+   Non era sparita: non era MAI comparsa al primo passaggio. Il
+   riquadro leggeva `o.ris.bio`, che si riempie solo quando si preme
+   Avanti — cioè quando la schermata è già stata lasciata. Chi scriveva
+   185, 115 e 90 e restava lì continuava a leggere «Appena scrivi il
+   peso, ti dico quanto ci vuole», con il peso scritto davanti.
+   Riprodotto in prova prima di toccare niente, e il collaudo nuovo lo
+   rifà diventare rosso se qualcuno rimette lo stato al posto dei campi.
+
+   Le conversioni sono le STESSE del salvataggio (`pesoIn`/`altIn`):
+   in libbre «250» dev'essere 113 kg qui come là, altrimenti la
+   proiezione promette un tempo e il piano ne calcola un altro. */
+function onb2BioLive(){
+  const o=onb2Stato(),b=Object.assign({},o.ris.bio||{});
+  const g=id=>{const e=document.getElementById(id);return e?String(e.value||"").trim():"";};
+  const dobTxt=g("o2dob");
+  if(dobTxt){
+    const dob=(typeof dobParse==="function")?dobParse(dobTxt):null;
+    if(dob){b.dob=dob;
+      b.eta=Math.floor((Date.now()-Date.parse(dob))/(365.25*864e5));}}
+  const hTxt=g("o2h");
+  if(hTxt){const h=(typeof altIn==="function")?altIn(hTxt):parseFloat(hTxt);
+    if(isFinite(h)&&h>0)b.h=Math.round(h);}
+  const wTxt=g("o2w");
+  if(wTxt){const w=(typeof pesoIn==="function")?pesoIn(wTxt):parseFloat(wTxt);
+    if(isFinite(w)&&w>0)b.w=Math.round(w*10)/10;}
+  const gen=g("o2gen"); if(gen)b.gen=gen;
+  return b;}
+window.onb2BioLive=onb2BioLive;
+
+/* L'obiettivo che si sta scrivendo, in CHILI: il campo parla nelle
+   unità della persona, la proiezione ragiona in metrico come tutto
+   il resto dell'app. */
+function onb2GoalLive(){
+  const e=document.getElementById("o2goal");
+  const t=e?String(e.value||"").trim():"";
+  if(t){const v=(typeof pesoIn==="function")?pesoIn(t):parseFloat(t.replace(",","."));
+    if(isFinite(v)&&v>0)return Math.round(v*10)/10;
+    return 0;}
+  return +((onb2Stato().ris||{}).pesoObiettivo)||0;}
+window.onb2GoalLive=onb2GoalLive;
+
+function onb2Targets(bioLive){
+  const o=onb2Stato(),b=bioLive||o.ris.bio||{};
   if(!(b.w>0)||!(b.h>0)||!(b.eta>0))return null;
   const goalMap={perdere:"moderato",mantenere:"mantenimento",massa:"massa"};
   const salva=(typeof WIZ!=="undefined"&&WIZ)?WIZ.d:null;
@@ -1975,31 +2393,163 @@ function onb2Targets(){
   finally{if(salva)WIZ.d=salva;}}
 window.onb2Targets=onb2Targets;
 
-function onb2ProiezioneHTML(){
-  const o=onb2Stato(),b=o.ris.bio||{},goal=+o.ris.pesoObiettivo||0;
-  if(!goal||!(b.w>0))return `<span class="o2hint">${esc(tr("Appena scrivi il peso, ti dico quanto ci vuole."))}</span>`;
-  const t=onb2Targets();
-  if(!t)return `<span class="o2hint">${esc(tr("Appena scrivi il peso, ti dico quanto ci vuole."))}</span>`;
+/* ═══ QUANTO IN FRETTA, E COSA COMPORTA ════════════════════════════
+   RICHIESTA DEL FOUNDER (29/08): «vedo inoltre che non fai più
+   scegliere all'utente quanti kg a settimana perdere, spiegando pro e
+   contro della scelta che fa e come deve essere seguito in caso
+   scelga 1 kg a settimana».
+
+   Il motore c'era già e girava a vuoto: `S.profile.defMode="ritmo"` +
+   `S.pref.ritmo` esistono da sempre e li imposta soltanto la pagina
+   Regole — cioè un posto in cui una persona nuova non entra. Chi
+   finiva il percorso guidato prendeva il ritmo che gli era stato
+   deciso dal tipo di obiettivo, senza sapere né qual era né che si
+   poteva cambiare. La stessa famiglia di difetti di sempre: una
+   regola scritta bene, raggiungibile da una strada sola.
+
+   STA QUI DENTRO, NON IN UNA SCHERMATA SUA. Il percorso è a 25
+   schermate per una scelta esplicita del founder (v15.0.0, la barra
+   avanza del 4% esatto) e aggiungerne una per una tendina sarebbe
+   disfare quel lavoro. E soprattutto: la domanda ha senso solo
+   accanto al peso obiettivo, con la proiezione che si muove sotto —
+   scegliere «1 kg a settimana» e vedere le settimane dimezzarsi
+   nello stesso istante è l'unica versione di questa domanda che
+   insegna qualcosa.
+
+   I PRO E I CONTRO SONO SCRITTI, NON SOTTINTESI. Ogni ritmo dice cosa
+   costa: sotto, il tempo; sopra, la fame e il muscolo. E a 1 kg a
+   settimana la riga sul controllo medico non è un asterisco in fondo:
+   è il testo dell'opzione, perché quello è il momento in cui viene
+   letto. Il tetto di sicurezza del motore (30% del fabbisogno) resta
+   dov'era e continua a valere: se il ritmo scelto lo supera, la
+   proiezione lo DICHIARA invece di promettere un tempo che il piano
+   non produrrà mai. */
+const O2RITMI=[0.25,0.5,0.75,1];
+const O2RITMO_DEF=0.5;
+function onb2RitmoScelto(){
+  const v=parseFloat((onb2Stato().ris||{}).ritmo);
+  return (v>0)?v:O2RITMO_DEF;}
+window.onb2RitmoScelto=onb2RitmoScelto;
+
+/* Cosa comporta ciascuno, in una riga che si legge prima di scegliere. */
+function onb2RitmoNota(kg){
+  if(kg<=0.25)return tr("Quasi non si sente e il muscolo non si tocca, ma il tempo raddoppia.");
+  if(kg<=0.5) return tr("Il passo che regge nel tempo: si perde grasso e la fame resta gestibile.");
+  if(kg<=0.75)return tr("Si vede prima, ma la fame si sente e le proteine vanno tenute alte.");
+  return tr("Rapido e impegnativo: a questo ritmo si rischia di perdere anche muscolo, e va fatto seguiti da un medico o da un nutrizionista, non da soli.");}
+
+function onb2RitmoHTML(){
+  const o=onb2Stato();
+  /* la domanda ha senso solo per chi vuole perdere peso: a chi
+     mantiene non si chiede un ritmo, e a chi mette massa il ritmo è
+     un'altra cosa (e ha già la sua strada nelle Regole) */
+  if(o.ris.obiettivo!=="perdere")return "";
+  const sel=onb2RitmoScelto();
+  const uP=(typeof unitaPeso==="function")?unitaPeso():"kg";
+  return `<label style="margin-top:16px">${esc(trh("Quanto in fretta ({v1} a settimana)",{v1:esc(uP)}))}</label>
+    <div class="o2ritmi" role="radiogroup">`+
+    O2RITMI.map(kg=>{
+      const on=(Math.abs(kg-sel)<0.01);
+      /* il numero si mostra nelle unità della persona: 0,5 kg sono
+         1,1 lb, e a chi vive in libbre «0,5» non dice niente */
+      const et=(typeof pesoNum==="function")?pesoNum(kg,(uP==="lb"?1:2)):kg;
+      const etx=(typeof numLoc==="function")?numLoc(et):et;
+      return `<button type="button" class="o2ritmo${on?" scelta":""}" role="radio" aria-checked="${on}"
+         onclick="onb2RitmoSet(${kg})">
+         <b>${esc(String(etx))}</b><span>${esc(onb2RitmoNota(kg))}</span></button>`;}).join("")+
+    `</div>`;}
+window.onb2RitmoHTML=onb2RitmoHTML;
+
+window.onb2RitmoSet=(kg)=>{
+  const o=onb2Stato();o.ris.ritmo=+kg;onb2Salva();
+  /* si ridisegna solo il gruppo, non la schermata: ridisegnare tutto
+     farebbe perdere quello che si sta scrivendo negli altri campi */
+  const box=document.querySelector(".o2ritmi");
+  if(box&&box.parentNode){
+    const tmp=document.createElement("div");tmp.innerHTML=onb2RitmoHTML();
+    const nuovo=tmp.querySelector(".o2ritmi");
+    if(nuovo)box.parentNode.replaceChild(nuovo,box);}
+  if(typeof onb2Proiezione==="function")onb2Proiezione();};
+
+/* Il deficit che quel ritmo richiede, e quello che il motore concede.
+   È la STESSA regola di `deficitTarget`/`rateEffective` (30% del
+   fabbisogno): scritta due volte sarebbero due promesse diverse, e
+   quella dell'onboarding sarebbe quella falsa. */
+function onb2RitmoReale(kg,tdee){
+  const chiesto=Math.max(1,kg*7700/7);
+  const tetto=Math.max(1,Math.round(tdee*0.30));
+  const vero=Math.min(chiesto,tetto);
+  return {chiesto:Math.round(chiesto),tetto:tetto,def:Math.round(vero),
+    kg:Math.round(vero*7/7700*100)/100,ridotto:chiesto>tetto+1};}
+window.onb2RitmoReale=onb2RitmoReale;
+
+function onb2ProiezioneHTML(bioLive,goalLive){
+  const o=onb2Stato();
+  const b=bioLive||o.ris.bio||{};
+  const goal=(goalLive!=null)?+goalLive:(+o.ris.pesoObiettivo||0);
+  /* l'attesa dice cosa manca DAVVERO, invece di chiedere sempre il
+     peso: chi ha scritto il peso e non l'altezza leggeva «scrivi il
+     peso» con il peso davanti (29/08) */
+  const attesa=(txt)=>`<span class="o2hint">${esc(txt)}</span>`;
+  if(!(b.w>0)||!(b.h>0)||!(b.eta>0))
+    return attesa(tr("Scrivi data di nascita, altezza e peso: da lì ti dico quanto ci vuole."));
+  if(!goal)return attesa(tr("Scrivi dove vorresti arrivare e ti dico quanto ci vuole."));
+  const t=onb2Targets(b);
+  if(!t)return attesa(tr("Scrivi data di nascita, altezza e peso: da lì ti dico quanto ci vuole."));
   const diff=Math.round((b.w-goal)*10)/10;
   if(Math.abs(diff)<0.5)
     return `<b>${esc(tr("Sei già dove volevi arrivare."))}</b><br><span class="o2hint">${esc(tr("Allora il piano serve a restarci: fabbisogno {k} kcal al giorno.",{k:t.tdee}))}</span>`;
   if(diff<0)
     return `<b>${esc(tr("Vuoi salire di {n}.",{n:((typeof pesoTxt==="function")?pesoTxt(Math.abs(diff),1):Math.abs(diff)+" kg")}))}</b><br><span class="o2hint">${esc(tr("Con {k} kcal al giorno e {p} g di proteine si cresce piano, che è il modo giusto.",{k:t.kcal,p:t.prot}))}</span>`;
-  /* 7700 kcal ≈ 1 kg: è la stessa costante del motore di proiezione. */
-  const defGiorno=Math.max(1,t.tdee-t.kcal);
+  /* 7700 kcal ≈ 1 kg: è la stessa costante del motore di proiezione.
+     ── E ADESSO IL RITMO LO SCEGLIE LA PERSONA (29/08) ─────────────
+     Prima il deficit veniva dedotto dal tipo di obiettivo e la
+     proiezione lo subiva. Ora, per chi vuole perdere peso, comanda il
+     ritmo scelto qui sopra — e se supera il tetto del 30% del
+     fabbisogno la proiezione dice il tempo VERO, non quello chiesto:
+     promettere quindici settimane e poi lavorare a un ritmo che ne
+     richiede venti è il modo più elegante di mentire. */
+  const scelto=(onb2Stato().ris.obiettivo==="perdere")?onb2RitmoScelto():0;
+  const rr=scelto?onb2RitmoReale(scelto,t.tdee):null;
+  const defGiorno=rr?Math.max(1,rr.def):Math.max(1,t.tdee-t.kcal);
   const sett=Math.max(1,Math.round(diff*7700/(defGiorno*7)));
   const mesi=Math.round(sett/4.33*10)/10;
+  const kcalPiano=rr?Math.max(1,t.tdee-rr.def):t.kcal;
+  /* «andando piano e senza fame nera» non si può scrivere sotto un
+     ritmo spinto: sarebbe la frase rassicurante messa esattamente
+     dove non è vera (29/08) */
+  const spinto=(rr?rr.kg:0)>=0.75;
+  const coda=spinto
+    ? (mesi>=2?tr("Poco più di {m} mesi, ma è un passo che si sente.",{m:((typeof numLoc==="function")?numLoc(mesi):mesi)}):tr("È un passo che si sente."))
+    : (mesi>=2?tr("Poco più di {m} mesi, andando piano e senza fame nera.",{m:((typeof numLoc==="function")?numLoc(mesi):mesi)}):tr("Andando piano e senza fame nera."));
   return `<b>${esc(tr("{n} in circa {s} settimane.",{n:((typeof pesoTxt==="function")?pesoTxt(diff,1):diff+" kg"),s:sett}))}</b>
-    <span class="o2hint">${esc(mesi>=2?tr("Poco più di {m} mesi, andando piano e senza fame nera.",{m:mesi}):tr("Andando piano e senza fame nera."))}</span>
-    <div class="o2mini">${esc(tr("Fabbisogno {t} kcal · piano {k} kcal · {p} g di proteine",{t:t.tdee,k:t.kcal,p:t.prot}))}</div>
+    <span class="o2hint">${esc(coda)}</span>
+    ${(rr&&rr.ridotto)?`<div class="o2mini o2mini-av">${esc(trh("Il ritmo che hai scelto chiederebbe {v1} kcal di deficit al giorno: è oltre il tetto di sicurezza, quindi il piano lavora a {v2} a settimana e il tempo qui sopra è già quello vero.",{v1:rr.chiesto,v2:((typeof pesoTxt==="function")?pesoTxt(rr.kg,2):rr.kg+" kg")}))}</div>`:""}
+    ${/* L'AVVISO SUL MEDICO NON DEVE SPARIRE QUANDO SCATTA IL TETTO
+          (difetto mio, visto in prova il 29/08): la prima stesura lo
+          mostrava solo se il tetto NON mordeva — cioè proprio a chi
+          aveva scelto il ritmo più spinto l'avviso non arrivava, che
+          è l'esatto contrario di quello che serve. Adesso dipende
+          dal ritmo VERO del piano, non da quale messaggio è
+          comparso. */""}
+    ${spinto?`<div class="o2mini o2mini-av">${esc(tr("A questo ritmo fatti seguire da un medico o da un nutrizionista: non è una formalità, è il ritmo in cui si perde anche muscolo se nessuno controlla."))}</div>`:""}
+    <div class="o2mini">${esc(tr("Fabbisogno {t} kcal · piano {k} kcal · {p} g di proteine",{t:t.tdee,k:kcalPiano,p:t.prot}))}</div>
     <div class="o2mini">${esc(tr("È una stima onesta, non una promessa: la ricalcolo insieme a te man mano."))}</div>`;}
 window.onb2ProiezioneHTML=onb2ProiezioneHTML;
 
 window.onb2Proiezione=()=>{
   const inp=document.getElementById("o2goal"),box=document.getElementById("o2ins");
-  if(!inp||!box)return;
-  const o=onb2Stato();o.ris.pesoObiettivo=+inp.value||0;
-  box.innerHTML=onb2ProiezioneHTML();};
+  if(!box)return;
+  /* il campo dell'obiettivo si ricorda come è SCRITTO (nelle unità
+     della persona): è lo stesso valore che ridisegna il campo quando
+     si torna indietro, e la conversione in chili la fa il
+     salvataggio. Qui serve solo per non perdere quello che si è
+     scritto se la schermata viene ridisegnata. */
+  if(inp){const o=onb2Stato();o.ris.pesoObiettivo=+inp.value||0;}
+  /* ma la PROIEZIONE si calcola sui campi vivi, convertiti: è il
+     difetto del 29/08 — leggeva lo stato salvato e al primo
+     passaggio lo stato era vuoto */
+  box.innerHTML=onb2ProiezioneHTML(onb2BioLive(),onb2GoalLive());};
 
 /* ── Consenso per il dato sensibile ──────────────────────────────
    Si chiede PRIMA di mostrare la domanda, con parole chiare, e la
@@ -2055,26 +2605,35 @@ window.onb2ChipTogli=(k)=>{const o=onb2Stato();
   onb2Salva();renderOnb2();};
 
 /* ── Navigazione ────────────────────────────────────────────────── */
+/* ── SI CONFERMA SEMPRE CON «AVANTI» (founder, 29/08) ──────────────
+   «Alcune pagine, se scelgo una cosa, vanno in automatico alla
+   successiva senza farmi cliccare su Avanti come conferma. Io voglio
+   che l'utente clicchi sempre Avanti: so che è un tocco in più, però
+   dà l'idea di avere più controllo.»
+   Ha ragione, e non solo per la sensazione di controllo: l'avanzamento
+   automatico era anche il motivo per cui tornare indietro sembrava
+   non funzionare. Si tornava alla domanda dell'obiettivo, si toccava
+   la risposta giusta — e la schermata saltava subito avanti, come se
+   il ritorno non fosse mai avvenuto. Con la conferma esplicita si
+   può sbagliare, tornare, correggere e RESTARE lì a guardare. */
 window.onb2Rispondi=(k,v)=>{
-  /* con un secondo gruppo la schermata non è finita: si risponde e si
-     resta, altrimenti la seconda domanda non la vedrebbe nessuno */
-  {const sc=ONB2c().find(x=>x.k===k);
-   if(sc&&sc.k2&&sc.op2){
-     const o=onb2Stato();o.ris[k]=v;
-     if(sc.se2&&!sc.se2())delete o.ris[sc.k2];
-     onb2Salva();return renderOnb2();}}
   const o=onb2Stato();
   const sc=ONB2c().find(x=>x.k===k);
   if(sc&&sc.sensibile&&o.sensibili!==true)return;   /* niente consenso, niente risposta */
-  o.ris[k]=v;onb2Salva();
-  /* La lingua si applica NEL MOMENTO del tocco: la prossima domanda
-     arriva già tradotta. langSet ricuoce le tabelle (I18N_RIFAI),
-     quindi ONB2c() al passo successivo parla già la lingua scelta. */
-  if(k==="lingua"){try{if(typeof langSet==="function"&&v!==LANG)langSet(v);}catch(e){}}
-  /* la conferma prima di cambiare schermata: si vede sopra la
-     risposta appena data, non sopra la domanda dopo */
-  /* niente messaggio di stato: vedi la nota in cima al file */
-  onb2Avanti();};
+  o.ris[k]=v;
+  /* se la prima risposta cambia, la seconda domanda che dipendeva da
+     lei può non avere più senso: si butta il valore e si nasconde il
+     gruppo — nascondere, non ricostruire */
+  if(sc&&sc.k2&&sc.se2&&!sc.se2())delete o.ris[sc.k2];
+  onb2Salva();
+  /* La lingua si applica NEL MOMENTO del tocco: la domanda successiva
+     arriverà già tradotta. langSet ricuoce le tabelle (I18N_RIFAI).
+     Qui il ridisegno è NECESSARIO — cambia la lingua di tutto quello
+     che è a schermo — ed è l'unica scelta che ancora lo fa. */
+  if(k==="lingua"){
+    try{if(typeof langSet==="function"&&v!==LANG){langSet(v);return renderOnb2();}}catch(e){}}
+  if(!onb2SegnaScelta(k,v))return renderOnb2();
+  if(sc)onb2Gruppo2Aggiorna(sc);};
 
 window.onb2Bio=()=>{
   const g=id=>{const e=document.getElementById(id);return e?e.value:"";};
@@ -2093,7 +2652,16 @@ window.onb2Bio=()=>{
      vedrebbe: i numeri resterebbero plausibili. */
   const h=(typeof altIn==="function")?altIn(g("o2h")):+g("o2h");
   const w=(typeof pesoIn==="function")?pesoIn(g("o2w")):parseFloat(g("o2w"));
-  if(!dob||!(eta>=14&&eta<=100)||!(h>=120&&h<=230)||!(w>=30&&w<=300))
+  /* ── SOTTO I 18 ANNI L'APP SI FERMA, E LO DICE (founder, 29/08) ──
+     Prima il cancello era a 14, scelto senza una ragione scritta. La
+     soglia vera sta nel guardrail condiviso (ETA_MINIMA, con le tre
+     ragioni: clinica, legale, onestà) — qui la si applica e la si
+     SPIEGA, invece del messaggio generico che faceva sembrare l'età
+     un campo compilato male. */
+  if(dob&&eta<((typeof ETA_MINIMA!=="undefined")?ETA_MINIMA:18)&&eta>=0)
+    return dlgAlert(tr("Nuvia lavora con i fabbisogni degli adulti: sotto i 18 anni le formule che usa non sono adatte a un corpo che cresce, e non sarebbe giusto fare finta di niente.")+
+      "\n\n"+tr("Per l'alimentazione a questa età la persona giusta è il pediatra o un nutrizionista dell'età evolutiva."));
+  if(!dob||!(eta>=((typeof ETA_MINIMA!=="undefined")?ETA_MINIMA:18)&&eta<=100)||!(h>=120&&h<=230)||!(w>=30&&w<=300))
     return dlgAlert(tr("Mi servono età, altezza e peso per calcolare qualcosa di vero. Sono gli unici numeri obbligatori."));
   const o=onb2Stato();
   o.ris.bio={nome:(g("o2nome")||"").trim().slice(0,40),gen:g("o2gen")||"m",dob,eta,
@@ -2114,6 +2682,19 @@ window.onb2Bio=()=>{
   const P=(typeof PLICHE!=="undefined")?PLICHE:[];
   const mis={fat:nm("o2dFat"),mus:nm("o2dMus"),circ:{},pliche:{},
     conPliche:!!(document.getElementById("o2dPl")||{}).checked};
+  /* ── OGNI MISURA HA IL SUO INTERVALLO (founder, 29/08) ───────────
+     «Ci sono valori massimi e minimi per pliche e metriche varie?»
+     Non c'erano: bastava un numero sopra lo zero. Gli intervalli
+     stanno nel guardrail condiviso (MISURE) e sono larghi apposta —
+     fermano il 250 che voleva essere 25, non un corpo. Qui si dice
+     QUALE campo non torna, invece di un errore generico. */
+  const fuoriScala=[];
+  const dentro=(campo,v,nome)=>{
+    if(v==null)return null;
+    if(typeof misuraOk==="function"&&!misuraOk(campo,v)){fuoriScala.push(nome);return null;}
+    return v;};
+  mis.fat=dentro("grassoPct",mis.fat,tr("massa grassa"));
+  mis.mus=dentro("muscoloPct",mis.mus,tr("massa muscolare"));
   /* le circonferenze si scrivono in pollici e si salvano in centimetri:
      `nm()` legge un numero nudo, e un girovita di 36 pollici salvato
      come 36 cm sarebbe una vita da bambola dentro i calcoli */
@@ -2121,9 +2702,12 @@ window.onb2Bio=()=>{
     if(!t)return null;
     const v=(typeof lunghIn==="function")?lunghIn(t):parseFloat(t.replace(",","."));
     return (isFinite(v)&&v>0)?Math.round(v*10)/10:null;};
-  const vv=cIn("o2dVita"),ff=cIn("o2dFianchi");
+  const vv=dentro("circonf",cIn("o2dVita"),tr("girovita")),ff=dentro("circonf",cIn("o2dFianchi"),tr("fianchi"));
   if(vv)mis.circ.vita=vv; if(ff)mis.circ.fianchi=ff;
-  if(mis.conPliche)P.forEach(([k])=>{const v=nm("o2dP_"+k);if(v)mis.pliche[k]=v;});
+  if(mis.conPliche)P.forEach(([k])=>{const v=dentro("plica",nm("o2dP_"+k),tr("plica")+" "+k);if(v)mis.pliche[k]=v;});
+  if(fuoriScala.length)
+    return dlgAlert(trh("Qualche misura non sembra plausibile: {v1}.",{v1:fuoriScala.join(", ")})+"\n\n"+
+      tr("Controlla il numero e l'unità (le pliche sono in millimetri, le circonferenze nell'unità scritta sull'etichetta). Se preferisci, lasciale vuote: sono facoltative."));
   if(mis.fat||mis.mus||vv||ff||Object.keys(mis.pliche).length)o.ris.misure=mis;
   onb2BozzaButta();onb2Salva();
   /* niente messaggio di stato: vedi la nota in cima al file */
@@ -2188,9 +2772,12 @@ window.onb2AvantiSchermo=()=>{
       if(!t)return null;
       const v=(typeof lunghIn==="function")?lunghIn(t):parseFloat(t.replace(",","."));
       return (isFinite(v)&&v>0)?Math.round(v*10)/10:null;};
-    const vv=cIn2("o2dVita"),ff=cIn2("o2dFianchi");
+    /* stessi intervalli della strada principale (MISURE, 29/08) */
+    const ok2=(campo,v)=>(v!=null&&(typeof misuraOk!=="function"||misuraOk(campo,v)))?v:null;
+    const vv=ok2("circonf",cIn2("o2dVita")),ff=ok2("circonf",cIn2("o2dFianchi"));
     if(vv)m.circ.vita=vv; if(ff)m.circ.fianchi=ff;
-    if(m.conPliche)P.forEach(([k])=>{const v=n("o2dP_"+k);if(v)m.pliche[k]=v;});
+    if(m.conPliche)P.forEach(([k])=>{const v=ok2("plica",n("o2dP_"+k));if(v)m.pliche[k]=v;});
+    m.fat=ok2("grassoPct",m.fat);m.mus=ok2("muscoloPct",m.mus);
     o.ris.misure=m;onb2Salva();
     return onb2Avanti();}
   if(sc.tipo==="famiglia"){
@@ -2237,6 +2824,13 @@ window.onb2AvantiSchermo=()=>{
   if(sc.tipo==="pausa")return onb2Avanti();
   /* schermata a scelta: senza risposta non si va avanti a vuoto */
   if(o.ris[sc.k]==null)return dlgAlert(tr("Scegli una risposta per andare avanti."));
+  /* e se la schermata porta una seconda domanda VISIBILE, vale come
+     la prima: da quando non si avanza più da soli (29/08) è possibile
+     rispondere alla prima e premere Avanti dimenticando la seconda —
+     prima non si poteva, perché il tocco portava via la schermata. */
+  if(sc.k2&&sc.op2&&o.ris[sc.k2]==null){
+    let serve=true;try{serve=!sc.se2||!!sc.se2();}catch(e){serve=true;}
+    if(serve)return dlgAlert(tr("Manca la seconda risposta: rispondi anche a quella per andare avanti."));}
   return onb2Avanti();};
 
 function onb2Avanti(){
@@ -2539,9 +3133,9 @@ function onb2Travasa(){
   const o=onb2Stato(),r=o.ris,b=r.bio||{};
   const goalMap={perdere:"deciso",mantenere:"mantenimento",massa:"massa"};
   /* ── L'OBIETTIVO, nel campo che il motore legge DAVVERO ──────────
-     Il difetto (23/08): l'onboarding scriveva solo S.diet.goal, ma
+     Il difetto (23/08): l'onboarding scriveva solo S.pref.goal, ma
      tutto il calcolo — deficitTarget(), protKgAuto(), rateNote(),
-     planForecast(), checkPlanAge() — legge S.profile.goal, che non
+     stimaRicette(), checkPlanAge() — legge S.profile.goal, che non
      aveva nemmeno un valore predefinito. Risultato misurato: chi
      sceglieva «mettere massa» riceveva 1879 kcal con 470 kcal di
      DEFICIT, esattamente come chi voleva perdere peso.
@@ -2549,7 +3143,7 @@ function onb2Travasa(){
      Le parole sono quelle della tendina di Regole → Obiettivi, così
      le due porte dicono la stessa cosa invece di due dialetti: chi
      rifà il percorso ritrova la sua scelta già selezionata lì.
-     S.diet.goal resta scritto com'era: lo legge 65_costellazione,
+     S.pref.goal resta scritto com'era: lo legge 65_costellazione,
      che confronta con «massa» carattere per carattere.            */
   const goalProfilo={perdere:"dimagrimento graduale",
                      mantenere:"mantenimento",
@@ -2589,12 +3183,12 @@ function onb2Travasa(){
      chi fa i turni si porta dietro il suo interruttore: il modulo
      turni compare fra gli strumenti invece di restare nascosto. */
   if(r.ritmi){
-    S.diet.ritmi=r.ritmi;
+    S.pref.ritmi=r.ritmi;
     S.ui.turnista=(r.ritmi==="turni");}
   if(r.obiettivo){
-    S.diet.goal=goalMap[r.obiettivo]||S.diet.goal;
+    S.pref.goal=goalMap[r.obiettivo]||S.pref.goal;
     S.profile.goal=goalProfilo[r.obiettivo]||S.profile.goal;}
-  S.ui.modalitaPasti=o.modalita||"piano";
+  S.ui.modalitaPasti=o.modalita||"ricette";
   /* ── Le risposte nuove finiscono NEGLI STESSI CAMPI che Regole →
      Caratteristiche alimentari legge e modifica. Una fonte sola:
      l'onboarding compila, Regole resta il posto dove si cambia.
@@ -2604,35 +3198,35 @@ function onb2Travasa(){
     if(altro)String(altro).split(",").map(x=>x.trim()).filter(Boolean).forEach(x=>l.push(x));
     return l.join(", ");};
   if(r.dieta){
-    S.diet.tipo=r.dieta.tipo||S.diet.tipo||"mediterranea";
-    S.diet.vegUova=(r.dieta.uova!==false);
-    S.diet.vegPesce=!!r.dieta.pesce;
-    S.diet.tradizione=r.dieta.tradizione||"italiana";}
-  /* Le intolleranze e le allergie viaggiano INSIEME in S.diet.intol —
+    S.pref.tipo=r.dieta.tipo||S.pref.tipo||"mediterranea";
+    S.pref.vegUova=(r.dieta.uova!==false);
+    S.pref.vegPesce=!!r.dieta.pesce;
+    S.pref.tradizione=r.dieta.tradizione||"italiana";}
+  /* Le intolleranze e le allergie viaggiano INSIEME in S.pref.intol —
      è la stringa che tutta la sicurezza già legge (vietatiElenco, il
-     prompt, le Regole) — e le allergie anche DA SOLE in S.diet.allergie,
+     prompt, le Regole) — e le allergie anche DA SOLE in S.pref.allergie,
      perché al modello vanno dette con un altro peso. */
-  /* Due domande, due campi. `S.diet.intol` è la stringa che tutta la
-     sicurezza legge da sempre e continua a leggere; `S.diet.allergie`
+  /* Due domande, due campi. `S.pref.intol` è la stringa che tutta la
+     sicurezza legge da sempre e continua a leggere; `S.pref.allergie`
      è quella nuova, e vale con un altro peso: nessuna esenzione. */
   if(Array.isArray(r.intolleranze))
-    S.diet.intol=conAltro(senzaNone(r.intolleranze,"niente"),r.intolleranze_altro);
+    S.pref.intol=conAltro(senzaNone(r.intolleranze,"niente"),r.intolleranze_altro);
   if(Array.isArray(r.allergie))
-    S.diet.allergie=conAltro(senzaNone(r.allergie,"niente"),r.allergie_altro);
+    S.pref.allergie=conAltro(senzaNone(r.allergie,"niente"),r.allergie_altro);
   /* le condizioni scritte a mano si aggiungono a quelle spuntate:
      l'elenco non può prevedere la condizione di ognuno */
-  if(Array.isArray(r.salute))S.diet.patologie=conAltro(senzaNone(r.salute,"niente"),r.salute_altro);
+  if(Array.isArray(r.salute))S.pref.patologie=conAltro(senzaNone(r.salute,"niente"),r.salute_altro);
   /* i farmaci sono una lista a spunte, più il campo libero */
   if(Array.isArray(r.farmaci))
-    S.diet.farmaci=conAltro(senzaNone(r.farmaci,"nessuno"),r.farmaci_altro);
-  if(r.medico!=null)S.diet.medico=String(r.medico).trim();
+    S.pref.farmaci=conAltro(senzaNone(r.farmaci,"nessuno"),r.farmaci_altro);
+  if(r.medico!=null)S.pref.medico=String(r.medico).trim();
   /* le misure NON hanno un magazzino loro: finiscono nella visita di
      Io → Misure dello studio, con lo stesso scrittore che usa quella
      scheda. Chi compila nel percorso le ritrova là, e là le corregge. */
   if(r.misure&&typeof misureRegistra==="function"){
     try{misureRegistra({fat:r.misure.fat||null,mus:r.misure.mus||null,
       circ:r.misure.circ||{},pliche:r.misure.pliche||{}});}catch(e){}}
-  if(r.integrareOk)S.diet.integrareOk=r.integrareOk;
+  if(r.integrareOk)S.pref.integrareOk=r.integrareOk;
   /* ── GLI INTEGRATORI CAMBIANO IL PIANO DAVVERO ────────────────
      INTEG_REGOLE esisteva già e girava a vuoto: nessuno chiedeva cosa
      prendi, quindi le proteine in polvere si sommavano sopra il
@@ -2656,9 +3250,9 @@ function onb2Travasa(){
     /* «mai» non è una frequenza da travasare: è un integratore che
        questa persona non prende, e nel profilo non deve comparire. */
     const voci=senzaNone(r.integratori,"nessuno").filter(v=>onb2Freq(fm,v,sel)!=="mai");
-    S.diet.integratori=voci.map(v=>v+" ("+(FRT[onb2Freq(fm,v,sel)])+")").join(", ");
+    S.pref.integratori=voci.map(v=>v+" ("+(FRT[onb2Freq(fm,v,sel)])+")").join(", ");
     const f=voci.map(v=>onb2Freq(fm,v,sel));
-    S.diet.integratoriFreq=f.includes("giorni")?"giorni":(f.includes("quasi")?"quasi":(f.length?"saltuario":""));}
+    S.pref.integratoriFreq=f.includes("giorni")?"giorni":(f.includes("quasi")?"quasi":(f.length?"saltuario":""));}
   /* ── R1 · gli sport preferiti, travasati in DUE posti ──────────
      `S.train.ama` è la stringa che trainForAI() legge davvero (vedi
      src/15_6…js): senza questa, il trainer proponeva attività a
@@ -2683,33 +3277,33 @@ function onb2Travasa(){
      I tre campi che il prompt del piano usa da sempre e che nessuno
      riempiva: alla prima generazione arrivavano «niente» e «—». */
   if(r.cibi){
-    if(r.cibi.no!=null)S.diet.no=String(r.cibi.no).trim();
-    if(r.cibi.si!=null)S.diet.si=String(r.cibi.si).trim();
-    if(r.cibi.note!=null)S.diet.note=String(r.cibi.note).trim();
+    if(r.cibi.no!=null)S.pref.no=String(r.cibi.no).trim();
+    if(r.cibi.si!=null)S.pref.si=String(r.cibi.si).trim();
+    if(r.cibi.note!=null)S.pref.note=String(r.cibi.note).trim();
     /* L'alcol e' un dato di contesto, non una preferenza del piano:
        si salva nello stesso campo di sempre (Regole lo mostra li'), e
        nel prompt del piano non entra ne' entrera' — al modello va un
        divieto, sempre, e la rete in validaSettimana lo verifica. */
-    if(r.cibi.alcol)S.diet.alcol=r.cibi.alcol;}
+    if(r.cibi.alcol)S.pref.alcol=r.cibi.alcol;}
   /* ── I PASTI FUORI CASA ───────────────────────────────────────
      Stesso formato di Regole, perché le spunte sono le stesse:
      «lun pranzo, gio cena». `fuoriN` si conta da lì e non si scrive
      a mano, altrimenti diverge al primo cambio. */
   if(r.fuori){
-    S.diet.mensaGiorni=r.fuori.giorni||"";
-    try{if(typeof fuoriCount==="function")S.diet.fuoriN=fuoriCount(S.diet.mensaGiorni);}catch(e){}
-    S.diet.outType=(r.fuori.tipo==="porto")?"porto":"fuori";}
+    S.pref.mensaGiorni=r.fuori.giorni||"";
+    try{if(typeof fuoriCount==="function")S.pref.fuoriN=fuoriCount(S.pref.mensaGiorni);}catch(e){}
+    S.pref.outType=(r.fuori.tipo==="porto")?"porto":"fuori";}
   if(Array.isArray(r.protocolli)){
-    S.diet.protocolli=senzaNone(r.protocolli,"nessuno").join(", ");
-    S.diet.fodmap=S.diet.protocolli.toLowerCase().includes("fodmap");}
-  if(Array.isArray(r.vincoli))S.diet.religiose=senzaNone(r.vincoli,"nessuno").join(", ");
+    S.pref.protocolli=senzaNone(r.protocolli,"nessuno").join(", ");
+    S.pref.fodmap=S.pref.protocolli.toLowerCase().includes("fodmap");}
+  if(Array.isArray(r.vincoli))S.pref.religiose=senzaNone(r.vincoli,"nessuno").join(", ");
   if(r.pasti&&Array.isArray(r.pasti.slots)&&r.pasti.slots.length>=2){
-    S.diet.slots=r.pasti.slots.join(", ");
-    S.diet.nPasti=r.pasti.slots.length;
-    S.diet.pastiLiberi=+r.pasti.liberi||0;}
+    S.pref.slots=r.pasti.slots.join(", ");
+    S.pref.nPasti=r.pasti.slots.length;
+    S.pref.pastiLiberi=+r.pasti.liberi||0;}
   if(r.cucina){
-    S.diet.pronto=(r.cucina==="veloce")?"velocissimo":(r.cucina==="amoCucinare")?"mi piace cucinare":"semplice";
-    S.diet.cucina=(r.cucina==="veloce")?10:(r.cucina==="amoCucinare")?60:30;}
+    S.pref.pronto=(r.cucina==="veloce")?"velocissimo":(r.cucina==="amoCucinare")?"mi piace cucinare":"semplice";
+    S.pref.cucina=(r.cucina==="veloce")?10:(r.cucina==="amoCucinare")?60:30;}
   /* ── La famiglia: NEGLI STESSI CAMPI che Regole e Spesa usano già ──
      S.family è la lista che Regole → Chi altro mangia a casa mostra e
      corregge; S.shopFor è l'interruttore che sta in fondo alla Spesa.
@@ -2717,7 +3311,7 @@ function onb2Travasa(){
      L'età scritta in anni diventa una data di nascita approssimata:
      così cresce da sola e l'anno prossimo le porzioni sono giuste
      senza che nessuno le tocchi.
-     `famPiano` invece è nuovo, e riguarda solo la cucina: dice all'AI
+     `famRicette` invece è nuovo, e riguarda solo la cucina: dice all'AI
      di scegliere piatti che si possano preparare in una volta sola per
      tutti. Le grammature restano quelle della persona — per questo la
      famiglia non entra nel conto delle calorie, ma solo nella scelta
@@ -2734,8 +3328,8 @@ function onb2Travasa(){
           const d=etaToDob(m.eta);if(d)p.dob=d;}   /* percorsi lasciati a metà prima del 28/08 */
         return p;});
       S.shopFor=(f.spesa===false)?"me":"fam";
-      S.famPiano=(f.piano!==false);}
-    else{S.family=[];S.shopFor="me";S.famPiano=false;}}
+      S.famRicette=(f.piano!==false);}
+    else{S.family=[];S.shopFor="me";S.famRicette=false;}}
   /* ── LA SCELTA DEL PIANO NON SI BUTTA (founder, 28/08) ──────────
      «Se l'utente sceglie un piano piuttosto che un altro cambia
      qualcosa?» Fino a ieri: solo per chi sceglieva Free (che riceve
@@ -2775,10 +3369,20 @@ function onb2Travasa(){
     S.conto=S.conto||{};
     S.conto.intento={piano:r.piani,quando:new Date().toISOString()};}
   if(r.preferenze){
-    if(r.preferenze.budgetCifra)S.diet.budgetCifra=+r.preferenze.budgetCifra;
-    S.diet.budget=r.preferenze.budget||"medio";
-    if(r.preferenze.alcol)S.diet.alcol=r.preferenze.alcol;   /* percorsi lasciati a meta' prima del 28/08 */
-    S.diet.varieta=r.preferenze.varieta||"media";}
+    if(r.preferenze.budgetCifra)S.pref.budgetCifra=+r.preferenze.budgetCifra;
+    S.pref.budget=r.preferenze.budget||"medio";
+    if(r.preferenze.alcol)S.pref.alcol=r.preferenze.alcol;   /* percorsi lasciati a meta' prima del 28/08 */
+    S.pref.varieta=r.preferenze.varieta||"media";}
+  /* ── IL RITMO SCELTO ARRIVA AL MOTORE (founder, 29/08) ───────────
+     `S.pref.ritmo` + `S.profile.defMode="ritmo"` sono i due campi che
+     la pagina Regole usa da sempre: qui si scrivono quelli, non un
+     campo nuovo. Chi finisce il percorso e apre Regole ritrova la sua
+     scelta selezionata, e se la cambia lì cambia davvero — un campo
+     parallelo avrebbe voluto dire due ritmi e due piani diversi per
+     la stessa persona. */
+  if(r.obiettivo==="perdere"&&+r.ritmo>0){
+    S.pref.ritmo=+r.ritmo;
+    S.profile.defMode="ritmo";}
   /* Gli stati del corpo valgono solo con genere donna (11_2 li azzera
      altrimenti) e col consenso dato: sono dati sensibili. */
   if(b.gen==="f"&&o.sensibili===true&&r.corpo&&r.corpo!=="no"){
@@ -2803,7 +3407,7 @@ window.onb2Travasa=onb2Travasa;
    nessuno resta davanti a una schermata muta. */
 window.onb2Chiudi=async(modo)=>{
   const o=onb2Stato(),g=onb2Gen();
-  o.modalita="piano";                         /* PILASTRO: solo settimanale */
+  o.modalita="ricette";                       /* PILASTRO: solo settimanale */
   onb2Travasa();
   const entra=()=>{
     o.done=true;S.onboard.done=true;onb2Salva();
@@ -2845,9 +3449,9 @@ window.onb2Chiudi=async(modo)=>{
      avvisare; se era già pronto (anche da un ricaricamento:
      S.genPronto), si applica qui. */
   if(gg.piano){
-    onb2PianoApplica(gg.piano,(gg.stato==="fatto"&&gg.piano.spesa)?gg.piano.spesa:null,gg.stato);
+    onb2RicetteApplica(gg.piano,(gg.stato==="fatto"&&gg.piano.spesa)?gg.piano.spesa:null,gg.stato);
   }else if(S.genPronto&&S.genPronto.piano){
-    onb2PianoApplica(S.genPronto.piano,S.genPronto.spesa||null,S.genPronto.origine);
+    onb2RicetteApplica(S.genPronto.piano,S.genPronto.spesa||null,S.genPronto.origine);
   }else if(gg.stato==="lavoro"){
     gg.applicaDaSolo=true;
     try{toast(tr("Il piano sta ancora scrivendosi: entra pure, si attiva da solo appena è pronto."));}catch(e){}}
@@ -2874,7 +3478,7 @@ window.onb2Ricomincia=()=>{S.onb2={v:1,step:0,maxVisto:0,ris:{},saltate:[],done:
 setTimeout(()=>{try{
   if(S.genPronto&&S.genPronto.piano){
     if(S.onboard&&S.onboard.done){
-      onb2PianoApplica(S.genPronto.piano,S.genPronto.spesa||null);
+      onb2RicetteApplica(S.genPronto.piano,S.genPronto.spesa||null);
       try{toast(tr("Piano pronto ✓ — lo trovi in Piano."));}catch(e){}
       try{render(cur);}catch(e){}}
     return;}

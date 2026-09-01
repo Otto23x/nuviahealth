@@ -47,21 +47,21 @@ function renderSport(){const el=document.getElementById("pg-sport");const di=Mat
   h+=`<div class="card"><h2>${tr("Registra un allenamento")}</h2>
   <div class="hint">${tr("Segna cosa hai fatto: le calorie bruciate entrano nel bilancio del giorno.")}</div>
     <label>${tr("Giorno")}</label><select id="wDay">`;
-  PLAN.forEach((d,di)=>h+=`<option value="${di}" ${di===ti?"selected":""}>${giorno(d.day)}</option>`);
+  RICETTE.forEach((d,di)=>h+=`<option value="${di}" ${di===ti?"selected":""}>${giorno(d.day)}</option>`);
   h+=`</select><div class="row3"><div><label>Sport</label><select id="wSport">`;
   allSports().forEach(s=>h+=`<option value="${esc(s.name)}">${esc(tr(s.name))}</option>`);
   h+=`</select></div><div><label>Minuti</label><input type="number" id="wMin" value="60" min="5"></div>
   <div><label>${tr("Intensità")}</label><select id="wInt"><option value="bassa">Bassa</option><option value="media" selected>Media</option><option value="alta">Alta</option></select></div></div>
   <button class="btn" onclick="addW()">${tr("Aggiungi allenamento")}</button>
   <button class="btn ghost" onclick="addSportType()">+ Nuovo sport</button>
-  <div class="hint">Allenamenti "alta" o >${tr("45 min alzano l'obiettivo acqua di quel giorno (+2 bicchieri).")}</div></div>`;
+  <div class="hint">${tr("Allenamenti «alta» o oltre 45 minuti alzano l'obiettivo acqua di quel giorno (+2 bicchieri).")}</div></div>`;
   {const base=(+S.profile.baseSteps>0)?+S.profile.baseSteps:3000;
    const oggi=SorgentiAttivita.passiDelGiorno(di);
    const extra=Math.max(0,oggi-base);
    h+=`<div class="card"><h2>Passi</h2>
    ${hint2(`${trh("I passi che fai normalmente sono {b1} il fabbisogno: contano come",{b1:"<b>"+tr("già dentro")+"</b>"})} <b>${trh("{v1} al giorno",{v1:base.toLocaleString(dataLoc())})}</b>.`,
      `${trh("Il numero base si cambia in {b1}. Se un giorno cammini molto più del solito, scrivi qui quanti passi hai fatto: l'app sottrae i {v1} già conteggiati e aggiunge al bilancio solo la",{b1:"<b>"+tr("Profilo → Attività")+"</b>"})})}${tr("<b>differenza</b>, così non si contano due volte.")}`)}
-   <label>${tr("Passi di")} ${esc(PLAN[di]?giorno(PLAN[di].day):tr("oggi"))}</label>
+   <label>${tr("Passi di")} ${esc(RICETTE[di]?giorno(RICETTE[di].day):tr("oggi"))}</label>
    <input type="number" id="stepsDay" min="0" max="80000" step="500" value="${oggi||""}" placeholder="es. 9500">
    <div class="mtools"><button class="btn ghost small" onclick="stepsSave(${di})">${tr("Salva i passi")}</button></div>
    <div class="hint">${oggi
@@ -73,7 +73,7 @@ function renderSport(){const el=document.getElementById("pg-sport");const di=Mat
   h+=`<div class="card"><h2>${tr("Allenamenti della settimana")}</h2>
   <div class="hint">${tr("Tutto quello che hai registrato, giorno per giorno. Con la matita correggi, col cestino elimini.")}</div>`;
   let tot=0,anyw=false;
-  PLAN.forEach((d,di)=>{const ws=SorgentiAttivita.allenamentiDelGiorno(di);if(ws.length){anyw=true;
+  RICETTE.forEach((d,di)=>{const ws=SorgentiAttivita.allenamentiDelGiorno(di);if(ws.length){anyw=true;
     h+=`<div style="font-weight:700;color:var(--bosco);font-size:13px;margin-top:8px">${giorno(d.day)}</div>`;
     ws.forEach((w,wi)=>{const k=workoutKcal(w);tot+=k;
       h+=`<div class="wline"><span>${esc(cap(sportCorto(w.sport)))} · ${w.min} min · ${w.int}</span><span><b style="color:var(--salvia)">~${k} kcal</b><span class="del" onclick="delW(${di},${wi})">✕</span></span></div>`;});}});

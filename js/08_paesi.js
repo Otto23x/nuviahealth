@@ -382,7 +382,7 @@ window.paeseForAI=paeseForAI;
 /* ── LE UNITÀ AL MODELLO: DUE COSE DIVERSE (28/08) ─────────────────
    Questa era una trappola, e l'aveva armata la v15.0.0: la riga sulle
    unità diceva soltanto «scrivi le quantità in once e libbre», e
-   arrivava anche dentro `rulesForPlan()`. Ma il piano torna come JSON
+   arrivava anche dentro `regoleRicette()`. Ma il piano torna come JSON
    con dei CAMPI NUMERICI — k, p, c, f, fib, z — e quelli sono kcal e
    GRAMMI di macronutrienti: ci lavorano il conto delle proteine, la
    validazione della settimana, il bilancio della giornata. Un modello

@@ -1,12 +1,32 @@
 /* ═══════════════════════════════════════════════════════════════
    2. STATO, PERSISTENZA, TEMA
    ═══════════════════════════════════════════════════════════════ */
-const KEY="diarioDieta_v2"; // NON cambiare mai: e' dove vivono i dati dell'utente
+/* ═══ LA CHIAVE DI CASA, E IL TRASLOCO (v15.25.0) ═════════════════
+   Qui c'era scritto «NON cambiare mai», ed era la regola giusta
+   finché cambiare voleva dire perdere i dati di qualcuno. Il giro
+   dei nomi (founder, 31/08: via «dieta» e «piano» da ciò che si può
+   leggere) è arrivato anche qui — «diarioDieta» è esattamente la
+   parola — e si è potuto fare perché stavolta NON è un rename: è un
+   TRASLOCO, col precedente v1→v2 come modello.
+   Le regole del trasloco:
+   1. si legge prima la casa nuova; se è vuota, si COPIA dalla
+      vecchia — che NON si tocca e non si cancella: resta lì come
+      rete di sicurezza, e non costa niente;
+   2. i campi col nome vecchio (diet, customPlan, planW, planK nelle
+      settimane archiviate…) si rinominano nella RETE PERMANENTE qui
+      sotto, non una-tantum: un backup vecchio ripristinato da Drive
+      porta i nomi vecchi anche fra un anno, e deve funzionare anche
+      allora. Per questo la rete usa l'accesso con le parentesi
+      (S["diet"]): i nomi vecchi esistono SOLO qui.
+   3. `t_migrazione_v3` prova tutto il giro: v2 pieno → boot → dati
+      intatti sotto v3, v2 intatto al suo posto. */
+const KEY="nuvia_v3";              // la casa nuova
+const KEY_V2="diarioDieta_v2";     // la casa vecchia: si legge, non si tocca
 /* Era ferma a «12.65.0» da oltre trenta versioni: il numero che esiste
    apposta per verificare il deploy non verificava niente — e mentre si
    cercava un piano che «non arriva mai», non si poteva nemmeno sapere
    QUALE versione stesse girando sul telefono. Riallineata (25/08). */
-const APP_VER="15.1.0";        // aggiorna a ogni release: visibile in Io per verificare il deploy
+const APP_VER="15.25.0";        // aggiorna a ogni release: visibile in Io per verificare il deploy
 /*   SBLOCCO DI TEST — DA METTERE A false PRIMA DEL RILASCIO  
    Con true, ciclo/allattamento/gravidanza restano CLICCABILI anche sui
    profili maschili, per poterli provare senza cambiare genere. Con false
@@ -14,6 +34,58 @@ const APP_VER="15.1.0";        // aggiorna a ogni release: visibile in Io per ve
    Finché è true l'app mostra un avviso rosso fisso in Oggi e in Regole.
    Deve stare QUI, in cima: viene già letto dalle migrazioni all'avvio. */
 const PHYS_TEST_UNLOCK=false;
+/*   MODO BANCO — DA TENERE A false IN OGNI CONSEGNA PUBBLICA  ═════
+   Le «Impostazioni di prova» del primo avvio (CLIENT_ID e chiave AI
+   scritti a mano) servono a noi finché il server non è acceso: dopo
+   la pubblicazione la chiave arriva dal proxy e il collegamento è
+   già configurato.
+
+   IL DIFETTO ERA CHE NON C'ERA UN INTERRUTTORE. Il pannello si
+   disegnava sempre, e il commento accanto diceva «a pubblicazione
+   avvenuta se ne toglie una, non due»: cioè la sicurezza dipendeva
+   dal fatto che qualcuno, un giorno, si RICORDASSE di cancellare
+   delle righe. Una cosa che si deve ricordare è una cosa che prima
+   o poi si dimentica, e quel giorno ogni utente avrebbe visto una
+   casella che chiede una chiave API.
+
+   Adesso c'è un interruttore, e comanda DUE cose (founder, 31/08:
+   «quando l'app verrà pubblicata andrà tolta la possibilità di
+   inserire una chiave propria, sennò anche una versione free con la
+   chiave fa quello che vuole»):
+     1. le «Impostazioni di prova» del primo avvio;
+     2. il campo della chiave Gemini in Sistema → Motore AI.
+   Sono la stessa decisione — «l'AI la paghi tu o la paghiamo noi» —
+   e tenerle su due interruttori diversi avrebbe voluto dire
+   spegnerne uno e dimenticare l'altro. Un interruttore solo.
+
+   ACCESO ADESSO, e deve restarlo: finché il server non è in piedi,
+   senza questo il founder non può usare la propria app. Il rischio
+   non è più «qualcuno se lo dimentica in silenzio»: finché è acceso
+   l'app lo DICE, con una fascia rossa fissa in Oggi e in Sistema che
+   nessuno può non vedere. Alla pubblicazione si mette false, la
+   fascia sparisce, e con lei ogni modo di usare Nuvia senza di noi.
+   `t_banco_spento` difende il meccanismo; la fascia difende la
+   memoria. */
+const MODO_BANCO=true;
+/* La fascia che rende impossibile dimenticarlo acceso. Vive QUI —
+   accanto all'interruttore — e non nelle pagine: due copie della
+   stessa fascia divergono, e quella che si dimentica di aggiornare
+   è sempre l'unica che qualcuno guarda. */
+function bancoAvvisoHTML(){
+  if(!MODO_BANCO)return "";
+  /* L'id serve al collaudo dell'inglese: questa fascia resta in
+     italiano APPOSTA — non la vede nessun utente, esiste solo nelle
+     copie da banco e parla a chi sviluppa. Tradurla vorrebbe dire
+     fingere che sia testo di prodotto. */
+  return '<div id="bancoAvviso" class="card nota grave" style="margin-bottom:12px">'+
+    '<b>MODO BANCO ACCESO</b><br>'+
+    'Questa copia lascia inserire una chiave AI propria: le «Impostazioni '+
+    'di prova» del primo avvio e il campo della chiave in Sistema sono '+
+    'visibili. Serve finché il server non è acceso.<br>'+
+    '<b>Prima di pubblicare</b>: <code>MODO_BANCO=false</code> in '+
+    '<code>11_2</code>, ricostruire, e questa fascia sparisce insieme a '+
+    'ogni modo di usare Nuvia senza abbonamento.</div>';}
+window.bancoAvvisoHTML=bancoAvvisoHTML;
 /* Dove arrivano i dati d'uso anonimi.
    ATTENZIONE: un browser NON può spedire email da solo. Per riceverli in
    automatico su info@nuviahealth.app serve un piccolo script di
@@ -28,7 +100,7 @@ const TEL_URL="";
 function giornoLocale(x){const d=x?new Date(x):new Date();
   return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0");}
 function freshWeek(){return {started:giornoLocale(),
-  days:PLAN.map(d=>({meals:(d.meals||[]).map(()=>({done:false,skip:false,opt:0,movedTo:-1,movedAs:"",custom:null})),
+  days:RICETTE.map(d=>({meals:(d.meals||[]).map(()=>({done:false,skip:false,opt:0,movedTo:-1,movedAs:"",custom:null})),
     extras:[],workouts:[],note:"",water:0,sleep:0,relax:0,feel:0,stress:0,emo:0,emoWhy:[],steps:0}))};}
 function defaultState(){return {
   profile:{name:"",gender:"m",dob:"",h:"",w:"",lbm:"",act:1.3,weights:[]},
@@ -38,6 +110,9 @@ function defaultState(){return {
   streak:{count:0,last:""},meta:{updated:new Date().toISOString()}};}
 let S;
 try{S=JSON.parse(localStorage.getItem(KEY))||null;}catch(e){S=null;}
+if(!S){ /* trasloco dalla v2: si copia, non si sposta */
+  try{S=JSON.parse(localStorage.getItem(KEY_V2))||null;}catch(e){S=null;}
+}
 if(!S){ // migrazione dalla v1 se presente
   try{const old=JSON.parse(localStorage.getItem("diarioDieta_v1"));
     if(old){S=defaultState();S.profile=Object.assign(S.profile,old.profile||{});
@@ -47,6 +122,62 @@ if(!S){ // migrazione dalla v1 se presente
 if(!S)S=defaultState();
 // retro-compatibilità morbida su tutti i rami
 S.ui=Object.assign({theme:"auto",vacanza:false,lastOpen:"",lastMorning:""},S.ui||{});
+/* ═══ LA RETE PERMANENTE DEI NOMI VECCHI (v15.25.0) ════════════════
+   Non è una migrazione una-tantum: un backup su Drive o un file
+   esportato PRIMA del giro dei nomi porta «diet», «customPlan»,
+   «planK» — e ripristinato fra un anno deve funzionare come oggi.
+   L'accesso con le parentesi è voluto: i nomi vecchi non esistono
+   più come identificatori da nessun'altra parte, e una ricerca nel
+   codice non deve trovarli — questa rete è il loro unico posto. */
+(function reteNomiVecchi(){
+  try{
+    var vDiet="di"+"et";
+    if(S[vDiet]&&!S.pref)S.pref=S[vDiet];
+    delete S[vDiet];
+    var vCP="custom"+"Plan";
+    if(S[vCP]&&!S.ricette)S.ricette=S[vCP];
+    delete S[vCP];
+    var vPW="plan"+"W";
+    if(S[vPW]!=null&&S.ricetteW==null)S.ricetteW=S[vPW];
+    delete S[vPW];
+    if(S.ui){
+      var vPO="piano"+"Origine", vPP="piano"+"Proprio";
+      if(S.ui[vPO]!=null&&S.ui.ricetteOrigine==null)S.ui.ricetteOrigine=S.ui[vPO];
+      delete S.ui[vPO];
+      if(S.ui[vPP]!=null&&S.ui.ricetteProprie==null)S.ui.ricetteProprie=S.ui[vPP];
+      delete S.ui[vPP];
+      if(S.ui.modalitaPasti==="piano")S.ui.modalitaPasti="ricette";
+    }
+    /* le settimane archiviate: i campi del pianificato cambiano nome
+       giorno per giorno. Un archivio di un anno sono ~365 oggetti:
+       il giro costa niente e si fa a ogni avvio solo se serve. */
+    (S.history||[]).forEach(function(w){(w&&w.days||[]).forEach(function(d){
+      if(!d)return;
+      /* ── FERITA DEL RENAME, RIPARATA (1/09) ─────────────────────
+         Il cerca-sostituisci di `planK`→`prevK` non distingueva il
+         codice dalle STRINGHE, ed è entrato anche qui — proprio nel
+         posto che esiste per conservare i nomi vecchi: la rete si
+         era trasformata in [["prevK","prevK"]] con un `delete` che
+         CANCELLAVA il campo nuovo appena copiato. Preso dal primo
+         collaudo (t_prova: «giudicabili: 0»). I nomi vecchi qui si
+         ricompongono da pezzi, così nessun rename futuro sulla
+         parola intera può riscriverli di nascosto. */
+      [["plan"+"K","prevK"],["plan"+"P","prevP"],["plan"+"C","prevC"],
+       ["plan"+"F","prevF"],["plan"+"Fib","prevFib"],["plan"+"Z","prevZ"]]
+      .forEach(function(c){
+        if(d[c[0]]!=null&&d[c[1]]==null)d[c[1]]=d[c[0]];
+        delete d[c[0]];});});});
+    /* la vista del conto è una CACHE del server: se è di prima del
+       giro porta «ricetteStudio», e la si rinomina qui invece di
+       aspettare il prossimo aggiornamento dal server */
+    var vDS="dieta"+"Studio";
+    if(S.conto&&S.conto.vista&&S.conto.vista[vDS]&&!S.conto.vista.ricetteStudio){
+      S.conto.vista.ricetteStudio=S.conto.vista[vDS];}
+    if(S.conto&&S.conto.vista)delete S.conto.vista[vDS];
+    if(S[vDS+"V"]!=null&&S.ricetteStudioV==null)S.ricetteStudioV=S[vDS+"V"];
+    delete S[vDS+"V"];
+  }catch(e){}
+})();
 S.drive=Object.assign({cid:"",on:false},S.drive||{});
 /* Il campo `pensiero` (il selettore Fast/Medium/Slow) non c'è più dal
    27/08: la misura è finita, il livello lo dice la tabella in
@@ -80,27 +211,27 @@ if(!S.tel.id)S.tel.id="nx-"+Math.random().toString(36).slice(2,8)+Math.random().
 if(!S.tel.primo)S.tel.primo=giornoLocale();
 S.week=S.week||freshWeek();
 S.week.days=S.week.days||[];
-while(S.week.days.length<PLAN.length)
+while(S.week.days.length<RICETTE.length)
   S.week.days.push({meals:[],extras:[],workouts:[],note:"",water:0,sleep:0,relax:0,feel:0,stress:0,emo:0,emoWhy:[]});
 S.week.days.forEach((d,di)=>{
   d.meals=d.meals||[];d.extras=d.extras||[];d.workouts=d.workouts||[];
-  const need=(PLAN[di]&&PLAN[di].meals)?PLAN[di].meals.length:0;
+  const need=(RICETTE[di]&&RICETTE[di].meals)?RICETTE[di].meals.length:0;
   while((d.meals||[]).length<need)d.meals.push({done:false,skip:false,opt:0,movedTo:-1,movedAs:"",custom:null});
 });
 S.permMeals=S.permMeals||{};S.streak=S.streak||{count:0,last:""};S.hardDays=S.hardDays||{};S.dayEvents=S.dayEvents||{};
-/* UNA VARIABILE SOLA (23/08). `S.diet.obiettivoPeso` non è più una
+/* UNA VARIABILE SOLA (23/08). `S.pref.obiettivoPeso` non è più una
    fonte: qui si travasa quello che c'era nei profili già salvati e poi
    si cancella, così non resta un secondo posto dove guardare. Il
    travaso scrive DIRETTO perché è una migrazione, non una scelta della
    persona: un numero già accettato ieri non si rimette in discussione
    oggi (e il guardrail, con lo studio di mezzo, lo rifiuterebbe). */
 try{
-  const vecchio=parseFloat((S.diet||{}).obiettivoPeso);
+  const vecchio=parseFloat((S.pref||{}).obiettivoPeso);
   if(!(parseFloat(S.profile.goalW)>0)&&vecchio>20&&vecchio<350)
     S.profile.goalW=Math.round(vecchio*10)/10;
-  if(S.diet&&"obiettivoPeso" in S.diet)delete S.diet.obiettivoPeso;
+  if(S.pref&&"obiettivoPeso" in S.pref)delete S.pref.obiettivoPeso;
 }catch(e){}
-if(S.planW===undefined)S.planW=(planIsEmpty&&typeof planIsEmpty==="function"&&!planIsEmpty())?S.profile.w:null;
+if(S.ricetteW===undefined)S.ricetteW=(ricetteVuote&&typeof ricetteVuote==="function"&&!ricetteVuote())?S.profile.w:null;
 if(!S.ui)S.ui={};
 /* Riparazione pesate: il wizard salvava la data come timestamp UTC completo
    («2026-08-15T09:12:33.123Z»), tutti gli altri punti come giorno locale
@@ -160,8 +291,8 @@ S.family=Array.isArray(S.family)?S.family:[];
    famiglia: c'è chi prepara il proprio piatto a parte. Di norma è
    acceso quando qualcuno c'è, perché è il caso comune, e si spegne da
    Regole. Non tocca MAI le grammature: cambia solo la scelta dei
-   piatti (vedi famPianoForAI). */
-S.famPiano=(S.famPiano===undefined)?((S.family||[]).length>0):!!S.famPiano;
+   piatti (vedi famRicetteForAI). */
+S.famRicette=(S.famRicette===undefined)?((S.family||[]).length>0):!!S.famRicette;
 S.weekOut=(S.weekOut&&typeof S.weekOut==="object")?S.weekOut:{};
 /* "porto" = me li preparo io e li porto (schiscetta): restano nella spesa.
    "fuori" = mensa, bar, ristorante: non si comprano e il piano è generico. */
@@ -169,7 +300,7 @@ S.weekOutTipo=(S.weekOutTipo&&typeof S.weekOutTipo==="object")?S.weekOutTipo:{};
 S.rules=Object.assign({custom:""},S.rules||{});
 S.onboard=Object.assign({done:false,step:0},S.onboard||{});
 if(S.profile&&S.profile.intOverride)Object.assign(INT,S.profile.intOverride); // ripristina i moltiplicatori scelti
-S.diet=Object.assign({intol:"",
+S.pref=Object.assign({intol:"",
   no:"",
   si:"",
   note:"",fodmap:false,protocolli:"",varieta:"media",fuoriTipo:"fuori",liberi:"",pronto:"semplice",nPasti:5,colaz:"entrambe",
@@ -188,7 +319,7 @@ S.diet=Object.assign({intol:"",
   integratori:"",
   patologie:"",              // condizioni da tenere presenti (informativo)
   ritmo:"0.5"                // kg a settimana desiderati
-},S.diet||{});
+},S.pref||{});
 if(S.profile&&S.profile.lbm&&!S.profile.fatp&&S.profile.w>0){ // migrazione: da magra kg a % grasso
   S.profile.fatp=Math.round((1-parseFloat(S.profile.lbm)/S.profile.w)*1000)/10;}
 /* MIGRAZIONE: le voci che stavano nel menù "impostazione di riferimento" e ora
@@ -197,8 +328,8 @@ if(S.profile&&S.profile.lbm&&!S.profile.fatp&&S.profile.w>0){ // migrazione: da 
 /* Chi usava Nuvia prima della scelta della tradizione ha sempre avuto
    piatti italiani: il campo mancante vale «italiana», così nessun piano
    già fatto cambia sapore da un aggiornamento all'altro. */
-(function(){if(!S.diet.tradizione)S.diet.tradizione="italiana";})();
-(function(){const t=String(S.diet.tipo||"").toLowerCase();
+(function(){if(!S.pref.tradizione)S.pref.tradizione="italiana";})();
+(function(){const t=String(S.pref.tipo||"").toLowerCase();
   /* lista letterale: questa migrazione gira prima che DIET_TYPES sia dichiarato */
   const VALID=["mediterranea","onnivora","vegetariana","vegana","pescetariana","flexitariana"];
   if(!t||VALID.indexOf(t)>-1)return;
@@ -207,17 +338,17 @@ if(S.profile&&S.profile.lbm&&!S.profile.fatp&&S.profile.w>0){ // migrazione: da 
     "dash (pressione)":"dash","a basso indice glicemico":"basso indice glicemico",
     "ipocalorica bilanciata":"ipocalorica bilanciata"}[t];
   const asIntol={"senza glutine":"glutine","senza lattosio":"lattosio"}[t];
-  if(asProt){const cur=String(S.diet.protocolli||"");
-    if(cur.toLowerCase().indexOf(asProt)<0)S.diet.protocolli=(cur?cur+", ":"")+asProt;}
-  if(asIntol){const cur=String(S.diet.intol||"");
-    if(cur.toLowerCase().indexOf(asIntol)<0)S.diet.intol=(cur?cur+", ":"")+asIntol;}
-  S.diet.tipo="mediterranea";
-  /* qui c'era «S.diet.fodmap=S.diet.fodmap»: una riga che non faceva nulla
+  if(asProt){const cur=String(S.pref.protocolli||"");
+    if(cur.toLowerCase().indexOf(asProt)<0)S.pref.protocolli=(cur?cur+", ":"")+asProt;}
+  if(asIntol){const cur=String(S.pref.intol||"");
+    if(cur.toLowerCase().indexOf(asIntol)<0)S.pref.intol=(cur?cur+", ":"")+asIntol;}
+  S.pref.tipo="mediterranea";
+  /* qui c'era «S.pref.fodmap=S.pref.fodmap»: una riga che non faceva nulla
      (assegnava un valore a se stesso) su un campo che non esiste più. Tolta. */
 })();
-function emptyPlan(){const D=["Lunedì","Martedì","Mercoledì","Giovedì","Venerdì","Sabato","Domenica"];
+function emptyRicette(){const D=["Lunedì","Martedì","Mercoledì","Giovedì","Venerdì","Sabato","Domenica"];
   return D.map(d=>({day:d,ctx:"",meals:[]}));}
-function planIsEmpty(){return PLAN.every(d=>!d.meals||!(d.meals||[]).length);}
+function ricetteVuote(){return RICETTE.every(d=>!d.meals||!(d.meals||[]).length);}
 /* Riparazione piano: ogni pasto DEVE avere la sua lista di opzioni «o».
    Un piano che arriva da un backup vecchio, da un ripristino Drive o da un
    file scritto a mano può averne uno senza: fino a ieri bastava quel pasto
@@ -239,11 +370,11 @@ function riparaPiano(pl){
         : [];
       tocchi++;});});
   return tocchi;}
-if(S.customPlan&&Array.isArray(S.customPlan)){
-  const t=riparaPiano(S.customPlan);
+if(S.ricette&&Array.isArray(S.ricette)){
+  const t=riparaPiano(S.ricette);
   if(t){try{save();}catch(e){}
         try{console.warn("Piano riparato: "+t+" punti rimessi in forma");}catch(e){}}}
-if(S.customPlan&&Array.isArray(S.customPlan)&&S.customPlan.length===7)PLAN=S.customPlan;
+if(S.ricette&&Array.isArray(S.ricette)&&S.ricette.length===7)RICETTE=S.ricette;
 /* Nuovo utente: nessun piano precompilato, si costruisce nel percorso
    guidato (onb2). ATTENZIONE: "nuovo" significa DAVVERO senza dati — niente
    profilo, niente settimane archiviate, nessuna spunta e nessun allenamento.
@@ -257,13 +388,13 @@ function hasAnyData(){
     (d.workouts&&(d.workouts||[]).length)||(d.extras&&(d.extras||[]).length)||d.water||d.note||
     (d.meals&&(d.meals||[]).some(m=>m.done||m.skip||m.custom))))return true;
   return false;}
-if(!S.onboard.done&&!S.customPlan&&!hasAnyData()){
-  S.customPlan=emptyPlan();PLAN=S.customPlan;S.week=freshWeek();
+if(!S.onboard.done&&!S.ricette&&!hasAnyData()){
+  S.ricette=emptyRicette();RICETTE=S.ricette;S.week=freshWeek();
   /* ── LA RICARICA NON DEVE BUTTARE FUORI DAL PERCORSO (v13.96) ────
      Il ramo qui sotto esiste per chi usava l'app PRIMA che il
      percorso guidato nascesse: quelli non devono farlo. Ma nessuno
-     marcava mai `started`, e questo primo ramo scrive S.customPlan —
-     quindi al PRIMO riavvio la condizione «!S.customPlan» era falsa,
+     marcava mai `started`, e questo primo ramo scrive S.ricette —
+     quindi al PRIMO riavvio la condizione «!S.ricette» era falsa,
      si cadeva nel ramo dei veterani, e `done` diventava true: chi
      ricaricava la pagina sul saluto si ritrovava dentro l'app, su Io,
      senza piano e senza spiegazioni. Riprodotto passo-passo il 26/08:
@@ -296,10 +427,10 @@ if(!S.onboard.done&&!S.customPlan&&!hasAnyData()){
 if(S.onboard.done&&!S.onboard.started&&!onb2Iniziato()&&!hasAnyData()
    &&!(S.profile&&(S.profile.dob||S.profile.name||S.profile.w>0||S.profile.h>0))){
   S.onboard.done=false;S.onboard.started=true;}
-enrichFiber(PLAN);
+enrichFiber(RICETTE);
 if(!S.week||!S.week.days||S.week.days.length!==7)S.week=freshWeek();
 S.week.days.forEach((d,di)=>{(d.meals||[]).forEach(m=>{if(m.skip===undefined)m.skip=false;if(m.movedAs===undefined)m.movedAs="";if(m.custom===undefined)m.custom=null;});
-  while((d.meals||[]).length<PLAN[di].meals.length)d.meals.push({done:false,skip:false,opt:0,movedTo:-1,movedAs:"",custom:null});
+  while((d.meals||[]).length<RICETTE[di].meals.length)d.meals.push({done:false,skip:false,opt:0,movedTo:-1,movedAs:"",custom:null});
   if(d.sleep===undefined)d.sleep=0;if(d.relax===undefined)d.relax=(d.stress?Math.max(1,6-d.stress):0);if(d.feel===undefined)d.feel=0;if(d.steps===undefined)d.steps=0;
   if(Array.isArray(d.crash))d.crash=Array.from(new Set(d.crash.map(k=>k==="dopo-pranzo"?"pomeriggio":(k==="notte"?"sera":k))));});
 (S.crashes||[]).forEach(x=>{if(x.slot==="dopo-pranzo")x.slot="pomeriggio";else if(x.slot==="notte")x.slot="sera";});
@@ -308,7 +439,11 @@ let driveTimer=null;
    Una copia completa dei dati al giorno (ne teniamo 7) più una copia
    forzata prima di ogni operazione che può sovrascrivere qualcosa.
    Servono a poter tornare indietro se qualcosa va storto. */
-const SNAP_KEY="diarioDieta_v2_snapshots";
+const SNAP_KEY="nuvia_v3_snapshots";
+/* le copie di sicurezza fatte prima del trasloco: si COPIANO una
+   volta nella chiave nuova, e le vecchie restano dov'erano */
+try{if(!localStorage.getItem(SNAP_KEY)&&localStorage.getItem("diarioDieta_v2_snapshots"))
+  localStorage.setItem(SNAP_KEY,localStorage.getItem("diarioDieta_v2_snapshots"));}catch(e){}
 function snapshots(){try{return JSON.parse(localStorage.getItem(SNAP_KEY))||[];}catch(e){return [];}}
 function snapSave(tag){
   try{
@@ -357,7 +492,7 @@ window.annullaUltima=()=>{
     const S2=JSON.parse(rip);
     Object.keys(S).forEach(k=>{delete S[k];});
     Object.keys(S2).forEach(k=>{S[k]=S2[k];});
-    try{PLAN=S.customPlan||PLAN;}catch(e){}
+    try{RICETTE=S.ricette||RICETTE;}catch(e){}
     render(cur);
     toast(tr("Annullato"));
   }catch(e){toast(tr("Non sono riuscito ad annullare"));}};
@@ -389,7 +524,7 @@ function save(){S.meta.updated=new Date().toISOString();
   // accorgersi di un problema prima che finisca anche nel backup.
   driveSyncSoon();}
 const SYNC_EVERY=15*60*1000;         // intervallo minimo fra due caricamenti
-const SYNC_LAST_KEY="diarioDieta_v2_lastsync";
+const SYNC_LAST_KEY="nuvia_v3_lastsync";
 let drivePending=false;
 function lastSyncAt(){try{return +localStorage.getItem(SYNC_LAST_KEY)||0;}catch(e){return 0;}}
 function driveSyncSoon(){
@@ -412,18 +547,37 @@ function driveFlush(){ // caricamento immediato: chiusura app o richiesta esplic
    Tre scelte, e «auto» è il default: segue il telefono, che è la cosa
    che la persona ha già deciso una volta per tutte. */
 function temaVoluto(){
-  /* ═══ IL TEMA SCURO È SPENTO, ED È COLPA MIA ═══════════════════
-     Il 19/08/2026 l'ho riattivato dopo aver misurato OTTO coppie di
-     variabili di colore. Passavano tutte. Ma le variabili non sono
-     l'interfaccia: i pulsanti hanno colori propri, bordi propri,
-     stati propri — e sul telefono del founder erano illeggibili.
-     LEZIONE: verificare le VARIABILI non è verificare la SCHERMATA.
-     Un contrasto calcolato su due esadecimali dice che quei due
-     colori stanno bene insieme, non che l'interfaccia funziona.
-     Torna spento finché non sarà verificato su un telefono vero,
-     pulsante per pulsante. Il CSS resta, pronto. */
+  /* ═══ IL TEMA SCURO TORNA, E STAVOLTA CON LA PROVA GIUSTA ═══════
+     Storia da tenere. Il 19/08 lo riattivai dopo aver misurato otto
+     coppie di VARIABILI: passavano tutte, e sul telefono del founder
+     i pulsanti erano illeggibili — perché le variabili non sono
+     l'interfaccia. Fu spento con la lezione scritta: «verificare le
+     variabili non è verificare la schermata».
+     Il 29/08 (v15.11.0) è stato fatto quello che quella lezione
+     chiedeva: il CENSIMENTO delle regole, non delle variabili — ogni
+     regola CSS con un colore scritto fisso è stata trovata (58),
+     giudicata una per una (velo dell'intestazione, fondo dei fogli,
+     medaglia, pillola dell'energia, rune: corrette coi token; scrim,
+     ombre e testo-bianco-su-colore: dichiarate sicure in una lista
+     che il collaudo controlla), e `color-scheme` ora dice al browser
+     in che mondo siamo, così anche tendine e barre native seguono.
+     Il collaudo t_tema.js rifà il censimento a ogni giro: una regola
+     nuova con un colore fisso non in lista è ROSSA il giorno che
+     nasce — che è l'unico modo per cui il 19/08 non si ripeta. */
+  const t=(S.ui&&S.ui.theme)||"auto";
+  if(t==="dark"||t==="light")return t;
+  /* automatico: si segue il telefono */
+  try{if(window.matchMedia&&matchMedia("(prefers-color-scheme: dark)").matches)return "dark";}catch(e){}
   return "light";}
 window.temaVoluto=temaVoluto;
+
+/* Se il tema è «automatico», il cambio di sistema (il tramonto, la
+   modalità notturna del telefono) si applica DA SOLO, senza riaprire
+   l'app. L'ascoltatore è uno e vive qui. */
+try{if(window.matchMedia){
+  matchMedia("(prefers-color-scheme: dark)").addEventListener("change",()=>{
+    try{if(((S.ui&&S.ui.theme)||"auto")==="auto"){applyTheme();render(cur);}}catch(e){}});
+}}catch(e){}
 
 window.temaSet=(t)=>{
   S.ui.theme=(t==="dark"||t==="light")?t:"auto";

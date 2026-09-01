@@ -26,9 +26,9 @@ const PAT_MIN_GIORNI=10;
 function giorniAnalisi(max=28){
   const out=[];
   (S.history||[]).slice(-6).forEach(w=>(w.days||[]).forEach(d=>{if(d&&typeof d==="object")out.push(d);}));
-  try{PLAN.forEach((d,di)=>{const D=S.week.days[di];if(!D)return;
+  try{RICETTE.forEach((d,di)=>{const D=S.week.days[di];if(!D)return;
     if(!(D.meals||[]).some(m=>m.done)&&!(D.extras||[]).length)return;   /* giorno non vissuto */
-    out.push({day:d.day,eat:eatenOfDay(di).k,planK:plannedOfDay(di).k,def:deficitOfDay(di),
+    out.push({day:d.day,eat:eatenOfDay(di).k,prevK:plannedOfDay(di).k,def:deficitOfDay(di),
       sgarri:extrasKcal(di),extrasN:(D.extras||[]).filter(x=>x.st!=="skip").length,
       sk:skippedOfDay(di),sleep:D.sleep||0,feel:D.feel||0,stress:D.stress||0,
       emo:D.emo||0,emoWhy:Array.isArray(D.emoWhy)?D.emoWhy:[],mealsDone:(D.meals||[]).filter(m=>m.done).length});});
@@ -57,7 +57,7 @@ function analizzaSchemi(){
   /* 3 · il ciclo restrizione → abbuffata: è il più importante da vedere presto */
   let tagliati=0,poiSforo=0;
   for(let i=0;i<g.length-1;i++){
-    const forte=g[i].planK&&g[i].eat&&g[i].eat<g[i].planK*0.75;
+    const forte=g[i].prevK&&g[i].eat&&g[i].eat<g[i].prevK*0.75;
     if(forte){tagliati++; if(g[i+1].sgarri>300)poiSforo++;}}
   if(tagliati>=3&&perc(poiSforo,tagliati)>=50)
     schemi.push({t:"restrizione",forza:perc(poiSforo,tagliati),priorita:true,
@@ -94,7 +94,7 @@ function segnaliSostegno(){
   const perc=(a)=>Math.round(100*a/n);
   const segni=[];
   /* 1 · restrizione forte che si ripete */
-  const restr=ultimi.filter(d=>d.planK&&d.eat&&d.eat<d.planK*0.6).length;
+  const restr=ultimi.filter(d=>d.prevK&&d.eat&&d.eat<d.prevK*0.6).length;
   if(restr>=Math.max(4,Math.round(n*0.25)))
     segni.push({id:"restr",t:trh("In {v1} giorni su {v2} hai mangiato molto meno di quanto previsto",{v1:restr,v2:n})});
   /* 2 · perdita di controllo ricorrente */
@@ -156,10 +156,10 @@ function debriefDomande(){
   const dom=[];
   /* 1 · il giorno più storto: che cosa è successo? */
   let peggio=null;
-  sett.forEach(d=>{if(d.planK&&d.eat){const sc=Math.abs(d.eat-d.planK)/d.planK;
+  sett.forEach(d=>{if(d.prevK&&d.eat){const sc=Math.abs(d.eat-d.prevK)/d.prevK;
     if(sc>0.25&&(!peggio||sc>peggio.sc))peggio={d:d,sc:sc};}});
   if(peggio)dom.push({id:"storto",q:tr("Il giorno più fuori piano è stato {g} ({k} kcal contro {p}): cosa c'era quel giorno?",
-    {g:dateIT(peggio.d.date||peggio.d.d||""),k:peggio.d.eat,p:peggio.d.planK})});
+    {g:dateIT(peggio.d.date||peggio.d.d||""),k:peggio.d.eat,p:peggio.d.prevK})});
   /* 2 · sgarri grandi ricorrenti */
   const sg=sett.filter(d=>+d.sgarri>500).length;
   if(sg>=2)dom.push({id:"sgarri",q:tr("In {n} giorni è arrivato un extra importante: succede in un momento preciso (sera, weekend, dopo il lavoro)?",{n:sg})});
@@ -210,7 +210,7 @@ function spintaDelGiorno(){
   const g=(typeof giorniAnalisi==="function")?giorniAnalisi():[];
   if(g.length<3)return "";
   const ieri=g[g.length-1]||{};
-  const ok=g.filter(d=>d.planK&&d.eat&&Math.abs(d.eat-d.planK)<=d.planK*0.1).length;
+  const ok=g.filter(d=>d.prevK&&d.eat&&Math.abs(d.eat-d.prevK)<=d.prevK*0.1).length;
   if(+ieri.sgarri>500)
     return tr("Ieri è andata storta e non cambia niente: su {n} giorni ne hai centrati {ok}. Il piano non riparte da lunedì, riparte dal prossimo pasto.",{n:g.length,ok:ok});
   if(ok>=3&&ok>=Math.round(g.length*0.5))
@@ -299,7 +299,7 @@ let PROPOSTE;
     return {t:tr("Il {g} è il tuo giorno più difficile: è successo {n} volte.",{g:giorno(GG[k]),n:per[k]}),
             q:tr("Vuoi che quel giorno il piano sia più leggero e con qualcosa di pronto?"),
             fai:tr("Preparalo"),
-            f:()=>{show("piano");if(typeof planMoreSheet==="function")planMoreSheet();}};}},
+            f:()=>{show("ricette");if(typeof ricetteMoreSheet==="function")ricetteMoreSheet();}};}},
  {id:"pastosaltato",
   trova(){
     const g=(typeof giorniAnalisi==="function")?giorniAnalisi():[];
@@ -309,7 +309,7 @@ let PROPOSTE;
     return {t:tr("Salti un pasto in {n} giorni su {tot}.",{n:salti,tot:g.length}),
             q:tr("Se non è una scelta, forse è nell'orario sbagliato: lo spostiamo?"),
             fai:tr("Sistemiamolo"),
-            f:()=>{show("piano");}};}},
+            f:()=>{show("ricette");}};}},
  {id:"freezerfermo",
   trova(){
     const f=((S.pantry||{}).freezer)||[];
@@ -319,7 +319,7 @@ let PROPOSTE;
     return {t:tr("Nel freezer c'è roba da più di due settimane: {c}.",{c:vecchi.map(x=>x.n).slice(0,3).join(", ")}),
             q:tr("La uso nei prossimi giorni invece di farla invecchiare?"),
             fai:tr("Usala"),
-            f:()=>{show("piano");if(typeof pantryCucina==="function")pantryCucina();}};}},
+            f:()=>{show("ricette");if(typeof pantryCucina==="function")pantryCucina();}};}},
  {id:"allenamentigiu",
   trova(){
     const g=(typeof goalWkTotal==="function")?goalWkTotal():0;
@@ -434,12 +434,12 @@ function schemiForAI(){
     r.schemi.map(s=>s.testo).join(" ")+
     " Tienine conto nelle proposte (per esempio: pasti più sazianti nei giorni difficili, niente tagli aggressivi dopo un giorno di forte restrizione). Non fare diagnosi e non colpevolizzare.";}
 function weekSummary(){
-  const days=PLAN.map((d,di)=>{const e=eatenOfDay(di),pl=plannedOfDay(di),D=S.week.days[di];
+  const days=RICETTE.map((d,di)=>{const e=eatenOfDay(di),pl=plannedOfDay(di),D=S.week.days[di];
     // si salva TUTTO ciò che serve all'esportazione: le settimane archiviate
     // devono avere gli stessi campi di quella in corso, non zeri
     return {day:d.day,eat:e.k,prot:e.p,c:e.c,f:e.f,fib:e.fib,z:e.z||0,
       cycle:!!D.cycle,lact:D.lact||"no",physK:D.physK||0,hungerAvg:D.hungerAvg||0,
-      planK:pl.k,planP:pl.p,planC:pl.c||0,planF:pl.f||0,planFib:pl.fib||0,planZ:pl.z||0,
+      prevK:pl.k,prevP:pl.p,prevC:pl.c||0,prevF:pl.f||0,prevFib:pl.fib||0,prevZ:pl.z||0,
       burn:burnedOfDay(di),def:deficitOfDay(di),tdee:tdeeOfDay(di),sk:skippedOfDay(di),
       mealsDone:dayItems(di).filter(it=>S.week.days[it.pdi].meals[it.mi].done).length,
       mealsTot:dayItems(di).length,extrasN:(D.extras||[]).filter(x=>x.st!=="skip").length,
@@ -579,7 +579,7 @@ async function cycAvvisoFase(){
 window.cycApply=async()=>{
   S.ui.cycSeen=cycPhaseKey();save();
   if(!aiOn())return dlgAlert(tr("Serve la chiave AI per ritarare il piano.\n\nIl target è già cambiato: le grammature del piano puoi adeguarle a mano."));
-  if(await retunePlan()){await genShop(true);render("oggi");}};
+  if(await ritaraRicette()){await genShop(true);render("oggi");}};
 function periodLabel(p){return (p.type==="dieta"?tr("Dieta")+" ":tr("Periodo libero")+" ")+p.n;}
 function starsTxt(n){n=Math.max(0,Math.min(5,Math.round(+n||0)));return "★".repeat(n)+"☆".repeat(5-n);}
 function nextPeriodN(type){return S.periods.filter(p=>p.type===type).length+1;}
@@ -590,7 +590,7 @@ function weightNear(dateISO,after){ // peso registrato più vicino alla data (af
   const before=ws.filter(w=>giornoDa(w.d)<=t);return before.length?before[before.length-1].w:ws[0].w;}
 function periodStats(p){
   const endISO=p.end||iso(new Date());
-  const days=flattenDiet().filter(d=>d.date>=p.start&&d.date<=endISO);
+  const days=flattenDiario().filter(d=>d.date>=p.start&&d.date<=endISO);
   const done=days.filter(d=>d.eat>0);
   const n=done.length||1;
   const avg=k=>Math.round(done.reduce((a,d)=>a+(d[k]||0),0)/n);
@@ -709,12 +709,12 @@ const EXPORT_COLS=[
   ["periodo",d=>periodOfDate(d.date)],
   ["evento",d=>(S.dayEvents||{})[d.date]||""],
   ["giornata_particolare",d=>d.hard?"si":"no"],
-  ["kcal_piano","planK"],["kcal_mangiate","eat"],["kcal_scostamento",d=>(d.planK?d.eat-d.planK:"")],
-  ["prot_piano","planP"],["prot_mangiate","prot"],["prot_scostamento",d=>(d.planP?d.prot-d.planP:"")],
-  ["carbo_piano","planC"],["carbo_mangiati","c"],
-  ["grassi_piano","planF"],["grassi_mangiati","f"],
-  ["fibre_piano","planFib"],["fibre_mangiate","fib"],
-  ["zuccheri_piano","planZ"],["zuccheri_mangiati","z"],
+  ["kcal_previste","prevK"],["kcal_mangiate","eat"],["kcal_scostamento",d=>(d.prevK?d.eat-d.prevK:"")],
+  ["prot_piano","prevP"],["prot_mangiate","prot"],["prot_scostamento",d=>(d.prevP?d.prot-d.prevP:"")],
+  ["carbo_piano","prevC"],["carbo_mangiati","c"],
+  ["grassi_piano","prevF"],["grassi_mangiati","f"],
+  ["fibre_piano","prevFib"],["fibre_mangiate","fib"],
+  ["zuccheri_piano","prevZ"],["zuccheri_mangiati","z"],
   ["fabbisogno_tdee","tdee"],["kcal_sport","burn"],["deficit","def"],
   ["n_allenamenti","workoutN"],["allenamenti",d=>(d.workouts||[]).join(" + ")],
   ["sonno","sleep"],["relax","relax"],["umore","feel"],["acqua_bicchieri","water"],
@@ -726,7 +726,7 @@ const EXPORT_COLS=[
   ["nota","note"]
 ];
 function exportRows(from,to){
-  return flattenDiet().filter(d=>(!from||d.date>=from)&&(!to||d.date<=to))
+  return flattenDiario().filter(d=>(!from||d.date>=from)&&(!to||d.date<=to))
     .map(d=>EXPORT_COLS.map(([,g])=>{const v=(typeof g==="function")?g(d):d[g];
       return (v==null||v==="")?(typeof g==="function"?v||"":0):v;}));}
 function exportCSV(from,to){
@@ -758,8 +758,24 @@ window.aiPatterns=async()=>{ // analisi dei pattern sul tabellone
   }catch(e){box.textContent="";aiFail(e);}};
 /* ═══ REGOLE DEL SISTEMA ═══════════════════════════════════════════
    Tutti i numeri che governano calcoli e proposte AI, in un posto solo e
-   modificabili. In futuro questa sezione sarà riservata al professionista;
-   per ora è aperta perché il sistema è in prova. */
+   modificabili.
+
+   ── LA DECISIONE, PRESA (v15.18.0) ───────────────────────────────
+   Qui c'era scritto «in futuro questa sezione sarà riservata al
+   professionista; per ora è aperta perché il sistema è in prova»:
+   un pensiero rimasto a metà, che un lettore poteva scambiare per
+   una regola della casa. Non lo è, e adesso è deciso: questa
+   sezione RESTA APERTA alla persona, per sempre.
+   Il motivo non è comodità, è architettura. Nuvia è uno strumento
+   di autogestione: è su questo che poggia tutto — le parole che
+   usa, i documenti, il modo in cui presenta le proposte. Numeri che
+   solo un professionista può toccare farebbero di Nuvia un
+   dispositivo che prescrive, cioè esattamente la cosa che non è.
+   Il professionista ha il suo posto e non è questo: ha il pannello
+   dello studio, la dieta dello studio, le prescrizioni e le misure
+   firmate. Lì scrive lui; qui la persona resta padrona dei propri
+   numeri.
+   E «il sistema è in prova» non era vero da un pezzo. */
 /* ═══════════════════════════════════════════════════════════════
    IL PERCORSO GUIDATO È UNO SOLO — 25/08/2026
 
@@ -811,7 +827,7 @@ function renderRegole(){const el=document.getElementById("pg-regole");
   el.innerHTML=h;}
 function rulesCardHTML(){
   const p=S.profile,r=rulesSnapshot();
-  const num=(id,val,step,min,max,suf)=>`<input class="rv" type="number" id="${id}" value="${val}"${step?` step="${step}"`:""}${min!=null?` min="${min}"`:""}${max!=null?` max="${max}"`:""}>${suf?`<span class="ru">${suf}</span>`:""}`;
+  const num=(id,val,step,min,max,suf)=>`<input class="rv" type="number" id="${id}" value="${val}"${step?` step="${step}"`:""}${min!=null?` min="${min}"`:""}${max!=null?` max="${max}"`:""}>${suf?`<span class="ru">${tr(suf)}</span>`:""}`;
   const sel=(id,val,opts)=>`<select class="rv" id="${id}">`+opts.map(o=>`<option value="${o[0]}" ${String(val)===String(o[0])?"selected":""}>${o[1]}</option>`).join("")+`</select>`;
   const row=(k,desc,ctrl)=>`<tr><td>${k}</td><td class="rd">${desc}</td><td class="rc">${ctrl}</td></tr>`;
   const out=(v)=>`<span class="rout">${v}</span>`;
@@ -833,7 +849,18 @@ function rulesCardHTML(){
 
   <div class="card"><details class="gdet"><summary><h2>${tr("Cosa sa di te l'AI")}</h2><span class="gdet-arrow">▾</span></summary><div class="gdet-body">
   ${hint2(tr("Questo è il testo esatto che accompagna ogni richiesta all'AI, composto adesso dai tuoi dati:"),tr("Regole, intolleranze, divieti, stati del corpo, preferenze. Cambi qualcosa nell'app e cambia anche qui. Niente parte verso l'AI oltre a questo e alla domanda del momento."))}
-  <div style="white-space:pre-wrap;font-size:14.5px;line-height:1.55;color:var(--grigio);border:1px solid var(--linea);border-radius:12px;padding:12px;margin-top:8px;max-height:340px;overflow:auto">${esc(rulesForAI())}</div>
+  <!-- ── QUESTO BLOCCO RESTA IN ITALIANO, ED È GIUSTO (v15.21.0) ──
+       È il testo ESATTO che parte verso il modello, mostrato per
+       trasparenza. Nuvia parla a Gemini in italiano e gli chiede di
+       RISPONDERE nella lingua della persona (aiLingua): tradurre
+       questo riquadro vorrebbe dire mostrare una cosa diversa da
+       quella che viene spedita — cioè rompere la trasparenza che il
+       riquadro esiste per dare. Si dichiara invece di nasconderlo, e
+       l'id serve al collaudo dell'inglese per saltarlo con un
+       motivo scritto, non per distrazione. -->
+  ${(typeof promptPerCapireHTML==="function")?promptPerCapireHTML(rulesForAI()):""}
+  <div id="regPrompt" style="white-space:pre-wrap;font-size:14.5px;line-height:1.55;color:var(--grigio);border:1px solid var(--linea);border-radius:12px;padding:12px;margin-top:8px;max-height:340px;overflow:auto">${esc(rulesForAI())}</div>
+  ${LANG!=="it"?`<div class="hint" style="margin-top:8px">${tr("Questo testo è in italiano: è la lingua in cui Nuvia parla al modello. Le risposte arrivano invece nella tua lingua.")}</div>`:""}
   ${(function(){const h=S.aiHealth||{};const ks=Object.keys(h);if(!ks.length)return "";
     const rotti=ks.filter(k=>h[k].ko>0);
     return `<div class="hint" style="margin-top:8px"><b>${tr("Salute del motore:")}</b> `+ks.map(k=>k+" "+h[k].ok+"/"+(h[k].ok+h[k].ko)).join(" · ")+(rotti.length?` — risposte malformate su: ${rotti.join(", ")} ${tr("(di solito è passeggero)")}`:" — tutte le risposte in formato corretto")+`</div>`;})()}
@@ -858,14 +885,14 @@ function rulesCardHTML(){
   <div class="gsec">${tr("Il tuo fabbisogno")}</div>
   <table class="rules">
   ${row("Basale calcolato",tr("Scende quando cali di peso: aggiorna la pesata in Io e il fabbisogno si abbassa da solo."),out(bmr()+" kcal"))}
-  ${row(tr("Attività di base"),"Moltiplicatore su lavoro e vita quotidiana, allenamenti esclusi.",
+  ${row(tr("Attività di base"),tr("Moltiplicatore su lavoro e vita quotidiana, allenamenti esclusi."),
      `<select class="rv" id="rAct" onchange="actSteps(this.value,'rSteps')">`+[["1.2","1.2 · "+tr("molto sedentario")],["1.25","1.25 · "+tr("sedentario−")],["1.3","1.3 · "+tr("sedentario, PC")],["1.35","1.35 · "+tr("poco attivo")],["1.4","1.4 · "+tr("moderatamente attivo")],["1.45","1.45 · "+tr("attivo")],["1.55","1.55 · "+tr("molto attivo")]].map(o=>`<option value="${o[0]}" ${String(p.act)===String(o[0])?"selected":""}>${o[1]}</option>`).join("")+`</select>`)}
   ${row(tr("Passi base"),tr("Passi che fai comunque ogni giorno. Il riferimento è 3.000: sopra o sotto, il fabbisogno si corregge."),num("rSteps",r.passi_base,500,0,null,"passi"))}
   ${row(tr("Fabbisogno totale"),tr("Basale × attività, corretto sui passi base. Gli allenamenti si sommano a parte."),out(r.tdee_calcolato+" kcal"))}
   ${row(tr("Fabbisogno usato per i target"),tr("Fabbisogno meno la prudenza."),out(tdeeTarget()+" kcal"))}
   ${row(tr("Cambio di genere"),tr("Il genere entra in basale, peso ideale e pavimento calorico. Cambiandolo, tutto si ricalcola <b>subito</b>; restano fissi i giorni già iniziati e le grammature del piano (ritarale con Ricalibra)."),out((S.profile.gender==="f"?"donna":"uomo")+" · basale "+bmr()+" kcal · pavimento "+kcalFloorMin()+" kcal"))}
   ${row(tr("Peso di riferimento"),tr("Non il peso attuale: il grasso non richiede proteine, quindi si usa massa magra, peso obiettivo o peso corretto. <b>Nel tuo caso viene da: ")+refWeightWhy()+"</b>."+
-    (goalWeightSet()?"":" <button class=\"btn ghost small\" style=\"margin:8px 0 0\" onclick=\"askGoalWeight()\">"+tr("Imposta il peso obiettivo")+"</button>")+tr(" Se preferisci un altro valore, cambia i dati da cui deriva (percentuale di grasso in Io, o peso obiettivo negli Obiettivi)."),out(refWeight()+" kg"))}
+    (goalWeightSet()?"":" <button class=\"btn ghost small\" style=\"margin:8px 0 0\" onclick=\"askGoalWeight()\">"+tr("Imposta il peso obiettivo")+"</button>")+tr(" Se preferisci un altro valore, cambia i dati da cui deriva (percentuale di grasso in Io, o peso obiettivo negli Obiettivi)."),out((typeof pesoTxt==="function")?pesoTxt(refWeight(),1):refWeight()+" kg"))}
   </table>
   <div class="gsec">${tr("Il tuo corpo, giorno per giorno")}</div>
   <table class="rules">
@@ -887,13 +914,13 @@ function rulesCardHTML(){
   <table class="rules">
   ${row("Ritmo e deficit",tr("Il ritmo lo scegli nel percorso guidato; il deficit che ne deriva ha un tetto al 30% del fabbisogno."),out(((typeof pesoNum==="function")?pesoNum(ratePerWeek(),1):ratePerWeek())+trh("{v0}/sett · {v1} kcal/giorno",{v0:" "+((typeof unitaPeso==="function")?unitaPeso():"kg"),v1:deficitTarget()})))}
   ${row(tr("→ Target calorico del piano"),tr("Fabbisogno per i target meno il deficit, mai sotto il minimo."),out(dayTargetK()+" kcal")+(dayTargetK()<bmr()?`<br><small style="color:var(--zafft);font-size:14.5px">${trh("Sotto il basale ({v1}): sostenibile a periodi, con proteine alte",{v1:bmr()})}`:""))}
-  ${row(tr("Fasi della dieta"),tr("Deficit e pause di mantenimento si alternano.")+(cycPhase()?trh(" <b>Ora: {v1}, giorno {v2} di {v3}.</b>",{v1:cycPhase(),v2:cycPhaseDay(),v3:cycPhaseLen()}):""),out(Math.round(cycDefDays()/7)+" + "+Math.round(cycMaintDays()/7)+" settimane"))}
-  ${row("Allenamenti pianificati",tr("Stimano i tempi dell'obiettivo: non alzano le calorie da mangiare."),out(goalWkTotal()+" a sett. · ~"+wkForecastBurn()+" kcal/g"))}
+  ${row(tr("Fasi della dieta"),tr("Deficit e pause di mantenimento si alternano.")+(cycPhase()?trh(" <b>Ora: {v1}, giorno {v2} di {v3}.</b>",{v1:cycPhase(),v2:cycPhaseDay(),v3:cycPhaseLen()}):""),out(trh("{v1} + {v2} settimane",{v1:Math.round(cycDefDays()/7),v2:Math.round(cycMaintDays()/7)})))}
+  ${row(tr("Allenamenti pianificati"),tr("Stimano i tempi dell'obiettivo: non alzano le calorie da mangiare."),out(trh("{v1} a sett. · ~{v2} kcal/g",{v1:goalWkTotal(),v2:wkForecastBurn()})))}
   </table>
   ${rateCapped()?`<table class="rules"><tr><td colspan="3" class="rfull" style="color:var(--zafft);font-weight:600;background:var(--zaffbg)"> ${trh("{v1}. Per andare più veloce serve il parere di un nutrizionista.",{v1:rateNote()})}</td></tr></table>`:""}
   <div class="mtools" style="margin:12px 0 4px"><button class="btn small" onclick="restartOnboarding()">${tr("Modifica nel percorso guidato ›")}</button></div>
   ${tr("Peso obiettivo, ritmo, fasi e allenamenti si impostano lì: una fonte sola, niente doppioni.")}
-  <details class="gdet" style="margin-top:12px"><summary><h2 style="font-size:14.5px">Regolazioni fini</h2><span class="gdet-arrow">▾</span></summary><div class="gdet-body">
+  <details class="gdet" style="margin-top:12px"><summary><h2 style="font-size:14.5px">${tr("Regolazioni fini")}</h2><span class="gdet-arrow">▾</span></summary><div class="gdet-body">
   <table class="rules">
   ${row(tr("Come fissare il deficit"),tr("<b>Percentuale</b>: mangi una quota del fabbisogno (20% = l'80% di quello che consumi). <b>Ritmo</b>: parti dai chili a settimana desiderati."),
      sel("rDefMode",defMode(),[["pct",tr("Percentuale del fabbisogno")],["ritmo",tr("Chili a settimana")]]))}
@@ -971,7 +998,7 @@ window.saveCustomRules=()=>{
 
    Qui si mostrava `rulesForAI()`, che è il testo delle richieste
    BREVI — ribilanci, stime, strumenti. Il piano non usa quella
-   funzione: usa `rulesForPlan()` più il contesto della persona,
+   funzione: usa `regoleRicette()` più il contesto della persona,
    costruito a parte. Chi «verificava» leggeva quindi un testo diverso
    da quello che parte per la richiesta più importante che l'app fa —
    e più ricco, il che è il modo peggiore di sbagliare: prometti una
@@ -985,7 +1012,7 @@ window.promptShow=()=>{
   if(el.style.display==="block"){el.style.display="none";return;}
   let t="",p="";
   try{t=rulesForAI();}catch(e){t="(impossibile generare: "+e.message+")";}
-  try{p=((typeof dietStr==="function")?dietStr()+" ":"")+rulesForPlan()
+  try{p=((typeof vincoliStr==="function")?vincoliStr()+" ":"")+regoleRicette()
         +((typeof rigaPasto==="function")?rigaPasto():"");}
   catch(e){p="(impossibile generare: "+e.message+")";}
   const blocco=(titolo,testo,nota)=>
@@ -1006,7 +1033,7 @@ const DEV_MAIL="info@nuviahealth.app"   /* la casella del progetto, non quella p
    con cui è nata Nuvia (mediterranea, cinque pasti, mensa il martedì
    e il giovedì): utile per partire subito o per tornare all'origine. */
 const PLAN_CODES={
-  "00000000":{name:"Dieta standard Nuvia",desc:"Il piano originale: mediterraneo, cinque pasti al giorno, pranzo in mensa il martedì e il giovedì.",get:()=>JSON.parse(JSON.stringify(BASE_PLAN))}
+  "00000000":{name:"Dieta standard Nuvia",desc:"Il piano originale: mediterraneo, cinque pasti al giorno, pranzo in mensa il martedì e il giovedì.",get:()=>JSON.parse(JSON.stringify(BASE_RICETTE))}
 };
 window.loadPlanCode=async (fromOnboard)=>{
   const el=document.getElementById(fromOnboard?"obCode":"planCode");
@@ -1019,11 +1046,11 @@ window.loadPlanCode=async (fromOnboard)=>{
   const avg=Math.round(kd.reduce((a,b)=>a+b,0)/(kd.length||1));
   if(!await dlgConfirm(tr("Carico «{n}»?",{n:P.name})+"\n\n"+P.desc+"\n\n"+tr("Media del piano: ~{a} kcal al giorno (da {mn} a {mx} kcal).",{a:avg,mn:Math.min.apply(null,kd),mx:Math.max.apply(null,kd)})+"\n\n"+tr("Sostituisce il piano attuale. Le settimane già archiviate restano intatte.")))return;
   snapSave("prima di: codice piano");
-  S.customPlan=P.get();PLAN=S.customPlan;S.permMeals={};S.week=freshWeek();S.planW=S.profile.w;
+  S.ricette=P.get();RICETTE=S.ricette;S.permMeals={};S.week=freshWeek();S.ricetteW=S.profile.w;
   S.customShop=null;S.shop={};      /* la spesa riparte dagli ingredienti del nuovo piano */
   if(aiOn())setTimeout(()=>{try{genShop(true);}catch(e){}},400);
   if(fromOnboard)S.onboard.done=true;
-  save();renderHeader();show("piano");toast(tr("Piano «{n}» caricato ✓",{n:P.name}));};
+  save();renderHeader();show("ricette");toast(tr("Piano «{n}» caricato ✓",{n:P.name}));};
 /* Pulizia selettiva: azzera solo le voci scelte, opzionalmente limitandosi a
    un intervallo di date. Serve dopo un imprevisto, per ripartire puliti senza
    buttare via profilo, piano e impostazioni. */
@@ -1121,7 +1148,7 @@ window.sendBug=()=>{
       "\nDispositivo: "+navigator.userAgent+
       "\nSchermo: "+window.innerWidth+"x"+window.innerHeight+
       "\nAI configurata: "+(aiOn()?"sì":"no")+
-      "\nPiano: "+(planIsEmpty()?"vuoto":(S.customPlan?"personalizzato":"originale"))+"\n";}
+      "\nPiano: "+(ricetteVuote()?"vuoto":(S.ricette?"personalizzato":"originale"))+"\n";}
   const url="mailto:"+DEV_MAIL+"?subject="+encodeURIComponent("[Nuvia "+APP_VER+"] "+tipo.split("—")[0].trim())+
     "&body="+encodeURIComponent(body);
   location.href=url;
@@ -1278,7 +1305,7 @@ function intolForAI(txt,cond){
     if(v!=="__ACIDI__")return v;
     /* Dove sta il problema lo dice la condizione dichiarata. Se non è
        chiaro, si dicono entrambe le cose invece di indovinare. */
-    const w=(S.diet&&S.diet.acidWhere)||"";
+    const w=(S.pref&&S.pref.acidWhere)||"";
     if(w==="stomaco")return ACIDI_STOMACO;
     if(w==="intestino")return ACIDI_INTESTINO;
     if(w==="entrambi")return ACIDI_STOMACO+". E in più, per l'intestino: "+ACIDI_INTESTINO;
@@ -1337,7 +1364,14 @@ const PAT_LIST=[
 /* I vincoli qui sono PERMANENTI. Un digiuno (Quaresima, Ramadan) dura
    qualche settimana e si spegne: sta fra gli stati temporanei, in Oggi →
    Come stai, insieme a ciclo, infortunio e malattia. */
-const REL_LIST=["niente carne di maiale","niente carne di alcun tipo","halal","kosher","niente alcol"];
+/* ── COMPLETATA IL 29/08 (founder) ─────────────────────────────────
+   «Vincoli religiosi ed etici sono tutti? In India non possono
+   mangiare mucche, o qualcosa su pesci/crostacei/molluschi non mi
+   pare ci sia.» Mancavano: il manzo (induismo — ed è il vincolo di
+   un miliardo di persone) e il pesce coi frutti di mare (etica, o
+   semplicemente non li si mangia). Le etichette restano in italiano
+   nella lista e passano da tr() a schermo, come le altre. */
+const REL_LIST=["niente carne di maiale","niente carne di manzo","niente carne di alcun tipo","niente pesce e frutti di mare","halal","kosher","niente alcol"];
 /* I dieci integratori che si incontrano davvero, e che cambiano il
    piano per davvero: le proteine in polvere contano NEL target proteico
    invece di sommarsi sopra, il ferro non va col caffè, la vitamina D
@@ -1424,10 +1458,10 @@ function readProtChecks(pre){const out=[];
   if(t&&t.value.trim())t.value.split(",").map(x=>x.trim()).filter(Boolean).forEach(x=>out.push(x));
   return out.join(", ");}
 /* I protocolli diventano istruzioni concrete in ogni richiesta all'AI */
-function protForAI(){const cur=String((S.diet||{}).protocolli||"").toLowerCase();
+function protForAI(){const cur=String((S.pref||{}).protocolli||"").toLowerCase();
   if(!cur.trim())return "";
   const hit=PROT_LIST.filter(p=>cur.indexOf(p.k)>-1);
-  const extra=parseSlots(S.diet.protocolli).filter(x=>!PROT_LIST.some(p=>x.toLowerCase().indexOf(p.k)>-1));
+  const extra=parseSlots(S.pref.protocolli).filter(x=>!PROT_LIST.some(p=>x.toLowerCase().indexOf(p.k)>-1));
   let out=" PROTOCOLLI ALIMENTARI da rispettare: "+hit.map(p=>p.l.replace(/^\S+\s/,"")+" → "+p.ai).join("; ");
   if(extra.length)out+=(hit.length?"; ":"")+"inoltre: "+extra.join(", ");
   return out+".";}
@@ -1445,7 +1479,7 @@ function readPatChecks(pre){setTimeout(()=>{try{patPromote();}catch(e){}},80);co
   return out.join(", ");}
 /* Le condizioni diventano istruzioni concrete per ogni richiesta all'AI */
 function patExtras(){
-  return parseSlots((S.diet||{}).patologie||"").filter(x=>!PAT_LIST.some(p=>x.toLowerCase().indexOf(p.k)>-1));}
+  return parseSlots((S.pref||{}).patologie||"").filter(x=>!PAT_LIST.some(p=>x.toLowerCase().indexOf(p.k)>-1));}
 /* ── 2.2 · Le condizioni scritte a mano non sono più di serie B ──────
    Le spunte portano criteri operativi pronti; il testo libero prima
    passava nudo («adatta il piano di conseguenza», e l'AI improvvisava a
@@ -1456,22 +1490,22 @@ window.patPromote=async()=>{
   try{
     const extra=patExtras();
     const key=extra.join("|").toLowerCase();
-    S.diet.patCache=S.diet.patCache||{};
-    if(!extra.length){S.diet.patCache={};return;}
-    if(S.diet.patCache.src===key&&S.diet.patCache.rules)return;
+    S.pref.patCache=S.pref.patCache||{};
+    if(!extra.length){S.pref.patCache={};return;}
+    if(S.pref.patCache.src===key&&S.pref.patCache.rules)return;
     if(!aiOn())return;
     const j=await aiQuiet(()=>aiAskJSON('Trasforma queste condizioni di salute dichiarate da una persona in CRITERI DIETETICI OPERATIVI sintetici (massimo 25 parole per condizione), nello stile di questo esempio: "trigliceridi alti → limitare zuccheri semplici e alcol, preferire pesce azzurro e omega-3". Condizioni: '+extra.join(", ")+'. Solo criteri alimentari, nessun consiglio medico o farmacologico. Rispondi SOLO JSON: {"rules":"criteri separati da punto e virgola"}'));
-    if(j&&j.rules)S.diet.patCache={src:key,rules:String(j.rules).slice(0,600)};
+    if(j&&j.rules)S.pref.patCache={src:key,rules:String(j.rules).slice(0,600)};
     save();
   }catch(e){}};
-function patForAI(){const cur=String((S.diet||{}).patologie||"").toLowerCase();
+function patForAI(){const cur=String((S.pref||{}).patologie||"").toLowerCase();
   if(!cur.trim())return "";
   const hit=PAT_LIST.filter(p=>cur.indexOf(p.k)>-1);
   const extra=patExtras();
   let s=" CONDIZIONI DI SALUTE dichiarate, da rispettare nella scelta degli alimenti: ";
   s+=hit.map(p=>p.l+" → "+p.ai).join("; ");
   if(extra.length){
-    const pc=S.diet.patCache||{};
+    const pc=S.pref.patCache||{};
     const key=extra.join("|").toLowerCase();
     s+=(hit.length?"; ":"")+"inoltre: "+((pc.src===key&&pc.rules)?pc.rules:extra.join(", ")+" (adatta il piano di conseguenza)");}
   s+=". Non presentare mai il piano come una terapia: le indicazioni cliniche restano del medico e del nutrizionista.";
@@ -1532,7 +1566,7 @@ window.suggIntolNo=async(el,pre)=>{
   const stems=["lattosio","glutine","nichel","istamina"];
   for(const k of stems){
     if(val.indexOf(k)<0)continue;
-    if(String((S.diet||{}).intol||"").toLowerCase().indexOf(k)>-1)continue;
+    if(String((S.pref||{}).intol||"").toLowerCase().indexOf(k)>-1)continue;
     if(window._SUGGI[k])continue;
     window._SUGGI[k]=1;
     const i=INTOL_LIST.findIndex(x=>x.indexOf(k)===0);
@@ -1543,7 +1577,7 @@ window.suggIntolNo=async(el,pre)=>{
    solo le due precisazioni che servono a chi è vegetariano, perché le versioni
    cambiano (di norma uova sì e pesce no). Compaiono da sole scegliendo
    «vegetariana» nel menù e spariscono con qualunque altra dieta. */
-function vegChecksHTML(pre,tipo){const D=S.diet;
+function vegChecksHTML(pre,tipo){const D=S.pref;
   const veg=(tipo==="vegetariana");
   return `<div id="${pre}VegBox" style="${veg?"":"display:none"}">
     <div class="ckgrid" style="margin-top:8px">
@@ -1556,14 +1590,14 @@ function vegChecksHTML(pre,tipo){const D=S.diet;
    Passando a «vegetariana» da un'altra dieta si parte dalla versione più
    comune — uova sì, pesce no — invece di ereditare i valori dell'onnivoro. */
 window.vegUI=(pre,val)=>{const b=document.getElementById(pre+"VegBox");if(!b)return;
-  /* "era già vegetariano?" si legge dal riquadro: S.diet.tipo a questo punto
+  /* "era già vegetariano?" si legge dal riquadro: S.pref.tipo a questo punto
      può essere già stato aggiornato dal salvataggio automatico */
   const era=(b.style.display!=="none");
   if(val==="vegetariana"&&!era){
     const u=document.getElementById(pre+"VegU"),p=document.getElementById(pre+"VegP");
     if(u)u.checked=true;if(p)p.checked=false;}
   b.style.display=(val==="vegetariana")?"":"none";};
-function applyVeg(pre,selVal){const g=id=>document.getElementById(id),D=S.diet;
+function applyVeg(pre,selVal){const g=id=>document.getElementById(id),D=S.pref;
   if(selVal==="vegana"){D.vegUova=false;D.vegPesce=false;return selVal;}
   if(selVal==="vegetariana"){
     D.vegUova=!(g(pre+"VegU")&&!g(pre+"VegU").checked);
@@ -1578,7 +1612,7 @@ function applyVeg(pre,selVal){const g=id=>document.getElementById(id),D=S.diet;
    INTOLLERANZE: prima erano mescolati qui e si finiva per doverne scegliere uno
    solo fra tre cose che invece possono convivere. */
 const DIET_TYPES=["mediterranea","onnivora","vegetariana","vegana","pescetariana","flexitariana"];
-function dietCardHTML(){const D=S.diet;
+function dietCardHTML(){const D=S.pref;
   const sel=(id,val,opts)=>`<select id="${id}">`+opts.map(o=>`<option ${val===o?"selected":""}>${o}</option>`).join("")+`</select>`;
   return `<div class="card"><h2>Caratteristiche alimentari</h2>
   ${tr("Definiscono come l'AI costruisce e corregge i pasti: entrano in ogni proposta insieme alle regole numeriche qui sopra.")}
@@ -1650,7 +1684,7 @@ function dietCardHTML(){const D=S.diet;
 window.saveDiet=()=>{const g=id=>document.getElementById(id),v=id=>(g(id)?g(id).value:"");
   const slots=readSlotsChecks("d"),nS=parseSlots(slots).length;
   if(nS<2){dlgAlert(tr("Seleziona almeno due pasti: con meno di due il piano non sta in piedi."));return;}
-  Object.assign(S.diet,{varieta:v("dVar")||"media",tipo:applyVeg("d",v("dTipo")),nPasti:nS,pastiLiberi:+v("dLiberi2")||0,
+  Object.assign(S.pref,{varieta:v("dVar")||"media",tipo:applyVeg("d",v("dTipo")),nPasti:nS,pastiLiberi:+v("dLiberi2")||0,
     slots:slots,mensaGiorni:readMensaChecks("d"),fuoriN:fuoriCount(readMensaChecks("d")),cucina:v("dCucina"),
     tradizione:v("dTradizione")||"italiana",
     pronto:v("dPronto"),budget:v("dBudget"),alcol:v("dAlcol"),
@@ -1686,20 +1720,37 @@ async function goalHealthCheck(){
     "\n\n"+tr("Con {h}, un peso di {g} corrisponde a un BMI di {b} ({c}).",{h:((typeof altTxt==="function")?altTxt(h):h+" cm"),g:((typeof pesoTxt==="function")?pesoTxt(gw,1):gw+" kg"),b:numLoc(b),c:cl.label})+
     "\n\n"+tr("Per la tua altezza la fascia considerata sana (BMI 18,5–24,9) va da {min} a {max}.",{min:numLoc(((typeof pesoNum==="function")?pesoNum(r.min,1):r.min)),max:((typeof pesoTxt==="function")?pesoTxt(r.max,1):r.max+" kg")})+
     "\n\n"+tr("Quella fascia è un riferimento statistico, non una regola: costituzione, massa muscolare e struttura ossea cambiano molto da persona a persona, e stare un po' sopra o un po' sotto può essere del tutto normale per te.")+
-    (tooLow?("\n\nQui però il margine è ampio: scendere sotto "+String(r.min).replace(".",",")+" kg espone a perdita di massa muscolare, cali ormonali, "+
-      "stanchezza e carenze. Un obiettivo intorno a "+Math.round(r.min+(r.max-r.min)*0.35)+"–"+Math.round(r.min+(r.max-r.min)*0.6)+
-      " kg sarebbe più sostenibile, e vale la pena parlarne con un medico o un nutrizionista.")
+    /* IL SECONDO PARAGRAFO ERA RIMASTO IN CHILI (28/08, seconda
+       passata): la prima frase di questo stesso avviso — poco più
+       sopra — era già vestita, e chi legge fino in fondo tornava a
+       leggere «kg». Un lavoro a metà è quello che aveva già segnalato
+       il founder: qui l'ho ritrovato in un punto che non avevo
+       guardato la prima volta. */
+    (tooLow?("\n\nQui però il margine è ampio: scendere sotto "+((typeof pesoTxt==="function")?pesoTxt(r.min,1):r.min+" kg")+" espone a perdita di massa muscolare, cali ormonali, "+
+      "stanchezza e carenze. Un obiettivo intorno a "+((typeof pesoNum==="function")?pesoNum(r.min+(r.max-r.min)*0.35,0):Math.round(r.min+(r.max-r.min)*0.35))+"–"+((typeof pesoTxt==="function")?pesoTxt(r.min+(r.max-r.min)*0.6,0):Math.round(r.min+(r.max-r.min)*0.6)+" kg")+
+      " sarebbe più sostenibile, e vale la pena parlarne con un medico o un nutrizionista.")
       :("\n\n"+(cl.msg||"L'obiettivo resta sopra la fascia normopeso: come tappa intermedia va benissimo.")))+
     "\n\nPosso generare il piano su questo obiettivo, oppure puoi riscriverlo subito qui e rianalizzarlo.";
   if(await dlgConfirm(msg,{ok:tr("Genera così"),ko:tr("Riscrivi obiettivo")}))return true;
-  /* riscrittura in linea: si corregge il peso e si rianalizza, senza uscire */
-  const nw=parseFloat(String(await dlgPrompt(
+  /* riscrittura in linea: si corregge il peso e si rianalizza, senza uscire.
+
+     SECONDO DIFETTO GEMELLO, TROVATO NELLA STESSA RICERCA (28/08): il
+     campo chiedeva il peso «in lb» ma il valore proposto di default
+     era un numero in CHILI (`(r.min+r.max)/2` non vestito), e la
+     risposta veniva letta con `parseFloat` nudo — non `pesoIn()` — e
+     validata contro 25-350, che sono CHILI. Chi accettava il default
+     o scriveva un numero plausibile in libbre si vedeva salvare
+     quel numero come chili: la stessa famiglia di errore già trovata
+     in `goalWeightApplica`, ma su un'altra porta. Il portone dei dati
+     ha bisogno che OGNI porta converta, non una sola. */
+  const grezzo=String(await dlgPrompt(
     tr("Nuovo peso desiderato in {u} (fascia sana per {h}: da {min}",{u:((typeof unitaPeso==="function")?unitaPeso():"kg"),h:((typeof altTxt==="function")?altTxt(h):h+" cm"),min:numLoc(((typeof pesoNum==="function")?pesoNum(r.min,1):r.min))})+
-    " a "+String(r.max).replace(".",",")+" kg).\n\nLascia vuoto per annullare la generazione.",
-    String(Math.round((r.min+r.max)/2))||"")||"").replace(",","."));
+    " a "+((typeof pesoTxt==="function")?pesoTxt(r.max,1):r.max+" kg")+").\n\nLascia vuoto per annullare la generazione.",
+    String((typeof pesoNum==="function")?pesoNum((r.min+r.max)/2,1):Math.round((r.min+r.max)/2))||"")||"");
+  const nw=(typeof pesoIn==="function")?pesoIn(grezzo):parseFloat(grezzo.replace(",","."));
   if(!(nw>0))return false;
   if(nw<25||nw>350)  {await dlgAlert(tr("Quel valore non sembra un peso plausibile: riprova."));return goalHealthCheck();}
-  setGoalWeight(nw);save();
+  setGoalWeight(Math.round(nw*10)/10);save();
   const nb=bmiFor(nw);
   await dlgAlert(tr("Obiettivo aggiornato a {n} (BMI {b} · {c}) ✓",{n:((typeof pesoTxt==="function")?pesoTxt(nw,1):nw+" kg"),b:numLoc(nb),c:bmiClass(nb).label})+
     "\n\nLo trovi anche in Io → Obiettivi. Adesso rianalizzo.");
@@ -2300,7 +2351,7 @@ window.riparaDesc=riparaDesc;window.riparaSettimana=riparaSettimana;
 window.alternativeRiga=alternativeRiga;
 
 /* ── LA VARIETÀ, IN UN POSTO SOLO ─────────────────────────────────
-   Era scritta dentro genPlanAI e ricopiata (male) dentro wizGenDays:
+   Era scritta dentro genRicetteAI e ricopiata (male) dentro wizGenDays:
    la strada del PRIMO piano — quella dell'onboarding, cioè quella che
    quasi tutti percorrono — aveva «nessun piatto si ripete» a mano,
    cioè varietà alta sempre, qualunque cosa la persona avesse scelto.
@@ -2423,7 +2474,7 @@ const VIETATI_RUMORE=["tenere","conto","nessuna","nessuno","niente","alcuni","al
    riferimento è lo stesso tipo di divieto. */
 function allergeniElenco(testoAllerg,tipo){
   const out=new Set();
-  vietatiDaDieta(tipo).forEach(v=>out.add(cibNorm(v)));
+  vietatiDaImpostazione(tipo).forEach(v=>out.add(cibNorm(v)));
   const t=cibNorm(testoAllerg);
   if(!t.trim())return [...out].sort((a,b)=>b.length-a.length);
   Object.keys(VIETATI_DA_ALLERG).forEach(k=>{
@@ -2450,7 +2501,7 @@ window.allergeniElenco=allergeniElenco;
    ragione per cui usa l'app, e un piano che la ignora è un piano di
    un'altra persona.
 
-   Il tipo si legge da `S.diet` quando chi chiama non lo passa: così la
+   Il tipo si legge da `S.pref` quando chi chiama non lo passa: così la
    rete c'è ovunque, senza dover ricordarsi di aggiungere un argomento
    in ognuno dei punti che chiamano questa funzione. */
 const VIETATI_DA_DIETA={
@@ -2470,15 +2521,151 @@ const VIETATI_DA_DIETA={
 /* La vegetariana ammette o esclude pesce e uova secondo la scelta fatta
    nella schermata: si aggiungono qui, perché senza sarebbero un divieto
    che la persona non ha chiesto. */
-function vietatiDaDieta(tipo){
-  const t=String(tipo==null?((S.diet&&S.diet.tipo)||""):tipo).toLowerCase();
+function vietatiDaImpostazione(tipo){
+  const t=String(tipo==null?((S.pref&&S.pref.tipo)||""):tipo).toLowerCase();
   const base=(VIETATI_DA_DIETA[t]||[]).slice();
   if(t==="vegetariana"){
-    if(!(S.diet&&S.diet.vegPesce))base.push("pesce","merluzzo","nasello","orata","branzino","sgombro","salmone","tonno","alici","acciughe","sardine",
+    if(!(S.pref&&S.pref.vegPesce))base.push("pesce","merluzzo","nasello","orata","branzino","sgombro","salmone","tonno","alici","acciughe","sardine",
       "gamberi","gamberetti","calamari","seppie","cozze","vongole","polpo");
-    if(S.diet&&S.diet.vegUova===false)base.push("uova","uovo","frittata","omelette","maionese");}
+    if(S.pref&&S.pref.vegUova===false)base.push("uova","uovo","frittata","omelette","maionese");}
   return base;}
-window.vietatiDaDieta=vietatiDaDieta;
+window.vietatiDaImpostazione=vietatiDaImpostazione;
+
+/* ── «NIENTE CARNE DI MAIALE» NON ERA UN DIVIETO PER IL CONTROLLO ──
+   (founder, 29/08 — lo stesso difetto di «vegana», trovato il 27/08,
+   su un'altra porta.) Le spunte religiose arrivavano al modello come
+   testo («vincoli religiosi/etici: niente carne di maiale») e QUELLO
+   di solito basta. Ma la rete in codice — quella che rilegge ogni
+   descrizione e ferma l'alimento vietato PRIMA che arrivi a schermo —
+   riceveva la frase intera: e «niente carne di maiale» dentro
+   «Prosciutto crudo 80g» non si trova mai. Il vincolo più assoluto
+   dell'app era l'unico difeso solo dal prompt.
+   Ogni voce si espande negli alimenti veri, come per le diete. Halal
+   e kosher qui coprono la parte che una lista di alimenti PUÒ coprire
+   (maiale e derivati; per kosher anche frutti di mare, coniglio e
+   cavallo): la certificazione vera — macellazione, latte e carne
+   separati — la conosce il modello dal prompt, non una lista. */
+const CARNI_MAIALE=["maiale","carne di maiale","prosciutto","prosciutto cotto","prosciutto crudo","speck","salame","salsiccia","wurstel","mortadella","pancetta","guanciale","lardo","strutto","porchetta","coppa","capocollo","lonza","cotechino","zampone"];
+const CARNI_MANZO=["manzo","carne di manzo","vitello","bresaola","roast beef","hamburger di manzo","bovino","scottona","fiorentina","tagliata di manzo","carpaccio di manzo","brasato","bollito di manzo"];
+const PESCI_E_MARE=["pesce","merluzzo","nasello","orata","branzino","sgombro","salmone","tonno","alici","acciughe","sardine","platessa","trota","spigola","pesce spada","baccalà",
+  "gamberi","gamberetti","scampi","aragosta","astice","granchio","calamari","seppie","polpo","cozze","vongole","ostriche","frutti di mare","molluschi","crostacei","surimi"];
+const VIETATI_DA_REL={
+  "niente carne di maiale":CARNI_MAIALE,
+  "niente carne di manzo":CARNI_MANZO,
+  "niente carne di alcun tipo":(VIETATI_DA_DIETA.vegetariana||[]),
+  "niente pesce e frutti di mare":PESCI_E_MARE,
+  "halal":CARNI_MAIALE,
+  "kosher":CARNI_MAIALE.concat(["gamberi","gamberetti","scampi","aragosta","astice","granchio","calamari","seppie","polpo","cozze","vongole","ostriche","frutti di mare","molluschi","crostacei","anguilla","coniglio","cavallo"])};
+/* ── LA META' CHE UNA LISTA NON PUO' COPRIRE (v15.18.0) ───────────
+   Il 29/08 le spunte religiose sono entrate nella rete in codice:
+   «halal» non arrivava più al controllo come frase, ma come venti
+   alimenti da cercare dentro ogni piatto. Restava scoperta la parte
+   che NON è un alimento — ed è la parte più importante delle due:
+   · halal non è «niente maiale»: è anche niente alcol, nemmeno
+     quello che evapora in cottura (vino nel sugo, birra nella
+     pastella, liquore nel dolce), e carne macellata secondo il rito;
+   · kosher non è un elenco di divieti: è una regola di COMPOSIZIONE
+     — carne e latte non stanno nello stesso pasto — e nessuna lista
+     di ingredienti proibiti potrà mai esprimerla, perché il
+     problema non è un alimento, è l'accostamento di due leciti.
+   Questa è quindi la seconda metà della difesa doppia, e va dove
+   sta la prima: le due parti dello stesso vincolo si leggono
+   insieme, o fra un anno divergono.
+   Una regola di onestà chiude il contratto: l'app NON certifica.
+   Dire «piatto halal» sarebbe una garanzia che non possiamo dare;
+   si dice quale ingrediente va scelto certificato, e lo sceglie la
+   persona. */
+const REL_CONTRATTO={
+  "halal":"HALAL — oltre agli alimenti vietati vale questo, e conta di più: "+
+    "(1) NIENTE ALCOL in nessuna forma, nemmeno in cottura e nemmeno se «evapora»: "+
+    "vino e birra nei sughi e nelle marinate, liquori nei dolci, aceto di vino, "+
+    "estratti aromatici alcolici; usa brodo, succo di limone, aceto di mele o di riso. "+
+    "(2) La carne va indicata come DA MACELLERIA HALAL: scrivilo nell'ingrediente "+
+    "(«pollo halal 150 g»), non come nota a piè di pagina. "+
+    "(3) Attenzione ai derivati nascosti: gelatina, strutto, caglio animale, mono e "+
+    "digliceridi di origine ignota — preferisci alternative vegetali o dichiarate. "+
+    "(4) Niente sangue né preparazioni a base di sangue.",
+  "kosher":"KOSHER — oltre agli alimenti vietati vale questo, e conta di più: "+
+    "(1) CARNE E LATTE NON STANNO INSIEME: mai nello stesso piatto e mai nello "+
+    "stesso pasto — niente formaggio sulla carne, niente panna o burro in un "+
+    "secondo di carne, niente dolce al latte dopo un pasto di carne. Ogni pasto è "+
+    "di carne OPPURE di latte OPPURE neutro (pesce, uova, verdura, cereali). "+
+    "(2) Il pesce va bene solo se ha pinne e squame (no crostacei, molluschi, "+
+    "anguilla, pesce spada in dubbio): resta su merluzzo, orata, branzino, salmone, "+
+    "tonno, trota, platessa. "+
+    "(3) La carne va indicata come KOSHER nell'ingrediente stesso. "+
+    "(4) Attenzione ai derivati: gelatina, caglio animale nei formaggi, vino e aceto "+
+    "di vino — preferisci alternative dichiarate o vegetali."};
+/* Che cosa dire al modello, in base a ciò che la persona ha spuntato.
+   Torna stringa vuota se non c'è niente da dire: una riga vuota nel
+   prompt è rumore che toglie attenzione alle righe che contano. */
+function relForAI(testo){
+  const t=cibNorm(testo);
+  if(!t)return "";
+  const righe=Object.keys(REL_CONTRATTO).filter(k=>t.indexOf(cibNorm(k))>-1)
+    .map(k=>REL_CONTRATTO[k]);
+  if(!righe.length)return "";
+  return " "+righe.join(" ")+
+    " NON scrivere mai che un piatto «è certificato»: la certificazione la dà il "+
+    "produttore, non tu. Indica quale ingrediente va comprato certificato e basta.";}
+window.relForAI=relForAI;
+
+function vietatiDaReligiose(testo){
+  const t=cibNorm(testo);
+  if(!t)return [];
+  const out=new Set();
+  Object.keys(VIETATI_DA_REL).forEach(k=>{
+    if(t.indexOf(cibNorm(k))>-1)VIETATI_DA_REL[k].forEach(v=>out.add(cibNorm(v)));});
+  return [...out];}
+window.vietatiDaReligiose=vietatiDaReligiose;
+
+/* ── I FARMACI CON UN DIVIETO SECCO ENTRANO NELLA RETE (29/08) ─────
+   L'audit «tutti i vincoli come guardrail, non come frasi» ha trovato
+   anche questo: le terapie viaggiano SOLO nel prompt (farmaciRiga), e
+   per la maggior parte va bene — «vitamina K costante» non è un
+   alimento da cercare in un piatto. Ma due voci della FARM_LIST sono
+   divieti secchi di UN alimento, e quelli la rete li sa cercare:
+   · statine → «niente pompelmo» (interazione documentata, CYP3A4);
+   · antipertensivi → «niente liquirizia» (alza la pressione).
+   Il resto delle indicazioni resta al prompt, che è il posto giusto
+   per una regola di composizione. Qui entra solo ciò che è un
+   alimento con un NO davanti. */
+const VIETATI_DA_FARMACI={
+  statine:["pompelmo","succo di pompelmo"],
+  antipertensivi:["liquirizia"]};
+
+/* ═══ LA PORTA UNICA DEI PASTI SINGOLI (founder, 29/08) ════════════
+   «Fai un controllo che tutti i vincoli passino come prompt E come
+   guardrail, non come frasi.» Il controllo l'ha trovata: il piano
+   settimanale passa dalla rete (validaSettimana → riparaSettimana),
+   ma i PASTI SINGOLI no. «Alternativa AI», «alternativa permanente» e
+   «sostituzione ingredienti» scrivono un piatto nel piano con i
+   vincoli SOLO nel prompt: bastava uno scivolone del modello e il
+   prosciutto finiva nel piatto di chi ha spuntato halal — o
+   l'allergene nel piatto di un allergico — senza che nessun codice
+   lo guardasse.
+   Questa funzione è la porta: costruisce le reti correnti dallo stato
+   (le STESSE del piano: vietatiElenco con cibi evitati + vincoli
+   religiosi + intolleranze + alcol, allergeniElenco con allergie +
+   dieta di riferimento) e, se il piatto contiene un divieto, lo
+   RIPARA con la stessa macchina del piano (riparaDesc): il sostituto
+   sicuro al posto dell'alimento vietato, in silenzio. Ogni strada che
+   scrive un piatto AI nel piano deve passare da qui. */
+function retiCorrenti(){
+  const D=S.pref||{};
+  return {
+    vietati:vietatiElenco([D.no,D.religiose].filter(Boolean).join("; "),D.intol||"").concat(ALCOL_VIETATI),
+    assoluti:allergeniElenco(D.allergie||"")};}
+window.retiCorrenti=retiCorrenti;
+function pastoSicuro(desc){
+  try{
+    const r=retiCorrenti();
+    const v=vietatoDentro(desc,r.vietati,r.assoluti);
+    if(!v)return {d:String(desc||""),adattato:false,cambi:[]};
+    const rep=riparaDesc(desc,r.vietati,r.assoluti);
+    return {d:rep.d,adattato:rep.cambi.length>0,cambi:rep.cambi};
+  }catch(e){return {d:String(desc||""),adattato:false,cambi:[]};}}
+window.pastoSicuro=pastoSicuro;
 
 function vietatiElenco(testoNo,testoIntol){
   const out=new Set();
@@ -2498,6 +2685,18 @@ function vietatiElenco(testoNo,testoIntol){
   const ti=cibNorm(testoIntol);
   Object.keys(VIETATI_DA_INTOL).forEach(k=>{
     if(ti.indexOf(cibNorm(k))>-1)VIETATI_DA_INTOL[k].forEach(v=>out.add(cibNorm(v)));});
+  /* le spunte religiose viaggiano dentro testoNo (S.pref.religiose vi
+     è concatenato da chi chiama): qui diventano alimenti veri, come le
+     intolleranze — vedi VIETATI_DA_REL qui sopra (29/08) */
+  vietatiDaReligiose(testoNo).forEach(v=>out.add(v));
+  /* e i due divieti secchi delle terapie (statine → pompelmo,
+     antipertensivi → liquirizia): si leggono da S.pref come fa
+     vietatiDaImpostazione, perché nessuna strada passa i farmaci a questa
+     funzione e cambiarne la firma su sei punti è il modo di
+     dimenticarne uno (29/08) */
+  try{const fz=cibNorm((S.pref&&S.pref.farmaci)||"");
+    if(fz)Object.keys(VIETATI_DA_FARMACI).forEach(k=>{
+      if(fz.indexOf(k)>-1)VIETATI_DA_FARMACI[k].forEach(v=>out.add(cibNorm(v)));});}catch(e){}
   /* ── LA VOCE PIÙ LUNGA VIENE PRIMA (27/08) ────────────────────────
      Chi cerca si ferma alla PRIMA voce che trova, e con «pollo» prima
      di «petto di pollo» la riparazione produceva «Petto di ceci»:
@@ -2575,16 +2774,58 @@ function piattoFirma(d){
 /* ═══ IL CONTRATTO DELLA SETTIMANA ═══════════════════════════════
    La passata di verifica finale è chiesta DENTRO il prompt — non
    sostituisce il controllo in JavaScript, gli fa risparmiare un
-   rifacimento quando il modello si accorge da solo. */
-function weekJSONContract(giorni,conSpesa){
+   rifacimento quando il modello si accorge da solo.
+
+   ── I PASTI SI DICONO QUI, NON SOLO A METÀ PROMPT (founder, 29/08) ─
+   «Ancora una volta il pasto del tardo pomeriggio non è stato
+   generato, perché? secondo me manca qualcosa al contratto JSON che
+   mandiamo all'ai.»
+
+   Aveva ragione, e la misura lo dice: `rigaPasti()` elenca i nomi
+   giusti, ma sono 278 caratteri persi a metà di un prompt lunghissimo,
+   mentre QUESTO — gli ultimi 1.800 caratteri, quelli che il modello
+   rilegge mentre scrive il JSON — mostrava un esempio con UN SOLO
+   pasto chiamato «Colazione», non diceva quanti sono e non li
+   nominava. Alla riga «verifica che ogni giorno abbia tutti i pasti
+   richiesti» il modello non aveva, lì vicino, l'elenco di quali
+   fossero.
+
+   Con cinque pasti fra cui «Metà pomeriggio» E «Tardo pomeriggio» —
+   due merende, che in un piano italiano tipico non ci sono — il
+   modello ne fondeva due in una e restituiva i quattro nomi che si
+   aspetta. Il controllo lo vedeva (`validaSettimana` marca il giorno
+   GRAVE) e chiedeva il rifacimento, ma se anche il secondo tentativo
+   li fondeva, il piano si consegnava con quattro pasti su cinque.
+
+   Adesso l'elenco e il conteggio stanno DENTRO il contratto, e
+   l'esempio porta il nome del PRIMO pasto vero di questa persona:
+   chi non fa colazione non vede più la parola «Colazione» come
+   modello da imitare. */
+function weekJSONContract(giorni,conSpesa,slots){
+  const S1=Array.isArray(slots)?slots.filter(Boolean):[];
+  /* l'esempio porta il primo pasto VERO: un esempio è un suggerimento,
+     e «Colazione» a chi la colazione non la fa suggerisce il piano di
+     un'altra persona */
+  const esN=S1.length?S1[0]:"Colazione";
+  const esT=S1.length?"07:30":"08:00";
   return aiLingua()+' PRIMA DI RISPONDERE, RILEGGI QUELLO CHE HAI SCRITTO e correggilo dove serve:'+
     ' rifai la somma delle calorie e delle proteine di ogni giorno e verifica che stiano nel target dichiarato;'+
     ' verifica che nessun alimento vietato o incompatibile con le intolleranze sia finito in una descrizione;'+
-    ' verifica che nessun piatto si ripeta; verifica che ogni giorno abbia tutti i pasti richiesti;'+
+    ' verifica che nessun piatto si ripeta;'+
+    (S1.length
+      ? ' CONTA i pasti di ogni giorno: devono essere ESATTAMENTE '+S1.length+', con questi nomi e in quest\'ordine — '+S1.join(", ")+
+        ' — e se ne manca uno AGGIUNGILO invece di consegnare il giorno incompleto;'
+      : ' verifica che ogni giorno abbia tutti i pasti richiesti;')+
     ' verifica che ogni pasto abbia una fonte proteica e che nessun pasto sia fatto solo di carboidrati raffinati e zucchero.'+
-    ' Rispondi SOLO con un oggetto JSON, senza alcun testo intorno: {"days":[{"day":"'+giorni[0]+'","ctx":"contesto breve del giorno","meals":[{"n":"Colazione","t":"08:00","type":"norm","d":"descrizione con grammature","k":numero,"p":numero,"c":numero,"f":numero,"fib":numero,"z":numero}]}]'+
+    ' Rispondi SOLO con un oggetto JSON, senza alcun testo intorno: {"days":[{"day":"'+giorni[0]+'","ctx":"contesto breve del giorno","meals":[{"n":"'+esN+'","t":"'+esT+'","type":"norm","d":"descrizione con grammature","k":numero,"p":numero,"c":numero,"f":numero,"fib":numero,"z":numero}]}]'+
     (conSpesa?',"spesa":[["Categoria",["prodotto con la quantità totale della settimana"]]]':'')+
     '} dove "days" contiene ESATTAMENTE sette oggetti, in quest\'ordine: '+giorni.join(", ")+
+    (S1.length
+      ? '; "meals" contiene ESATTAMENTE '+S1.length+' oggetti in OGNI giorno, in quest\'ordine e con il campo "n" scritto ESATTAMENTE così: '+
+        S1.map(x=>'"'+x+'"').join(", ")+
+        '. Questi nomi non si traducono, non si accorciano, non si accorpano e non si sostituiscono con altri più comuni: '+
+        'se due di questi pasti sono vicini nella giornata restano comunque DUE pasti distinti, ciascuno col suo oggetto'
+      : '')+
     '; type vale "norm", "mensa" oppure "free"; e ogni valore numerico è un NUMERO, senza unità di misura e senza parole intorno.'+
     /* ── L'UNITÀ DEI CAMPI NUMERICI, DETTA QUI E NON ALTROVE (28/08) ─
        Il contratto è il posto dove si dichiara l'unità di un campo:
@@ -2604,11 +2845,11 @@ function weekJSONContract(giorni,conSpesa){
 async function askWeekAI(q){
   let w=null,lastE=null;
   for(let att=0;att<2&&!w;att++){
-    try{const t=await aiAsk(q,"piano");const o=parseAIJSON(t);
+    try{const t=await aiAsk(q,"ricette");const o=parseAIJSON(t);
       const obj=Array.isArray(o)?{days:o}:o;
       if(obj&&Array.isArray(obj.days)&&obj.days.length)w=obj;
     }catch(e){lastE=e;}}
-  aiHealth("piano",!!w);
+  aiHealth("ricette",!!w);
   return {week:w,err:lastE};}
 
 /* ═══ LA VALIDAZIONE ═════════════════════════════════════════════
@@ -2643,10 +2884,17 @@ function validaSettimana(days,r){
       problemi.push({i:i,giorno:G[i],motivi:[tr("il giorno non è arrivato")],sicuro:true,grave:true});
       continue;}
     /* i pasti attesi — senza, il giorno non è quello chiesto */
+    /* `mancaPasti` viaggia STRUTTURATO accanto al motivo scritto: chi
+       deve dirlo alla persona (il percorso guidato) non può ricavarlo
+       leggendo la frase, perché la frase è tradotta e in inglese non
+       contiene le stesse parole. Un difetto che si sa dire solo in una
+       lingua è un difetto che in inglese sparisce (29/08). */
+    let mancaPasti=null;
     if(r.slots&&r.slots.length){
       const nomi=d.meals.map(m=>cibNorm(m.n));
       const mancanti=r.slots.filter(s=>nomi.indexOf(cibNorm(s))<0);
-      if(mancanti.length)gravi.push(trh("mancano questi pasti: {v1}",{v1:mancanti.join(", ")}));
+      if(mancanti.length){mancaPasti=mancanti.slice();
+        gravi.push(trh("mancano questi pasti: {v1}",{v1:mancanti.join(", ")}));}
     }else if(r.nPasti&&d.meals.length!==+r.nPasti){
       gravi.push(trh("i pasti sono {v1} invece di {v2}",{v1:d.meals.length,v2:r.nPasti}));}
     /* i numeri, e la somma */
@@ -2734,14 +2982,26 @@ function validaSettimana(days,r){
     if(sicurezza.length)gravi.push(trh("alimenti vietati o non tollerati: {v1}",{v1:sicurezza.join("; ")}));
     if(gravi.length||motivi.length)
       problemi.push({i:i,giorno:G[i],motivi:gravi.concat(motivi),
+        mancaPasti:mancaPasti,
         sicuro:!sicurezza.length,grave:gravi.length>0});
   }
   const extra=arr.length>G.length?arr.length-G.length:0;
   return {ok:!problemi.length,problemi:problemi,extra:extra};}
 
+/* I pasti che, dopo tutti i tentativi, NON sono stati scritti: uno
+   solo per nome, non uno per giorno. Serve a chi deve DIRLO alla
+   persona — finora un piano con quattro pasti su cinque si consegnava
+   con scritto «Piano pronto» e basta (founder, 29/08). */
+function pastiMancanti(problemi){
+  const s=[];
+  (problemi||[]).forEach(p=>(p&&p.mancaPasti||[]).forEach(n=>{
+    if(s.indexOf(n)<0)s.push(n);}));
+  return s;}
+window.pastiMancanti=pastiMancanti;
+
 /* ═══ LA LISTA DELLA SPESA CHE ARRIVA INSIEME AL PIANO ═══════════
    Se torna storta NON si rifà il piano: il piano è buono, e la spesa
-   sa ricostruirsi da sola dagli ingredienti (buildShopFromPlan). Rifare
+   sa ricostruirsi da sola dagli ingredienti (buildShopFromRicette). Rifare
    sette giorni per una lista è il genere di spreco che poi si paga in
    attesa. */
 /* ── «[object Object]» NELLA LISTA DELLA SPESA (founder, 27/08) ────
@@ -2809,7 +3069,7 @@ function spesaRipara(){
     const rotta=JSON.stringify(L).indexOf("[object Object]")>-1;
     if(!rotta)return false;
     let nuova=null;
-    try{nuova=(typeof buildShopFromPlan==="function")?buildShopFromPlan():null;}catch(e){nuova=null;}
+    try{nuova=(typeof buildShopFromRicette==="function")?buildShopFromRicette():null;}catch(e){nuova=null;}
     S.customShop=(nuova&&nuova.length)?nuova:null;
     S.shop={};save();
     try{if(cur==="spesa")render("spesa");}catch(e){}
@@ -2838,7 +3098,7 @@ async function chiediSettimana(cfg){
          che l'ha prodotto non si può confrontare con niente */
       /* si registra il livello VERO con cui è stata fatta (27/08: il
          selettore non esiste più, quindi non c'è niente da tradurre) */
-      S.ai.genPens=(typeof pensieroDi==="function")?pensieroDi("piano"):"low";
+      S.ai.genPens=(typeof pensieroDi==="function")?pensieroDi("ricette"):"low";
       save();}catch(e){}
     return Object.assign({ms:Date.now()-t0},out);};
 
@@ -2859,7 +3119,7 @@ async function chiediSettimana(cfg){
     if(fatti!==fattiVisti){fattiVisti=fatti;
       fase("giorno",{fatti:fatti,ora:nomi[nomi.length-1]||""});}};
   let r;
-  try{r=await askWeekAI(cfg.prompt+weekJSONContract(G,conSpesa));}
+  try{r=await askWeekAI(cfg.prompt+weekJSONContract(G,conSpesa,(cfg.regole&&cfg.regole.slots)||null));}
   finally{try{delete window.AI_PIANO_DELTA;}catch(_){window.AI_PIANO_DELTA=null;}}
   if(!r.week)return chiudi({plan:null,spesa:null,problemi:[],err:r.err});
   let grezzi=(r.week.days||[]).slice(0,G.length);
@@ -2879,7 +3139,7 @@ async function chiediSettimana(cfg){
     const usati=[];
     buoni.forEach(d=>(d.meals||[]).forEach(m=>{
       if((m.type||"norm")==="norm"&&m.d)usati.push(String(m.d).slice(0,60));}));
-    const q=cfg.promptGiorni(guasti,usati)+weekJSONContract(guasti.map(p=>p.giorno),false)
+    const q=cfg.promptGiorni(guasti,usati)+weekJSONContract(guasti.map(p=>p.giorno),false,(cfg.regole&&cfg.regole.slots)||null)
       .replace('ESATTAMENTE sette oggetti','ESATTAMENTE '+guasti.length+(guasti.length===1?' oggetto':' oggetti'));
     const r2=await askWeekAI(q);
     if(r2.week&&Array.isArray(r2.week.days)){
@@ -2935,18 +3195,117 @@ async function chiediSettimana(cfg){
       if(!storti)return;
       g.meals.forEach((m,i)=>{if(m)m.n=attesi[i];});});
     esito=validaSettimana(grezzi,cfg.regole);}
+  /* ═══ IL PASTO MANCANTE SI RIPARA, NON SI RACCONTA (founder, 29/08)
+     «NO, il pasto non deve mancare. Ci sono molte cose che non devono
+     essere dette all'utente: semplicemente devono esserci, funzionare
+     correttamente e basta.»
+     Ha ragione: dire «manca un pasto» era la toppa, non la cura. La
+     cura ha due stadi, e il piano si consegna COMPLETO:
+     1. una chiamata MIRATA che chiede solo i pasti mancanti — è
+        piccola (un pasto, non sette giorni) e costa secondi;
+     2. se anche quella non risponde, il pasto si COPIA da un altro
+        giorno che ce l'ha: cibo scritto dal modello per questa stessa
+        persona, con numeri veri — non un piatto inventato qui.
+     La nota alla persona resta solo come ultima rete, per il caso che
+     non dovrebbe più esistere. */
+  if(attesi&&attesi.length){
+    const conBuchi=()=>{const b=[];grezzi.forEach((g,i)=>{
+      if(!g||!Array.isArray(g.meals))return;
+      const nomi=g.meals.map(m=>cibNorm(m&&m.n));
+      const mancano=attesi.filter(s=>nomi.indexOf(cibNorm(s))<0);
+      if(mancano.length)b.push({i:i,giorno:G[i],mancano:mancano});});return b;};
+    /* dove va inserito un pasto: al posto che lo slot ha nell'ordine
+       scelto, così la giornata resta in ordine di orario */
+    const infila=(g,slot,meal)=>{
+      const pos=attesi.indexOf(slot);
+      let at=g.meals.length;
+      for(let j=0;j<g.meals.length;j++){
+        const p=attesi.map(cibNorm).indexOf(cibNorm(g.meals[j]&&g.meals[j].n));
+        if(p>pos){at=j;break;}}
+      meal.n=slot;g.meals.splice(at,0,meal);};
+    let buchi=conBuchi();
+    /* ── stadio 1: la chiamata mirata ────────────────────────────── */
+    if(buchi.length){
+      try{
+        const ORE={"Colazione":"07:30","Metà mattina":"10:30","Pranzo":"13:00","Metà pomeriggio":"16:30","Tardo pomeriggio":"18:30","Cena":"20:00","Dopo cena":"22:00"};
+        const kcalG=(cfg.regole&&cfg.regole.kcal)||2000;
+        const righe=buchi.map(b=>{
+          let k=0;(grezzi[b.i].meals||[]).forEach(m=>{k+=numPulito(m.k)||0;});
+          return b.giorno+" → manca "+b.mancano.join(", ")+" (il giorno ha già ~"+Math.round(k)+" kcal su un target di "+kcalG+")";}).join("; ");
+        const q='Stai completando un piano alimentare settimanale già scritto: alcuni giorni sono usciti SENZA uno dei pasti richiesti. '+
+          'Scrivi SOLO i pasti mancanti, coerenti col resto della giornata e con le regole della persona. '+
+          ((typeof vincoliStr==="function")?vincoliStr()+' ':'')+
+          'Giorni e pasti da scrivere: '+righe+'. '+
+          'Rispondi SOLO con JSON: {"days":[{"day":"<giorno>","meals":[{"n":"<nome ESATTO del pasto mancante>","t":"<orario>","type":"norm","d":"descrizione con grammature","k":numero,"p":numero,"c":numero,"f":numero,"fib":numero,"z":numero}]}]} '+
+          'dove "meals" contiene SOLO i pasti mancanti di quel giorno, con il campo "n" copiato ESATTAMENTE dall\'elenco qui sopra. '+
+          'Campi numerici SEMPRE metrici: kcal e grammi.';
+        const r3=await askWeekAI(q);
+        if(r3.week&&Array.isArray(r3.week.days)){
+          r3.week.days.forEach(d=>{
+            const b=buchi.find(x=>cibNorm(x.giorno)===cibNorm(d&&d.day));
+            if(!b||!d||!Array.isArray(d.meals))return;
+            d.meals.forEach(m=>{
+              if(!m||!m.d)return;
+              const slot=b.mancano.find(s=>cibNorm(s)===cibNorm(m.n));
+              if(!slot)return;
+              if(numPulito(m.k)==null||numPulito(m.p)==null)return;
+              /* la sicurezza vale anche qui: un pasto riparato con
+                 dentro un divieto non entra */
+              if(vietatoDentro(m.d,vietatiTutti,assolutiTutti))return;
+              const ora=ORE[slot]||"16:30";
+              infila(grezzi[b.i],slot,{n:slot,t:m.t||ora,type:"norm",d:m.d,
+                k:numPulito(m.k),p:numPulito(m.p),c:numPulito(m.c)||0,f:numPulito(m.f)||0,
+                fib:numPulito(m.fib)||0,z:numPulito(m.z)||0,adattato:1});});});}
+      }catch(e){}
+      buchi=conBuchi();}
+    /* ── stadio 2: la copia da un giorno che ce l'ha ─────────────── */
+    if(buchi.length){
+      buchi.forEach(b=>{
+        b.mancano.forEach(slot=>{
+          /* il donatore: un altro giorno con lo stesso pasto — si parte
+             dal giorno DOPO così due buchi uguali non copiano tutti
+             dallo stesso lunedì */
+          let don=null;
+          for(let k=1;k<grezzi.length&&!don;k++){
+            const g2=grezzi[(b.i+k)%grezzi.length];
+            const m2=(g2&&g2.meals||[]).find(m=>cibNorm(m&&m.n)===cibNorm(slot)&&(m.type||"norm")==="norm"&&m.d);
+            if(m2)don=m2;}
+          /* ── IL RIPIEGO, DECISO BENE (v15.18.0) ───────────────────
+             Se NESSUN giorno della settimana ha quel pasto, si copia
+             da un pasto dello stesso giorno: è cibo del suo piano,
+             non un'invenzione. Fin qui era giusto.
+             Sbagliata era la SCELTA: si prendeva sempre il pasto più
+             piccolo, e per un buco a «Cena» significava mettere in
+             tavola una colazione — il giorno restava sotto di
+             centinaia di calorie e il validatore lo bocciava subito
+             dopo. Il ripiego lavorava contro il passo successivo.
+             Adesso la taglia segue il posto: nei pasti principali si
+             copia il più grande, negli spuntini il più piccolo. Non
+             è una stima nutrizionale — è la sola cosa sensata da
+             fare con quello che c'è. */
+          if(!don){
+            const nrm=(grezzi[b.i].meals||[]).filter(m=>m&&(m.type||"norm")==="norm"&&m.d&&numPulito(m.k)!=null);
+            nrm.sort((x,y)=>(numPulito(x.k)||0)-(numPulito(y.k)||0));
+            const grosso=/pranzo|cena|lunch|dinner/i.test(String(slot||""));
+            don=(grosso?nrm[nrm.length-1]:nrm[0])||null;}
+          if(!don)return;
+          const copia=JSON.parse(JSON.stringify(don));
+          copia.t=({"Colazione":"07:30","Metà mattina":"10:30","Pranzo":"13:00","Metà pomeriggio":"16:30","Tardo pomeriggio":"18:30","Cena":"20:00","Dopo cena":"22:00"})[slot]||copia.t;
+          copia.type="norm";copia.adattato=1;
+          infila(grezzi[b.i],slot,copia);});});}
+    esito=validaSettimana(grezzi,cfg.regole);}
   const plan=G.map((nome,i)=>normDayAI(nome,grezzi[i]||{meals:[]}));
   plan.adattati=adattati;
   fase("fatto");
   return chiudi({plan:plan,spesa:spesa,problemi:esito.problemi,adattati:adattati,err:null});}
-window.genPlanAI=async()=>{
-  S.ui.pianoProprio=0;   /* rigenerare da capo = il piano nuovo non è più «il suo di prima» */
+window.genRicetteAI=async()=>{
+  S.ui.ricetteProprie=0;   /* rigenerare da capo = il piano nuovo non è più «il suo di prima» */
   aiLungoOn();   /* l'indicatore resta acceso fino alla fine */
   /* Sette giorni di piano sono un'attesa lunga: al posto della rotella
      si mostra la FORMA dei giorni che stanno arrivando. Chi aspetta
      capisce cosa aspetta, e l'attesa percepita si accorcia. */
   try{if(typeof scheletroIn==="function"&&typeof skelRegistra==="function")
-    skelRegistra(scheletroIn("pg-piano",6));}catch(e){}
+    skelRegistra(scheletroIn("pg-ricette",6));}catch(e){}
   if(!aiOn())return aiFail(new Error("nokey"));
   /* ── SI BUSSA PRIMA DI ENTRARE (founder, 27/08) ─────────────────
      «Prima di passare il prompt al modello, il sistema faccia una
@@ -2967,7 +3326,7 @@ window.genPlanAI=async()=>{
        messaggio che parlava di un campo invisibile. */
     try{schedaVai("io","dati");}catch(e){show("io");}
     return toast(tr("Aggiorna il peso desiderato in Obiettivi, poi rigenera il piano"));}
-  const p=S.profile,D=S.diet,t=tdee();
+  const p=S.profile,D=S.pref,t=tdee();
   const goal=p.goal||"dimagrimento graduale";
   const target=dayTargetK(),protG=dayTargetP();      /* stesso target del resto dell'app */
   const wkN=goalWkTotal(),wkKcal=plannedActivityBurnFor(p.w||70);
@@ -2975,7 +3334,13 @@ window.genPlanAI=async()=>{
   const mensa=parseMensa(D.mensaGiorni);
   const defTxt=(defMode()==="ritmo")?(trh("dal ritmo di {v1} a settimana",{v1:((typeof pesoTxt==="function")?pesoTxt(ratePerWeek(),1):ratePerWeek()+" kg")})):"dalla percentuale impostata nelle Regole";
   const capTxt=rateCapped()?("\n•  "+rateNote()):"";
-  if(!await dlgConfirm(tr("Genero un piano settimanale completo: sette giorni e la lista della spesa, in una volta sola.")+"\n\n"+tr("• {a} anni, {w}, obiettivo: {g}",{a:age(),w:((typeof pesoTxt==="function")?pesoTxt(p.w,1):p.w+" kg"),g:goal})+
+  /* ── LE PAROLE CONTANO QUANTO LA RETE (v15.6.0) ─────────────────
+     È la PERSONA che chiede all'AI dei suggerimenti per sé — non
+     l'app che le prescrive un piano. La differenza non è cosmetica:
+     è la postura legale di tutta Nuvia (autogestione, proposte
+     modificabili, responsabilità dichiarata), e va detta qui, nel
+     momento esatto in cui si preme il bottone. */
+  if(!await dlgConfirm(tr("Chiedo all'AI le ricette di una settimana intera: sette giorni e la lista della spesa, in una volta sola.")+"\n\n"+tr("• {a} anni, {w}, obiettivo: {g}",{a:age(),w:((typeof pesoTxt==="function")?pesoTxt(p.w,1):p.w+" kg"),g:goal})+
     "\n"+tr("• fabbisogno {t} kcal → target ~{x} kcal al giorno ({d})",{t:t,x:target,d:defTxt})+capTxt+
     (wkN?"\n"+tr("• allenamenti previsti: {n} a settimana (~{k} kcal al giorno già contate)",{n:wkN,k:wkKcal}):"")+
     "\n"+tr("• impostazione: {t}",{t:(D.tipo||"mediterranea")})+
@@ -2983,7 +3348,7 @@ window.genPlanAI=async()=>{
     (Object.keys(mensa).length?"\n"+tr("• mensa: {g}",{g:D.mensaGiorni}):"")+
     "\n\n⏳ "+tr("L'AI scrive la settimana intera in una volta — così i giorni si tengono fra loro — e io ricontrollo che i conti tornino e che non sia comparso niente che hai escluso. Vedrai i giorni accendersi man mano che vengono scritti.")+
     ((S.ai&&S.ai.genMs)?"\n"+trh("L'ultima volta il piano ha richiesto {v1}.",{v1:pensieroUltima()}):"")+
-    "\n\n È una proposta generata automaticamente, non una prescrizione: falla validare da un medico o da un nutrizionista prima di seguirla a lungo. Sostituirà il piano attuale (le settimane già salvate restano intatte)."))return;
+    "\n\n "+tr("Sono suggerimenti scritti da un'AI, non una prescrizione: ogni piatto è uno spunto che puoi cambiare o ignorare, e le scelte restano tue. Falli vedere a un medico o a un nutrizionista prima di seguirli a lungo. Prenderanno il posto delle proposte attuali (le settimane già salvate restano intatte).")))return;
   const box=genBox();
   const DAYS=[["Lunedì","lun"],["Martedì","mar"],["Mercoledì","mer"],["Giovedì","gio"],["Venerdì","ven"],["Sabato","sab"],["Domenica","dom"]];
   const G=DAYS.map(x=>x[0]);
@@ -3016,7 +3381,7 @@ window.genPlanAI=async()=>{
        L'audit delle promesse ha trovato sei difetti con la stessa
        causa, e questa riga li chiude tutti e sei.
 
-       `dietStr()` è il testo che dice al modello CHI è la persona:
+       `vincoliStr()` è il testo che dice al modello CHI è la persona:
        impostazione alimentare (vegana, vegetariana con o senza uova e
        pesce, pescetariana, mediterranea con le sue regole operative),
        tradizione culinaria scelta, intolleranze per esteso, cibi da
@@ -3037,19 +3402,37 @@ window.genPlanAI=async()=>{
        Le frasi scritte a mano che ripetevano un pezzo di questo testo
        («ingredienti reperibili in un supermercato italiano», «rispetta
        il tempo di cucina dichiarato») se ne vanno con questa riga: le
-       dice `dietStr()`, e le dice giuste. */
+       dice `vincoliStr()`, e le dice giuste. */
     /* peso e altezza nelle unità della persona: se il modello le cita
        nel contesto del giorno («i tuoi 95 kg»), deve citare il numero
        che lei vede sullo schermo, non la sua traduzione metrica */
-    const comune=' Persona: '+age()+' anni, '+(p.gender==="m"?"uomo":"donna")+', '+
+    /* ── LE PAROLE, RITARATE (v15.22.0) ─────────────────────────
+       «Persona: 45 anni… obiettivo: perdere peso. Target di OGNI
+       giorno…» descrive una cartella clinica consegnata a un
+       professionista. Non è quello che succede, ed era il pezzo di
+       prompt che più si prestava a essere letto male.
+       Cambia CHI parla e COME si chiamano le cose; i numeri, la
+       tolleranza, il minimo di proteine e il numero di pasti sono
+       identici al carattere — sono gli stessi valori che poi
+       `validaSettimana` verifica, e cambiarli avrebbe rotto il
+       controllo invece che difenderci. */
+    const comune=' CHI CHIEDE: una persona di '+age()+' anni, '+(p.gender==="m"?"uomo":"donna")+', '+
       ((typeof altTxt==="function")?altTxt(p.h):p.h+" cm")+', '+
-      ((typeof pesoTxt==="function")?pesoTxt(p.w,1):p.w+" kg")+', obiettivo: '+goal+'. Target di OGNI giorno: circa '+target+' kcal (tolleranza ±5%) e almeno '+protG+' g di proteine, distribuiti sui '+slots.length+' pasti. '+
-      dietStr()+' '+rulesForPlan()+
+      ((typeof pesoTxt==="function")?pesoTxt(p.w,1):p.w+" kg")+', che si è data questo obiettivo: '+goal+'. Le proposte di ogni giorno dovrebbero stare intorno a '+target+' kcal (tolleranza ±5%) e arrivare ad almeno '+protG+' g di proteine, distribuite sui '+slots.length+' pasti. '+
+      vincoliStr()+' '+regoleRicette()+
       rigaPasti(slots)+rigaPasto()+rigaFuori+
-      (D.patologie?' Le condizioni di salute dichiarate sopra sono VINCOLANTI nella scelta degli alimenti di ogni pasto.':'')+
-      ' Regole: il piano si basa ESCLUSIVAMENTE su alimenti veri; NON inserire integratori (proteine in polvere, vitamine, barrette o pasti sostitutivi) a meno che i target siano davvero impossibili da coprire con il cibo: solo in quel caso indicali e scrivi nel campo ctx che l\'integrazione va concordata con un nutrizionista; le porzioni vanno SEMPRE indicate, nelle unità dette sopra; valori nutrizionali REALI per le quantità scritte; stagione attuale: '+seasonNow()+', proponi piatti adatti alla stagione (niente piatti tipicamente invernali in estate e viceversa), restando generico su "verdura di stagione" e "frutta di stagione" dove sensato; nell\'arco della settimana devono alternarsi con equilibrio fonti proteiche compatibili con l\'impostazione dichiarata (per esempio carne bianca, pesce, uova, legumi, latticini SOLO se ammessi) più cereali integrali e abbondante verdura.'+rigaVar+rigaFarm+rigaMed+rigaInt;
+      /* Stessa forza, altra natura: non «tienine conto nella cura»
+         (che sarebbe terapia) ma «non proporre ciò che non è
+         compatibile» (che è una esclusione di sicurezza, ed è
+         letteralmente quello che il codice poi fa con la rete). */
+      (D.patologie?' Gli alimenti non compatibili con le condizioni di salute dichiarate sopra NON vanno proposti, in nessun pasto e in nessuna alternativa: sono esclusioni di sicurezza, non indicazioni terapeutiche.':'')+
+      ' Regole: le proposte si basano ESCLUSIVAMENTE su alimenti veri; NON inserire integratori (proteine in polvere, vitamine, barrette o pasti sostitutivi) a meno che i target siano davvero impossibili da coprire con il cibo: solo in quel caso indicali e scrivi nel campo ctx che l\'integrazione va concordata con un nutrizionista; le porzioni vanno SEMPRE indicate, nelle unità dette sopra; valori nutrizionali REALI per le quantità scritte; stagione attuale: '+seasonNow()+', proponi piatti adatti alla stagione (niente piatti tipicamente invernali in estate e viceversa), restando generico su "verdura di stagione" e "frutta di stagione" dove sensato; nell\'arco della settimana devono alternarsi con equilibrio fonti proteiche compatibili con l\'impostazione dichiarata (per esempio carne bianca, pesce, uova, legumi, latticini SOLO se ammessi) più cereali integrali e abbondante verdura.'+rigaVar+rigaFarm+rigaMed+rigaInt;
     const regole={giorni:G,kcal:target,prot:protG,tollPct:5,slots:slots,nPasti:slots.length,
-      vietati:vietatiElenco(D.no,D.intol),
+      /* ANCHE le spunte religiose, non solo i cibi evitati: questa e'
+         la strada di «Genera nuovo piano», e fino al 29/08 passava
+         alla rete solo D.no — un «niente carne di maiale» spuntato in
+         Regole non arrivava al controllo di sicurezza da qui */
+      vietati:vietatiElenco([D.no,D.religiose].filter(Boolean).join("; "),D.intol),
       allergeni:allergeniElenco(D.allergie||""),
       /* la regola sulle ripetizioni è quella che il prompt ha CHIESTO a
          questa persona, non una regola nostra imposta sopra la sua */
@@ -3116,9 +3499,9 @@ window.genPlanAI=async()=>{
     const avvisi=(esito.problemi||[]).filter(x=>x.sicuro).map(x=>" "+x.giorno+": "+x.motivi.join("; "));
     if(avvisi.length)avvisi.push(tr("Puoi attivarlo lo stesso e poi premere «Ricalibra», che sistema le grammature senza cambiare i piatti."));
     snapSave("prima di: piano generato");
-    try{S.ui.pianoOrigine="ai";}catch(e){} S.customPlan=plan;PLAN=plan;S.permMeals={};S.week=freshWeek();
+    try{S.ui.ricetteOrigine="ai";}catch(e){} S.ricette=plan;RICETTE=plan;S.permMeals={};S.week=freshWeek();
     S.customShop=null;S.shop={};      /* la spesa riparte dagli ingredienti del nuovo piano */
-    S.planW=S.profile.w;S.ui=S.ui||{};
+    S.ricetteW=S.profile.w;S.ui=S.ui||{};
     save();
     /* ── LA SPESA È GIÀ ARRIVATA COL PIANO ────────────────────────
        Stessa risposta, nessuna seconda chiamata: era il passaggio che
@@ -3135,7 +3518,7 @@ window.genPlanAI=async()=>{
     else{try{await genShop(true);}catch(e){}}
     genPassi(box,7,2);await wait(400);
     if(box)box.textContent="";genBoxVia();
-    render("piano");show("piano");
+    render("ricette");show("ricette");
     /* L'annuncio arriva SOLO adesso: piano, spesa e controllo sono fatti. */
     const nSpesa=(S.customShop||[]).reduce((a,c)=>a+((c[1]||[]).length),0);
     /* IL riepilogo, uno solo: cosa c'e' nel piano, cosa e' stato
@@ -3162,21 +3545,48 @@ window.importPlanPhotos=async()=>{
   try{return await importPlanPhotosCore();}
   finally{try{aiLungoOff();}catch(_){}}};
 async function importPlanPhotosCore(){
-  S.ui.pianoProprio=0;
+  S.ui.ricetteProprie=0;
   if(!aiOn())return aiFail(new Error("nokey"));
-  if(!await dlgConfirm(tr("Importo il piano dalle foto.\n\nScatta o scegli dalla galleria (anche più pagine insieme). L'AI legge giorni, pasti e alternative e li ricostruisce qui, con calorie e macro.\n\nCi vuole qualche minuto. Sostituirà il piano attuale (le settimane già salvate restano intatte).")))return;
+  if(!await dlgConfirm(tr("Importo le ricette che hai già.\n\nUn PDF (quello del nutrizionista, per esempio) oppure le foto delle pagine. L'AI legge giorni, pasti e alternative e li ricostruisce qui, con calorie e macro.\n\nCi vuole qualche minuto. Sostituirà le ricette attuali (le settimane già salvate restano intatte).")))return;
   const photos=[];
+  /* ── LA STRADA DEL PDF (v15.19.0) ────────────────────────────────
+     Un PDF è UNA parte sola e non si mescola con le foto: sono due
+     modi di dare la stessa cosa, non due pezzi da sommare. Chiedere
+     «ne aggiungo altre?» dopo un PDF non avrebbe senso — il PDF le
+     pagine ce le ha già tutte dentro. */
+  let daPdf=false;
   try{
-    do{
-      const gal=!await dlgConfirm(tr("Da dove prendo la pagina del piano?"),{ok:tr(" Scatta ora"),ko:tr(" Dalla galleria")});
-      const got=await anyPhoto(gal,true);          /* dalla galleria anche più pagine insieme */
-      (Array.isArray(got)?got:[got]).forEach(x=>photos.push(x));
-    }while(await dlgConfirm(tr("Pagine acquisite: {n} ✓\n\nNe aggiungo altre?",{n:photos.length})));
-  }catch(e){if(!photos.length)return;}
+    const scelta=await dlgConfirm(tr("Come me le dai?"),
+      {ok:tr("Ho un PDF"),ko:tr("Fotografo le pagine")});
+    if(scelta){
+      const doc=await pickPdf();
+      photos.push({b64:doc.b64,mime:doc.mime});
+      daPdf=true;
+    }else{
+      do{
+        const gal=!await dlgConfirm(tr("Da dove prendo la pagina?"),{ok:tr(" Scatta ora"),ko:tr(" Dalla galleria")});
+        const got=await anyPhoto(gal,true);          /* dalla galleria anche più pagine insieme */
+        (Array.isArray(got)?got:[got]).forEach(x=>photos.push(x));
+      }while(await dlgConfirm(tr("Pagine acquisite: {n} ✓\n\nNe aggiungo altre?",{n:photos.length})));
+    }
+  }catch(e){
+    /* Il motivo si dice: un PDF troppo pesante rifiutato in silenzio
+       sembra un'app rotta, e la persona riprova con lo stesso file. */
+    const perche=String((e&&e.message)||"");
+    if(!photos.length){
+      if(perche&&perche!=="annullato")dlgAlert(perche);
+      return;}
+  }
   const box=genBox();
-  if(box){box.style.display="block";genBoxMostra(box);box.textContent=trh(" Sto leggendo il piano da {v1} foto…\n⏳ L'AI sta trascrivendo giorni, pasti e alternative: può volerci qualche minuto, abbi un po' di pazienza.",{v1:photos.length});}
+  if(box){box.style.display="block";genBoxMostra(box);
+    box.textContent=daPdf
+      ?tr(" Sto leggendo il PDF…\n⏳ L'AI sta trascrivendo giorni, pasti e alternative: può volerci qualche minuto, abbi un po' di pazienza.")
+      :trh(" Sto leggendo le ricette da {v1} foto…\n⏳ L'AI sta trascrivendo giorni, pasti e alternative: può volerci qualche minuto, abbi un po' di pazienza.",{v1:photos.length});}
   try{
-    const q='Queste '+photos.length+' FOTO mostrano un piano alimentare settimanale scritto (tabella, foglio o quaderno). TRASCRIVILO FEDELMENTE: per ogni giorno i pasti nell\'ordine in cui compaiono, con le grammature scritte; se un pasto ha più alternative (es. separate da "oppure", "o", righe alternative), riportale TUTTE come opzioni dello stesso pasto, prima quella principale. NON inventare piatti: se una parte non è leggibile, omettila. Stima kcal e macro REALI di ogni opzione dalle grammature scritte (porzioni tipiche italiane solo dove il peso manca). Se il piano copre meno di 7 giorni, completa la settimana ripetendo i giorni disponibili e segnalandolo nel ctx. Rispondi SOLO con un JSON array di 7 oggetti da Lunedì a Domenica: [{"day":"Lunedì","ctx":"","meals":[{"n":"Colazione","t":"","type":"norm","o":[{"d":"descrizione con grammature","k":numero,"p":numero,"c":numero,"f":numero,"fib":numero,"z":numero}]}]}] — "o" contiene una voce per OGNI alternativa del pasto; type vale "norm", "mensa" oppure "free". I campi numerici sono SEMPRE metrici: "k" in kcal, "p", "c", "f", "fib" e "z" in GRAMMI — se il piano fotografato è scritto in once o libbre, converti tu nei numeri e lascia pure le once nella descrizione.';
+    const q=(daPdf
+      ?'Questo PDF contiene un piano alimentare settimanale (tabella, foglio o documento scritto). Leggilo TUTTO, comprese le pagine successive alla prima, e TRASCRIVILO FEDELMENTE:'
+      :'Queste '+photos.length+' FOTO mostrano un piano alimentare settimanale scritto (tabella, foglio o quaderno). TRASCRIVILO FEDELMENTE:')+
+      ' per ogni giorno i pasti nell\'ordine in cui compaiono, con le grammature scritte; se un pasto ha più alternative (es. separate da "oppure", "o", righe alternative), riportale TUTTE come opzioni dello stesso pasto, prima quella principale. NON inventare piatti: se una parte non è leggibile, omettila. Stima kcal e macro REALI di ogni opzione dalle grammature scritte (porzioni tipiche italiane solo dove il peso manca). Se il piano copre meno di 7 giorni, completa la settimana ripetendo i giorni disponibili e segnalandolo nel ctx. Rispondi SOLO con un JSON array di 7 oggetti da Lunedì a Domenica: [{"day":"Lunedì","ctx":"","meals":[{"n":"Colazione","t":"","type":"norm","o":[{"d":"descrizione con grammature","k":numero,"p":numero,"c":numero,"f":numero,"fib":numero,"z":numero}]}]}] — "o" contiene una voce per OGNI alternativa del pasto; type vale "norm", "mensa" oppure "free". I campi numerici sono SEMPRE metrici: "k" in kcal, "p", "c", "f", "fib" e "z" in GRAMMI — se il piano fotografato è scritto in once o libbre, converti tu nei numeri e lascia pure le once nella descrizione.';
     let arr=null;
     for(let att=0;att<2&&!arr;att++){
       try{const t=await aiAskVision(q,photos);const o=parseAIJSON(t);
@@ -3194,29 +3604,29 @@ async function importPlanPhotosCore(){
     if(box)box.textContent="";genBoxVia();
     const tot=plan.map(d=>(d.meals||[]).reduce((a,m)=>a+m.o[0].k,0));
     const nAlt=plan.reduce((a,d)=>a+(d.meals||[]).reduce((x,m)=>x+Math.max(0,m.o.length-1),0),0);
-    if(!await dlgConfirm(tr("Piano letto dalle foto ✓")+"\n\n"+plan.map((d,i)=>d.day+trh(": {v1} pasti · ~{v2} kcal",{v1:(d.meals||[]).length,v2:tot[i]})).join("\n")+trh("\n\nAlternative trovate: {v1}\n\nControlla che i numeri abbiano senso (potrai correggere ogni pasto con ).\n\nOK = attiva questo piano",{v1:nAlt})))return;
-    snapSave("prima di: piano importato da foto");
-    try{S.ui.pianoOrigine="ai";}catch(e){} S.customPlan=plan;PLAN=plan;S.permMeals={};S.week=freshWeek();S.customShop=null;S.planW=S.profile.w;
+    if(!await dlgConfirm((daPdf?tr("Ricette lette dal PDF ✓"):tr("Ricette lette dalle foto ✓"))+"\n\n"+plan.map((d,i)=>d.day+trh(": {v1} pasti · ~{v2} kcal",{v1:(d.meals||[]).length,v2:tot[i]})).join("\n")+trh("\n\nAlternative trovate: {v1}\n\nControlla che i numeri abbiano senso (potrai correggere ogni pasto con ).\n\nOK = attiva questo piano",{v1:nAlt})))return;
+    snapSave(daPdf?"prima di: ricette importate da PDF":"prima di: ricette importate da foto");
+    try{S.ui.ricetteOrigine="ai";}catch(e){} S.ricette=plan;RICETTE=plan;S.permMeals={};S.week=freshWeek();S.customShop=null;S.ricetteW=S.profile.w;
     save();
     /* prima si finisce la lista della spesa, poi ci si sposta */
     genPassi(box,0,0);
     try{await genShop(true);}catch(e){}
     genPassi(box,0,2);await wait(500);
     if(box)box.textContent="";genBoxVia();
-    render("piano");show("piano");
-    toast(tr("Piano importato dalle foto ✓"));
-    await planForecast(true);
+    render("ricette");show("ricette");
+    toast(daPdf?tr("Ricette importate dal PDF ✓"):tr("Ricette importate dalle foto ✓"));
+    await stimaRicette(true);
   }catch(e){if(box)box.textContent="";genBoxVia();aiFail(e);}};
 /* ═══ STIMA DEI RISULTATI ════════════════════════════════════════
    Bilancio matematico del piano (media kcal vs fabbisogno + allenamenti
    pianificati) → kg/settimana e data stimata dell'obiettivo; poi, se
    l'AI è attiva, un giudizio qualitativo su sostenibilità e criticità. */
-window.planForecast=async(afterImport,noRetune)=>{
-  if(planIsEmpty())return dlgAlert(tr("Il piano è vuoto: prima creane o importane uno."));
+window.stimaRicette=async(afterImport,noRetune)=>{
+  if(ricetteVuote())return dlgAlert(tr("Il piano è vuoto: prima creane o importane uno."));
   const p=S.profile,t=tdeeTarget();
   /* stessa matematica dei totali mostrati nel Piano: tutte le portate (liberi e
      mensa compresi) e le modifiche permanenti, tramite plannedTemplateOfDay */
-  const days=PLAN.map((d,di)=>plannedTemplateOfDay(di).k).filter(k=>k>0);
+  const days=RICETTE.map((d,di)=>plannedTemplateOfDay(di).k).filter(k=>k>0);
   if(!days.length)return dlgAlert(tr("Nessun pasto con calorie nel piano: niente da stimare."));
   const avg=Math.round(days.reduce((a,b)=>a+b,0)/days.length);
   /* qui gli allenamenti contano: accorciano il tempo per arrivare all'obiettivo,
@@ -3245,8 +3655,8 @@ window.planForecast=async(afterImport,noRetune)=>{
   await dlgAlert(msg);
   if(reachable===false&&!noRetune){
     if(aiOn()){
-      if(await dlgConfirm(" "+tr("Con questo piano l'obiettivo {g} kg NON sembra raggiungibile: il bilancio {b}.\n\nMa sono un'AI e posso commettere errori: controlla tu i numeri della stima qui sopra.\n\nPosso ritararlo automaticamente modificando le grammature (i piatti restano gli stessi) verso ~{k} kcal al giorno, e poi rigenerare lista della spesa e stima.",{g:goalW,b:(needSurplus?tr("non è in surplus"):tr("non è in deficit")),k:dayTargetK()}),{ok:tr("Ritara il piano"),ko:tr("Mantieni com'è")})){
-        if(await retunePlan()){await genShop(true);return planForecast(afterImport,true);}
+      if(await dlgConfirm(" "+tr("Con questo piano l'obiettivo {g} NON sembra raggiungibile: il bilancio {b}.\n\nMa sono un'AI e posso commettere errori: controlla tu i numeri della stima qui sopra.\n\nPosso ritararlo automaticamente modificando le grammature (i piatti restano gli stessi) verso ~{k} kcal al giorno, e poi rigenerare lista della spesa e stima.",{g:((typeof pesoTxt==="function")?pesoTxt(goalW,1):goalW+" kg"),b:(needSurplus?tr("non è in surplus"):tr("non è in deficit")),k:dayTargetK()}),{ok:tr("Ritara il piano"),ko:tr("Mantieni com'è")})){
+        if(await ritaraRicette()){await genShop(true);return stimaRicette(afterImport,true);}
       }
     }
     return;
@@ -3262,11 +3672,11 @@ window.planForecast=async(afterImport,noRetune)=>{
    Quando la stima dice che l'obiettivo non è raggiungibile, l'utente può
    far ritarare il piano: i piatti restano gli stessi, cambiano SOLO le
    grammature, giorno per giorno, verso il target calorico dell'app. */
-window.retunePlan=async()=>{
+window.ritaraRicette=async()=>{
   if(!aiOn())return aiFail(new Error("nokey")),false;
   const target=dayTargetK(),protG=dayTargetP();
   snapSave("prima di: ritaratura del piano");
-  if(!S.customPlan){S.customPlan=JSON.parse(JSON.stringify(PLAN));PLAN=S.customPlan;}
+  if(!S.ricette){S.ricette=JSON.parse(JSON.stringify(RICETTE));RICETTE=S.ricette;}
   const box=genBox();
   /* La settimana da ritarare parte da OGGI, non dal lunedì: la ricalibratura
      si fa quando serve, anche di mercoledì, e deve coprire i 7 giorni
@@ -3275,9 +3685,9 @@ window.retunePlan=async()=>{
   try{
     for(let n=0;n<7;n++){
       const di=(start+n)%7;
-      if(box){box.style.display="block";genBoxMostra(box);box.textContent=trh(" Ritaro il giorno {v1} di 7 — {v2} verso ~{v3} kcal…\n⏳ Può volerci qualche minuto, abbi un po' di pazienza: l'AI mantiene i tuoi piatti e cambia solo le quantità.",{v1:(n+1),v2:PLAN[di].day,v3:target});}
+      if(box){box.style.display="block";genBoxMostra(box);box.textContent=trh(" Ritaro il giorno {v1} di 7 — {v2} verso ~{v3} kcal…\n⏳ Può volerci qualche minuto, abbi un po' di pazienza: l'AI mantiene i tuoi piatti e cambia solo le quantità.",{v1:(n+1),v2:RICETTE[di].day,v3:target});}
       const idx=[],list=[];
-      PLAN[di].meals.forEach((m,mi)=>{
+      RICETTE[di].meals.forEach((m,mi)=>{
         /* i pasti in mensa/fuori si ritarano solo se li prepari tu:
            altrimenti sono indicazioni generiche, non piatti con grammature */
         if(m.type!=="norm"&&!(m.type==="mensa"&&outTypeIsPorto()))return;
@@ -3290,14 +3700,14 @@ window.retunePlan=async()=>{
         try{const r=parseAIJSON(await aiAsk(q));if(Array.isArray(r)&&r.length===list.length)arr=r;}
         catch(e){if(att===1)throw e;}
       }
-      if(!arr)throw new Error(trh("giorno {v1} non ritarato: riprova",{v1:PLAN[di].day}));
-      arr.forEach((v,k)=>{const m=PLAN[di].meals[idx[k]];
+      if(!arr)throw new Error(trh("giorno {v1} non ritarato: riprova",{v1:RICETTE[di].day}));
+      arr.forEach((v,k)=>{const m=RICETTE[di].meals[idx[k]];
         m.o[0]={d:String(v.desc||m.o[0].d),k:Math.round(v.kcal)||m.o[0].k,p:Math.round(v.prot)||0,c:Math.round(v.carb)||0,f:Math.round(v.gras)||0,
           fib:Math.round(v.fibre)||estFiberOf(v.desc),z:Math.round(v.zuccheri)||estSugarOf(v.desc)};
         delete S.permMeals[di+"_"+idx[k]];});
     }
     S.customShop=null;S.shop={};   /* la spesa va ricalcolata sulle nuove grammature */
-    save();render("piano");
+    save();render("ricette");
     if(box)box.textContent="";genBoxVia();
     toast(tr("Piano ritarato sulle nuove grammature ✓"));
     return true;
@@ -3317,14 +3727,14 @@ function optLabel(o,oi){const m=String((o&&o.d)||"").match(SEASON_RE);
   return m[1]+" "+tr({"🌸":"Primaverile","☀️":"Estivo","🍂":"Autunnale","❄️":"Invernale"}[m[1]]||"Stagionale");}
 window.seasonalizePlan=async()=>{
   if(!aiOn())return aiFail(new Error("nokey"));
-  if(planIsEmpty())return dlgAlert(tr("Il piano è vuoto: prima creane o importane uno."));
+  if(ricetteVuote())return dlgAlert(tr("Il piano è vuoto: prima creane o importane uno."));
   const sea=seasonNow();
   if(!await dlgConfirm(seasonEmoji(sea)+" "+tr("Stagionalizzo il piano — stagione attuale: {s}.\n\nIl piano base resta com'è: per i pasti principali l'AI aggiunge un'ALTERNATIVA marcata {e} {l} con piatti e ingredienti di stagione (es. niente polenta e spezzatino d'estate, niente insalatone fredde d'inverno). Potrai scegliere l'opzione che preferisci pasto per pasto.\n\nLe alternative stagionali precedenti, di qualunque stagione, vengono sostituite.\n\n⏳ Può volerci qualche minuto.",{s:tr(sea),e:seasonEmoji(sea),l:seasonLabel(sea)})))return;
   const box=genBox();
   if(box){box.style.display="block";genBoxMostra(box);box.textContent=seasonEmoji(sea)+trh(" Sto preparando le alternative di stagione ({v1})…\n⏳ Può volerci qualche minuto, abbi un po' di pazienza.",{v1:sea});}
   try{
     const list=[];
-    PLAN.forEach(d=>(d.meals||[]).forEach(m=>{
+    RICETTE.forEach(d=>(d.meals||[]).forEach(m=>{
       if(m.type!=="norm")return;
       if(!/pranzo|cena/i.test(m.n||""))return;
       list.push({day:d.day,slot:m.n,piatto:m.o[0].d,kcal:m.o[0].k,prot:m.o[0].p});}));
@@ -3332,18 +3742,18 @@ window.seasonalizePlan=async()=>{
     const t=await aiAsk('Stagione attuale in Italia: '+sea+'. Questi sono i pranzi e le cene di un piano alimentare: '+JSON.stringify(list)+'. Per OGNI voce proponi UNA variante di stagione: un piatto adatto alla stagione ('+sea+') con ingredienti di stagione reperibili in un supermercato italiano, grammature indicate, kcal entro ±10% e proteine entro ±5 g rispetto al piatto originale. '+rulesForAI()+' Se un piatto è già perfettamente stagionale puoi ometterlo. Rispondi SOLO JSON array: [{"day":"Lunedì","slot":"Pranzo","d":"piatto con grammature","k":n,"p":n,"c":n,"f":n,"fib":n,"z":n}]');
     const arr=parseAIJSON(t);
     if(!Array.isArray(arr)||!arr.length)throw new Error("nessuna variante proposta");
-    if(!S.customPlan){S.customPlan=JSON.parse(JSON.stringify(PLAN));PLAN=S.customPlan;}
+    if(!S.ricette){S.ricette=JSON.parse(JSON.stringify(RICETTE));RICETTE=S.ricette;}
     snapSave("prima di: stagionalizzazione");
     let n=0;
     /* via le 🍂 vecchie, dentro le nuove */
-    PLAN.forEach(d=>(d.meals||[]).forEach(m=>{m.o=(m.o||[]).filter(o=>!SEASON_RE.test(o.d||""));}));
+    RICETTE.forEach(d=>(d.meals||[]).forEach(m=>{m.o=(m.o||[]).filter(o=>!SEASON_RE.test(o.d||""));}));
     arr.forEach(v=>{
-      const d=PLAN.find(x=>x.day===v.day);if(!d)return;
+      const d=RICETTE.find(x=>x.day===v.day);if(!d)return;
       const m=d.meals.find(x=>x.n===v.slot&&x.type==="norm");if(!m||!v.d)return;
       m.o.push({d:seasonEmoji(sea)+" "+String(v.d),k:Math.round(v.k)||0,p:Math.round(v.p)||0,c:Math.round(v.c)||0,f:Math.round(v.f)||0,
         fib:Math.round(v.fib)||estFiberOf(v.d),z:Math.round(v.z)||estSugarOf(v.d)});n++;});
     if(!n)throw new Error("nessuna variante applicabile");
-    save();render("piano");
+    save();render("ricette");
     if(box)box.textContent="";genBoxVia();
     dlgAlert(seasonEmoji(sea)+" "+tr("Aggiunte {n} alternative {t} ({s}) ✓",{n:n,t:seasonLabel(sea).toLowerCase(),s:tr(sea)})+trh("\n\nLe riconosci dall'etichetta {v1} {v2} tra le opzioni dei pasti: scegli quella che preferisci dal Piano o da Oggi. Il piano base resta intatto.",{v1:seasonEmoji(sea),v2:seasonLabel(sea)}));
   }catch(e){if(box)box.textContent="";genBoxVia();aiFail(e);}};
@@ -3351,7 +3761,7 @@ window.seasonalizePlan=async()=>{
    sempre (finiscono nell'esportazione e nell'analisi), ma non c'era un posto
    per rileggerle tutte insieme. */
 function notesCardHTML(){
-  const rows=flattenDiet().filter(d=>d.note&&String(d.note).trim()).reverse();
+  const rows=flattenDiario().filter(d=>d.note&&String(d.note).trim()).reverse();
   let h=`<div class="card"><h2>${tr("Le tue note")}</h2>
   ${hint2(tr("Tutto quello che hai scritto in <b>Nota del giorno</b>, dalla più recente."),tr("Le note vengono archiviate con la settimana, finiscono nel CSV e le legge l'AI in <b>Analizza i pattern</b> e nel report di fine settimana."))}`;
   if(!rows.length)h+=`<div class="hint">${trh("Ancora nessuna nota. La scrivi dalla tua pagina, in {b1}: fame, imprevisti, come ti sentivi.",{b1:"<b>"+tr("La giornata → Nota del giorno")+"</b>"})}</div></div>`;
@@ -3376,7 +3786,7 @@ function notesCardHTML(){
     h+=`</div><div class="hint">${trh("{v1} note in totale{v2}. Quelle della settimana in corso si correggono toccandole; per una vecchia: <b>Storico → Settimane passate → Modifica</b>.",{v1:rows.length,v2:(rows.length>120?tr(" (mostro le 120 più recenti)"):"")})}</div></div>`;}
   return h;}
 function exportCardHTML(){
-  const all=flattenDiet();
+  const all=flattenDiario();
   const first=all.length?all[0].date:iso(new Date()),last=all.length?all[all.length-1].date:iso(new Date());
   return `<div class="card"><h2>${tr("Esporta i dati")}</h2>
   <div class="hint">${trh("Una riga per giorno con {b} quello che inserisci e che l'app calcola: pianificato e mangiato, macro completi, sport, sonno, relax, umore, acqua, evento, periodo di dieta, ribilanciamenti e recuperi.",{b:"<b>"+tr("tutto")+"</b>"})} ${EXPORT_COLS.length} colonne.</div>
@@ -3395,7 +3805,7 @@ function extendedRecapHTML(){
   /* Riepilogo esteso v5.1: MEDIE per periodo (come il recap), su tutta la
      storia, in un riquadro scrollabile. Solo Settimanale e Mensile. */
   if(RECAP.mode!=="settimana"&&RECAP.mode!=="mese")RECAP.mode="settimana";
-  const days=flattenDiet();
+  const days=flattenDiario();
   const buckets={};
   days.forEach(d=>{let k;
     if(RECAP.mode==="mese")k=d.date.slice(0,7);
@@ -3453,7 +3863,7 @@ function weightsCardHTML(){const p=S.profile,W=(p.weights||[]);
     h+=`<div class="card"><h2>${tr("Andamento del peso")}</h2>
     <canvas id="chPesate" height="170"></canvas>
     <div class="hint">${trh("Ogni pesata registrata in {b} aggiunge un punto. La linea tratteggiata è l'obiettivo, se impostato.",{b:"<b>Io</b>"})}</div></div>`;
-  h+=`<div class="card"><h2>Pesate e biometriche</h2>`;
+  h+=`<div class="card"><h2>${tr("Pesate e biometriche")}</h2>`;
   if(!W.length)h+=`<div class="hint">${trh("Nessuna pesata registrata: la prima si aggiunge da {b}.",{b:"<b>Io → Nuova pesata</b>"})}</div></div>`;
   else{
     h+=`<div class="tbl-scroll"><table class="wtab"><tr>
@@ -3526,9 +3936,9 @@ function renderTools(){
   // Svuota-frigo — "⭐ I miei piatti" al posto di "Usa il testo"; "Usa il testo" sotto la casella
 
   h+=`<div class="card"><h2>Bilanciamento predittivo</h2>
-  ${hint2("Lo sgarro si gestisce <b>prima</b>.",tr("Dici quando e cosa mangerai; l'AI mette da parte quelle calorie con piccoli tagli sui pasti che restano. Le proteine non si toccano."))}
+  ${hint2(tr("Lo sgarro si gestisce <b>prima</b>."),tr("Dici quando e cosa mangerai; l'AI mette da parte quelle calorie con piccoli tagli sui pasti che restano. Le proteine non si toccano."))}
   <label>${tr("Quando sarà l'occasione?")}</label>
-  <div class="row2"><select id="predDay" onchange="predFillMeals()">${(function(){let o="";for(let k=di;k<7;k++){if(PLAN[k])o+=`<option value="${k}">${giorno(PLAN[k].day)}${k===di?" (oggi)":""}</option>`;}return o;})()}</select>
+  <div class="row2"><select id="predDay" onchange="predFillMeals()">${(function(){let o="";for(let k=di;k<7;k++){if(RICETTE[k])o+=`<option value="${k}">${giorno(RICETTE[k].day)}${k===di?" ("+tr("oggi")+")":""}</option>`;}return o;})()}</select>
   <select id="predMeal"></select></div>
   <label>${tr("Cosa prevedi di mangiare?")}</label>
   <textarea id="predWhat" placeholder="${tr("es. «pizza e birra», «cena aziendale al ristorante», «compleanno con torta»")}"></textarea>
@@ -3545,7 +3955,7 @@ function renderTools(){
        bicchieri: a chi ha risposto «mai» questo strumento sembrava
        scritto per qualcun altro, e una serata pesante senza alcol
        esiste eccome. */
-   (S.diet&&S.diet.alcol==="mai")
+   (S.pref&&S.pref.alcol==="mai")
   ?`<select id="dopoCome">
     <option value="una cena abbondante, fuori orario">${tr("una cena abbondante")}</option>
     <option value="pesante" selected>${tr("Pesante: cibo abbondante e tardi")}</option>
@@ -3572,7 +3982,7 @@ function renderTools(){
     <button class="btn small" onclick="frAdd()">Fotografa<span id="frN">${FR.length?" ("+FR.length+")":""}</span></button>
     <button class="btn ghost small" onclick="frAdd(true)">Galleria</button>
     <button class="btn small" onclick="frCreate(${di})">Crea</button>
-    <button class="btn ghost small" onclick="recModal(${di})">Piatti${S.recipes.length?" ("+S.recipes.length+")":""}</button>
+    <button class="btn ghost small" onclick="recModal(${di})">${tr("Piatti")}${S.recipes.length?" ("+S.recipes.length+")":""}</button>
   </div>
   
   <textarea id="fridgeIn" placeholder="…oppure scrivi: zucchine, uova, ricotta…"></textarea>
@@ -3605,7 +4015,7 @@ function renderTools(){
   <div class="mtools"><button class="btn small" onclick="coupleFork(${di})">${tr("Trova un compromesso")}</button></div>
   
   <div class="aibox" aria-live="polite" id="coupleOut" style="display:none"></div></div>`;
-  h+=`<div class="gsec">Al supermercato</div>`;
+  h+=`<div class="gsec">${tr("Al supermercato")}</div>`;
   h+=`<div class="card"><h2>Scaffale</h2>
   <div class="hint">${hint2(trh("Sei davanti a venti prodotti uguali e non sai quale prendere."),trh("{b2}: Nuvia legge le etichette, guarda la tua lista e le tue caratteristiche alimentari, e dice quale prendere, {b} e {b3} quello e non l'altro.",{b2:"<b>"+tr("Fotografa lo scaffale")+"</b>",b:"<b>quanto</b>",b3:"<b>"+tr("perché")+"</b>"}))}</div>
   <div class="btngrid3">
@@ -3674,6 +4084,10 @@ function renderStorico(){const el=document.getElementById("pg-storico");
   h+=`<!--SCHEDA:peso-->`;
   h+=(function(){try{return traguardiHTML();}catch(e){return "";}})();
   h+=`<!--SCHEDA:settimana-->`;
+  /* LA PROVA apre la scheda della settimana (v15.9.0): è il progresso
+     che conta più del peso — la promessa dell'app, misurata. Vive in
+     68_prova.js; se non c'è abbastanza vita registrata, non compare. */
+  h+=(function(){try{return (typeof provaHTML==="function")?provaHTML():"";}catch(e){return "";}})();
   {
     let rowsH="";
     /* Una riga per giorno, leggibile senza legenda: il giorno, una barra
@@ -3714,8 +4128,13 @@ function renderStorico(){const el=document.getElementById("pg-storico");
       return `<div class="hint"> vs settimana scorsa: deficit ${d1>=0?"+":""}${d1} kcal · proteine ${d2>=0?"+":""}${d2} g · peso ${d3>0?"+":""}${d3} kg</div>`;})():""}
     <div class="hint"> ${trh("A fine settimana l'archiviazione è {b}; le settimane chiuse restano modificabili con la matita qui sotto.",{b:"<b>automatica</b>"})}</div>
     <button class="btn ghost" onclick="waWeek()">WhatsApp</button>
-    <button class="btn ghost" onclick="printVisita()">${tr("Foglio per la visita")}</button>
     <button class="btn ghost" onclick="printReport()">Esporta report PDF</button></div>`;
+  /* IL FOGLIO PER LA VISITA ha una carta sua (v15.12.0): prima era un
+     bottone che stampava novanta giorni senza chiedere niente, ora si
+     sceglie il periodo, si raggruppa e si VEDE prima di stampare —
+     stampare per scoprire cosa esce è il modo più rapido di sprecare
+     un foglio. Vive in 69_visita.js. */
+  h+=(function(){try{return (typeof visitaCardHTML==="function")?visitaCardHTML():"";}catch(e){return "";}})();
   }
   h+=`<!--SCHEDA:analisi-->`;
   h+=extendedRecapHTML();
@@ -3788,7 +4207,7 @@ function renderStorico(){const el=document.getElementById("pg-storico");
   //  Mesi passati: riepilogo per mese chiuso, dalle settimane archiviate
   h+=`<!--SCHEDA:archivio-->`;
   {const ymNow=iso(new Date()).slice(0,7);
-   const md=flattenDiet().filter(d=>d.eat>0&&d.date.slice(0,7)<ymNow);
+   const md=flattenDiario().filter(d=>d.eat>0&&d.date.slice(0,7)<ymNow);
    const mb={};md.forEach(d=>{(mb[d.date.slice(0,7)]=mb[d.date.slice(0,7)]||[]).push(d);});
    const mkeys=Object.keys(mb).sort().reverse();
    if(mkeys.length){
@@ -3807,7 +4226,7 @@ function renderStorico(){const el=document.getElementById("pg-storico");
       <span>${new Date(wk.from).toLocaleDateString(dataLoc())} → ${new Date(wk.to).toLocaleDateString(dataLoc())}</span>
       <span style="color:var(--salvia)">−${wk.avgDef}/g</span></div><div class="hb">
       <span class="pill">${wk.avgEat} kcal medie</span><span class="pill">${wk.avgProt} g prot</span>
-      <span class="pill">${wk.totBurn} kcal sport</span><span class="pill">peso ${wk.weight} kg</span>`;
+      <span class="pill">${wk.totBurn} kcal sport</span><span class="pill">peso ${(typeof pesoTxt==="function")?pesoTxt(wk.weight,1):wk.weight+" kg"}</span>`;
     if(wk.ai&&wk.ai.report)h+=`<div class="aibox" aria-live="polite"> ${esc(wk.ai.report)}${wk.ai.corr?"\n\n "+esc(wk.ai.corr):""}</div>`;
     /* L'analisi non si genera più da sola alla chiusura: si chiede qui,
        quando si guarda la settimana e si ha voglia di leggerla. */
@@ -3892,7 +4311,7 @@ window.saveWeekEdit=(i)=>{
 let AN={mode:"settimana"};
 let ANCH={cal:null,weight:null,macro:null};
 /* Tutti i giorni (storico + settimana in corso) con data reale calcolata */
-function flattenDiet(){
+function flattenDiario(){
   const out=[];
   S.history.forEach(w=>{
     const base=safeDate((w.from||"")+"T12:00:00")||safeDate(w.from);
@@ -3900,7 +4319,7 @@ function flattenDiet(){
     (w.days||[]).forEach((d,i)=>{
     const dt=new Date(base.getTime());dt.setDate(dt.getDate()+i);
     out.push({date:iso(dt),eat:d.eat||0,prot:d.prot||0,c:d.c||0,f:d.f||0,fib:d.fib||0,z:d.z||0,
-      planK:d.planK||0,planP:d.planP||0,planC:d.planC||0,planF:d.planF||0,planFib:d.planFib||0,planZ:d.planZ||0,
+      prevK:d.prevK||0,prevP:d.prevP||0,prevC:d.prevC||0,prevF:d.prevF||0,prevFib:d.prevFib||0,prevZ:d.prevZ||0,
       def:d.def||0,burn:d.burn||0,tdee:d.tdee||0,
       sleep:d.sleep||0,relax:d.relax||0,feel:d.feel||0,water:d.water||0,
       cycle:!!d.cycle,lact:d.lact||"no",physK:d.physK||0,hungerAvg:d.hungerAvg||0,
@@ -3909,12 +4328,12 @@ function flattenDiet(){
       sgarri:d.sgarri||0,completed:!!d.completed,hard:isHard(iso(dt)),
       moved:0,rebalanced:!!d.rebalanced,recovered:d.recovered||0});});});
   const wkStart=new Date(S.week.started+"T12:00:00"),today=new Date();today.setHours(12,0,0,0);
-  PLAN.forEach((pd,di)=>{
+  RICETTE.forEach((pd,di)=>{
     const dt=new Date(wkStart);dt.setDate(dt.getDate()+di);
     if(dt>today)return;
     const e=eatenOfDay(di),pl=plannedOfDay(di),D=S.week.days[di];
     out.push({date:iso(dt),eat:e.k,prot:e.p,c:e.c||0,f:e.f||0,fib:e.fib||0,z:e.z||0,
-      planK:pl.k,planP:pl.p,planC:pl.c||0,planF:pl.f||0,planFib:pl.fib||0,planZ:pl.z||0,
+      prevK:pl.k,prevP:pl.p,prevC:pl.c||0,prevF:pl.f||0,prevFib:pl.fib||0,prevZ:pl.z||0,
       def:deficitOfDay(di),burn:burnedOfDay(di),tdee:tdeeOfDay(di),
       sleep:D.sleep||0,relax:D.relax||0,feel:D.feel||0,water:D.water||0,
       note:D.note||"",workouts:(D.workouts||[]).map(w=>w.sport+" "+w.min+"' "+(w.int||"media")),
@@ -3956,7 +4375,7 @@ function periodBounds(mode,n){
 function dietStartDate(){
   const ps=(S.periods||[]).filter(p=>p.start).sort((a,b)=>a.start<b.start?-1:1);
   if(ps.length){const d=safeDate(ps[0].start+"T12:00:00");if(d)return d;}
-  const rows=flattenDiet();
+  const rows=flattenDiario();
   if(rows.length){const d=safeDate(rows[0].date+"T12:00:00");if(d)return d;}
   return null;}
 function dietStartLabel(){const d=dietStartDate();
@@ -3974,7 +4393,7 @@ function bucketLabel(key,bucket){
   return dt.toLocaleDateString(dataLoc(),{day:"numeric",month:"short"});}
 function aggregateDiet(mode){
   const {from,to,bucket}=periodBounds(mode);
-  const all=flattenDiet().filter(d=>{const dt=new Date(d.date+"T12:00:00");return dt>=from&&dt<=to;});
+  const all=flattenDiario().filter(d=>{const dt=new Date(d.date+"T12:00:00");return dt>=from&&dt<=to;});
   const buckets={};
   all.forEach(d=>{const k=bucketKey(d,bucket);(buckets[k]=buckets[k]||[]).push(d);});
   const keys=Object.keys(buckets).sort();
@@ -4056,14 +4475,17 @@ function drawGoalProjection(){
   const keys=Array.from(new Set([...Object.keys(realByKey),...Object.keys(projByKey)])).sort();
   if(!keys.length){if(txt)txt.textContent="Aggiungi almeno una pesata per popolare la proiezione.";goalEmptyChart(cv);return;}
   const labels=keys.map(k=>new Date(k+"T12:00:00").toLocaleDateString(dataLoc(),{day:"numeric",month:"short",year:"2-digit"}));
-  const realData=keys.map(k=>realByKey[k]!=null?realByKey[k]:null);
-  const projData=keys.map(k=>projByKey[k]!=null?projByKey[k]:null);
-  const goalData=keys.map(()=>p.goalW);
+  /* i quattro dataset del grafico peso, vestiti UNA volta qui: chi
+     vive in libbre non deve leggere l'asse in chili */
+  const VN=(typeof pesoNum==="function")?pesoNum:(x)=>x;
+  const realData=keys.map(k=>realByKey[k]!=null?VN(realByKey[k],1):null);
+  const projData=keys.map(k=>projByKey[k]!=null?VN(projByKey[k],1):null);
+  const goalData=keys.map(()=>VN(p.goalW,1));
   // Media mobile a 7 giorni del peso reale (smussa le oscillazioni di acqua/glicogeno)
   const mavgByKey={};W.forEach(x=>{const dt=giornoDa(x.d).getTime();
     const win=W.filter(y=>{const t=giornoDa(y.d).getTime();return t<=dt&&t>=dt-7*864e5;});
     mavgByKey[iso(giornoDa(x.d))]=Math.round(win.reduce((a,y)=>a+y.w,0)/win.length*10)/10;});
-  const mavgData=keys.map(k=>mavgByKey[k]!=null?mavgByKey[k]:null);
+  const mavgData=keys.map(k=>mavgByKey[k]!=null?VN(mavgByKey[k],1):null);
   GOALCH=new Chart(cv,{type:"line",
     data:{labels,datasets:[
       {label:"Proiezione ideale",data:projData,borderColor:"#0A4E49",borderDash:[6,4],pointRadius:0,tension:0,spanGaps:true},
@@ -4075,7 +4497,7 @@ function drawGoalProjection(){
       scales:{x:{ticks:{font:{size:9},maxTicksLimit:8}},y:{ticks:{font:{size:9}}}}}});
   if(txt){const parts=[];
     if(simNow){if(simNow.stalled)parts.push(trh("Con dieta e obiettivi attuali il deficit si annulla prima di {v1}: servirebbe mangiare meno o muoversi di più.",{v1:((typeof pesoTxt==="function")?pesoTxt(p.goalW,1):p.goalW+" kg")}));
-      else parts.push("Stima: <b>"+p.goalW+" kg</b> intorno al <b>"+simNow.etaDate.toLocaleDateString(dataLoc(),{day:"numeric",month:"long",year:"numeric"})+trh("</b> (~{v1} giorni), ritmo non lineare.",{v1:simNow.etaDays}));}
+      else parts.push("Stima: <b>"+((typeof pesoTxt==="function")?pesoTxt(p.goalW,1):p.goalW+" kg")+"</b> intorno al <b>"+simNow.etaDate.toLocaleDateString(dataLoc(),{day:"numeric",month:"long",year:"numeric"})+trh("</b> (~{v1} giorni), ritmo non lineare.",{v1:simNow.etaDays}));}
     else parts.push("Sei già all'obiettivo o sotto: nessuna discesa da proiettare.");
     if(simNow&&simNow.pausa>0)parts.push(trh("La curva comprende <b>{v1} settimane di mantenimento</b> ({v2} giorni di deficit + {v3} di pausa): nei tratti piatti il peso resta fermo apposta. Allungano il percorso ma lo rendono sostenibile — si cambia in Regole → Fasi della dieta.",{v1:Math.round(simNow.pausa/7),v2:cycDefDays(),v3:cycMaintDays()}));
     // Delta reale-vs-ideale + tendenza (il divario si allarga o si chiude?)
@@ -4088,7 +4510,12 @@ function drawGoalProjection(){
           if(diff>0.3){trend=" — divario in <b>aumento</b> ";worsening=true;}
           else if(diff<-0.3)trend=" — divario in <b>diminuzione</b> ";
           else trend=" — divario <b>stabile</b>";}
-        parts.push("Scarto: reale "+last.w+" kg vs ideale "+proj+" kg → "+(delta<=0?("<b>"+Math.abs(delta)+" kg in anticipo</b>"):("<b>"+delta+" kg in ritardo</b>"))+trend+".");}}
+        /* IL GRAFICO SOTTO QUESTO TESTO ERA RESTATO IN CHILI ANCHE LUI
+           (vedi poco più sopra: realData/projData/mavgData/goalData
+           passano il dato grezzo a Chart.js) — sistemato lì, non qui:
+           un grafico si vestisse una volta sola, all'ingresso dei
+           dati, non a ogni etichetta */
+        parts.push("Scarto: reale "+((typeof pesoTxt==="function")?pesoTxt(last.w,1):last.w+" kg")+" vs ideale "+((typeof pesoTxt==="function")?pesoTxt(proj,1):proj+" kg")+" → "+(delta<=0?("<b>"+((typeof pesoTxt==="function")?pesoTxt(Math.abs(delta),1):Math.abs(delta)+" kg")+" in anticipo</b>"):("<b>"+((typeof pesoTxt==="function")?pesoTxt(delta,1):delta+" kg")+" in ritardo</b>"))+trend+".");}}
     if(worsening)parts.push("Il divario peggiora da qualche pesata: conviene chiedere all'AI un'analisi qui sotto per capire cosa aggiustare.");
     txt.innerHTML=parts.join(" ");}}
 window.drawGoalProjection=drawGoalProjection;
@@ -4096,7 +4523,7 @@ window.drawGoalProjection=drawGoalProjection;
    Confronta gruppi di giorni (sonno alto/basso, con/senza allenamento, umore
    alto/basso), escludendo i giorni difficili e quelli senza pasti registrati. */
 function computeCorrelations(){
-  const days=flattenDiet().filter(d=>!d.hard&&(d.eat||0)>0);
+  const days=flattenDiario().filter(d=>!d.hard&&(d.eat||0)>0);
   if(days.length<6)return {enough:false,n:days.length};
   const mean=arr=>arr.length?Math.round(arr.reduce((a,x)=>a+x,0)/arr.length):null;
   const goodSleep=days.filter(d=>d.sleep>=4),badSleep=days.filter(d=>d.sleep&&d.sleep<=2);
@@ -4122,7 +4549,7 @@ window.askCorrelations=async()=>{
   if(box){box.style.display="block";genBoxMostra(box);box.textContent="Sto cercando i pattern…";}
   try{
     const t=await aiAsk(trh("Sei un coach dati. Da questi confronti (medie di deficit e sgarri per gruppi di giorni: sonno alto/basso, con/senza allenamento, umore alto/basso) trova i PATTERN più utili e spiegali come CORRELAZIONI, non come causa certa. Italiano, max 5-6 frasi, niente elenchi puntati né markdown. Dati: {v1}. Concludi con UN suggerimento pratico. Se un gruppo ha pochi giorni (n<3) dichiara che è solo un indizio.",{v1:JSON.stringify(c)})+
-      (function(){const n=flattenDiet().filter(d=>d.note&&String(d.note).trim()).slice(-14);
+      (function(){const n=flattenDiario().filter(d=>d.note&&String(d.note).trim()).slice(-14);
         return n.length?" Note scritte dalla persona nei giorni recenti, usale per interpretare i numeri: "+n.map(d=>d.date+": "+String(d.note).slice(0,120)).join(" | "):"";})());
     if(box)box.textContent=t;
   }catch(e){if(box)box.style.display="none";genBoxVia();aiFail(e);}};
@@ -4140,17 +4567,17 @@ window.askProgress=async()=>{
     .map(w=>w.ai&&w.ai.report).filter(Boolean).slice(-4);
   const withMeals=all.filter(d=>(d.eat||0)>0);
   const avgReal=fld=>withMeals.length?Math.round(withMeals.reduce((a,x)=>a+(x[fld]||0),0)/withMeals.length):null;
-  const plan=plannedDietSummary();const TDEE=tdee();
+  const plan=riassuntoProposte();const TDEE=tdee();
   // Sport+passi: media giornaliera VERA sui giorni realmente tracciati (dal
   // diario completo, non dai bucket aggregati che diluirebbero/gonfierebbero),
   // così non prendo il dato grezzo di un singolo giorno.
-  const act=activityDailyAvg(flattenDiet().slice(-30));
-  const deficitDieta=TDEE-plan.kcal_giorno;
+  const act=activityDailyAvg(flattenDiario().slice(-30));
+  const deficitPrevisto=TDEE-plan.kcal_giorno;
   const payload={periodo:AN.mode,giorni_analizzati:all.length,
-    dieta_pianificata:{kcal_giorno:plan.kcal_giorno,proteine_g:plan.proteine_g,
-      deficit_dieta_giorno:deficitDieta,
+    proposte_pianificate:{kcal_giorno:plan.kcal_giorno,proteine_g:plan.proteine_g,
+      deficit_previsto_giorno:deficitPrevisto,
       sport_passi_media_giornaliera_kcal:act.media_giornaliera_kcal,giorni_considerati_per_sport:act.giorni_considerati,campione_sport_sufficiente:act.campione_sufficiente,
-      deficit_teorico_giorno:deficitDieta+(act.campione_sufficiente?act.media_giornaliera_kcal:0)},
+      deficit_teorico_giorno:deficitPrevisto+(act.campione_sufficiente?act.media_giornaliera_kcal:0)},
     tdee_kcal:TDEE,
     dati_reali:{giorni_con_pasti_registrati:withMeals.length,kcal_medie:avgReal("eat"),deficit_medio_reale:avgReal("def")},
     kcal_medie:avg("eat"),proteine_medie:avg("prot"),carboidrati_medi:avg("c"),grassi_medi:avg("f"),deficit_medio:avg("def"),
@@ -4161,7 +4588,7 @@ window.askProgress=async()=>{
   try{
     const t=await aiAsk("Sei un coach nutrizionale onesto e diretto. Analizza questi dati del periodo scelto dall'utente: "+JSON.stringify(payload)+
       ". Considera insieme: alimentazione (kcal/macro/deficit), andamento del peso, come si sente (sonno/relax/umore) e attività fisica svolta. Rispondi in italiano, MASSIMO 5-6 frasi, diretto e concreto, senza elenchi puntati e senza markdown. "+
-      "Per stime/proiezioni sul tempo per raggiungere l'obiettivo (1 kg grasso ≈ 7700 kcal): BASE dal deficit dieta = dieta_pianificata.deficit_dieta_giorno (TDEE − intake) se i dati reali sono pochi (meno di ~7 giorni con pasti); con abbastanza dati reali usa il ritmo di peso osservato o dati_reali.deficit_medio_reale. Aggiungi lo sport SOLO come dieta_pianificata.sport_passi_media_giornaliera_kcal (media giornaliera già pronta) e solo se campione_sport_sufficiente è true, mai col dato grezzo di un singolo giorno. "+
+      "Per stime/proiezioni sul tempo per raggiungere l'obiettivo (1 kg grasso ≈ 7700 kcal): BASE dal deficit dieta = proposte_pianificate.deficit_previsto_giorno (TDEE − intake) se i dati reali sono pochi (meno di ~7 giorni con pasti); con abbastanza dati reali usa il ritmo di peso osservato o dati_reali.deficit_medio_reale. Aggiungi lo sport SOLO come proposte_pianificate.sport_passi_media_giornaliera_kcal (media giornaliera già pronta) e solo se campione_sport_sufficiente è true, mai col dato grezzo di un singolo giorno. "+
       "Se noti che i risultati non stanno arrivando, PROPONI (mai imporre) un possibile aggiustamento generico, lasciando all'utente la decisione se e dove applicarlo nell'app; se i dati sono pochi per giudicare, dillo chiaramente invece di inventare conclusioni.");
     S.progressLog.push({t:new Date().toISOString(),period:AN.mode,text:t});save();renderProgressBox();
   }catch(e){if(box)box.style.display="none";genBoxVia();aiFail(e);}};
@@ -4182,7 +4609,7 @@ function renderProgressBox(){
 /* Riepilogo della dieta pianificata (cosa mangeresti seguendo il piano): media
    sui 7 giorni del piano. Serve per le proiezioni quando i pasti reali non sono
    ancora stati registrati (altrimenti i giorni "vuoti" darebbero deficit ~ TDEE). */
-function plannedDietSummary(){
+function riassuntoProposte(){
   let pk=0,pp=0,pc=0,pf=0;for(let di=0;di<7;di++){const o=plannedTemplateOfDay(di);pk+=o.k;pp+=o.p;pc+=(o.c||0);pf+=(o.f||0);}
   return {kcal_giorno:Math.round(pk/7),proteine_g:Math.round(pp/7),carboidrati_g:Math.round(pc/7),grassi_g:Math.round(pf/7)};}
 /* Sport + passi: MEDIA GIORNALIERA vera sul periodo tracciato (i giorni di
@@ -4196,7 +4623,7 @@ function activityDailyAvg(recent){
   return {giorni_considerati:nDays,giorni_con_attivita:activeDays,
     media_giornaliera_kcal:nDays?Math.round(totBurn/nDays):0,campione_sufficiente:nDays>=7};}
 function buildDiaryContext(){
-  const all=flattenDiet();
+  const all=flattenDiario();
   const recentAll=all.slice(-30);
   const hardCount=recentAll.filter(d=>d.hard).length;
   const recent=recentAll.filter(d=>!d.hard); // le giornate difficili non sporcano le medie
@@ -4205,15 +4632,15 @@ function buildDiaryContext(){
   // I giorni senza pasti segnati mostrerebbero deficit ~ TDEE e falserebbero tutto.
   const withMeals=recent.filter(d=>(d.eat||0)>0);
   const TDEE=tdee();
-  const plan=plannedDietSummary();
+  const plan=riassuntoProposte();
   // Deficit da DIETA (parte affidabile): TDEE − intake pianificato (senza sport).
-  const deficitDieta=TDEE-plan.kcal_giorno;
+  const deficitPrevisto=TDEE-plan.kcal_giorno;
   // Sport/passi come MEDIA GIORNALIERA (non il dato puro di oggi).
   const act=activityDailyAvg(recent);
   const sportAvg=act.media_giornaliera_kcal;
   // Nel deficit teorico lo sport si aggiunge SOLO se il campione è sufficiente,
   // altrimenti col dato di 1-2 giorni sballerebbe la stima.
-  const deficitTeorico=deficitDieta+(act.campione_sufficiente?sportAvg:0);
+  const deficitTeorico=deficitPrevisto+(act.campione_sufficiente?sportAvg:0);
   const realDeficit=withMeals.length?avgOf(withMeals,"def"):null;
   const workoutsCount={};recent.forEach(d=>(d.workouts||[]).forEach(w=>{const s=String(w).split(" ")[0];if(s)workoutsCount[s]=(workoutsCount[s]||0)+1;}));
   // Ritmo peso osservato (kg/settimana) dallo storico pesate, se abbastanza dati
@@ -4225,12 +4652,12 @@ function buildDiaryContext(){
     peso_attuale_kg:S.profile.w||null,
     kg_da_perdere:kgToGoal,
     tdee_kcal:TDEE,
-    dieta_pianificata:{kcal_giorno:plan.kcal_giorno,proteine_g:plan.proteine_g,carboidrati_g:plan.carboidrati_g,grassi_g:plan.grassi_g,
-      deficit_dieta_giorno:deficitDieta,
+    proposte_pianificate:{kcal_giorno:plan.kcal_giorno,proteine_g:plan.proteine_g,carboidrati_g:plan.carboidrati_g,grassi_g:plan.grassi_g,
+      deficit_previsto_giorno:deficitPrevisto,
       sport_passi_media_giornaliera_kcal:sportAvg,
       giorni_considerati_per_sport:act.giorni_considerati,giorni_con_attivita:act.giorni_con_attivita,campione_sport_sufficiente:act.campione_sufficiente,
       deficit_teorico_giorno:deficitTeorico,
-      spiegazione:trh("Deficit da dieta = TDEE({v1}) − intake({v2}) = {v3} kcal/giorno. Sport+passi vanno aggiunti come MEDIA GIORNALIERA ({v4} kcal su {v5} giorni, riposo incluso), non col valore di un singolo giorno; con pochi giorni consideralo occasionale. Deficit teorico = {v6} kcal/giorno.",{v1:TDEE,v2:plan.kcal_giorno,v3:deficitDieta,v4:sportAvg,v5:act.giorni_considerati,v6:deficitTeorico})},
+      spiegazione:trh("Deficit da dieta = TDEE({v1}) − intake({v2}) = {v3} kcal/giorno. Sport+passi vanno aggiunti come MEDIA GIORNALIERA ({v4} kcal su {v5} giorni, riposo incluso), non col valore di un singolo giorno; con pochi giorni consideralo occasionale. Deficit teorico = {v6} kcal/giorno.",{v1:TDEE,v2:plan.kcal_giorno,v3:deficitPrevisto,v4:sportAvg,v5:act.giorni_considerati,v6:deficitTeorico})},
     dati_reali:{giorni_con_pasti_registrati:withMeals.length,
       kcal_medie:withMeals.length?avgOf(withMeals,"eat"):null,
       proteine_medie_g:withMeals.length?avgOf(withMeals,"prot"):null,
@@ -4262,7 +4689,7 @@ window.askDiaryQuestion=async()=>{
   try{
     const t=await aiAsk("Sei l'assistente del diario alimentare/sportivo dell'utente. Rispondi alla sua domanda usando SOLO i dati qui sotto: "+JSON.stringify(ctx)+
       ". DOMANDA: \""+q+"\". REGOLE GENERALI: se la domanda NON riguarda alimentazione, peso, deficit, macronutrienti, allenamenti, obiettivi o progressi, rispondi ESATTAMENTE con la sola parola NON_PERTINENTE (in maiuscolo, senza altro). Altrimenti rispondi "+((typeof LANG!=="undefined"&&LANG==="en")?"in English":"in italiano")+", massimo 5-6 frasi, diretta e concreta, senza elenchi puntati e senza markdown. "+
-      "REGOLE PER LE PROIEZIONI (tempo per raggiungere l'obiettivo di peso): 1 kg di grasso ≈ 7700 kcal, quindi giorni ≈ kg_da_perdere × 7700 / deficit_giornaliero. Per il deficit_giornaliero: (1) BASE = dieta. Se dati_reali.giorni_con_pasti_registrati è basso (meno di ~7) usa dieta_pianificata.deficit_dieta_giorno (= TDEE − intake, il valore affidabile ~900); NON usare dati_reali.deficit_medio_reale_kcal né il TDEE puro (i giorni senza pasti segnati danno deficit ~ TDEE ed è fuorviante). Con abbastanza dati reali preferisci dati_reali.ritmo_peso_kg_settimana osservato o dati_reali.deficit_medio_reale_kcal. (2) SPORT+PASSI = extra. Aggiungilo SOLO come dieta_pianificata.sport_passi_media_giornaliera_kcal (media giornaliera già calcolata sui giorni tracciati, riposo incluso) e SOLO se campione_sport_sufficiente è true; con pochi giorni consideralo occasionale e non gonfiare il deficit col dispendio di un singolo giorno. Dichiara che è una proiezione indicativa e che il ritmo rallenta scendendo di peso. Se manca l'obiettivo peso dillo. "+
+      "REGOLE PER LE PROIEZIONI (tempo per raggiungere l'obiettivo di peso): 1 kg di grasso ≈ 7700 kcal, quindi giorni ≈ kg_da_perdere × 7700 / deficit_giornaliero. Per il deficit_giornaliero: (1) BASE = dieta. Se dati_reali.giorni_con_pasti_registrati è basso (meno di ~7) usa proposte_pianificate.deficit_previsto_giorno (= TDEE − intake, il valore affidabile ~900); NON usare dati_reali.deficit_medio_reale_kcal né il TDEE puro (i giorni senza pasti segnati danno deficit ~ TDEE ed è fuorviante). Con abbastanza dati reali preferisci dati_reali.ritmo_peso_kg_settimana osservato o dati_reali.deficit_medio_reale_kcal. (2) SPORT+PASSI = extra. Aggiungilo SOLO come proposte_pianificate.sport_passi_media_giornaliera_kcal (media giornaliera già calcolata sui giorni tracciati, riposo incluso) e SOLO se campione_sport_sufficiente è true; con pochi giorni consideralo occasionale e non gonfiare il deficit col dispendio di un singolo giorno. Dichiara che è una proiezione indicativa e che il ritmo rallenta scendendo di peso. Se manca l'obiettivo peso dillo. "+
       "ANALISI COSA FUNZIONA: se l'utente chiede come sta andando o cosa migliorare, confronta proiezione.delta_kg_vs_ideale (reale vs curva ideale: >0 sei indietro, <0 sei in anticipo) con gli allenamenti_per_tipo e le kcal reali per capire dove agire (dieta poco rispettata, poco movimento, deficit troppo blando…), proponendo senza imporre.");
     if(String(t).trim().toUpperCase().startsWith("NON_PERTINENTE")){
       if(box)box.textContent=" Posso rispondere solo a domande sui tuoi dati: alimentazione, peso, allenamenti, obiettivi e progressi.";
@@ -4380,69 +4807,14 @@ window.waWeek=()=>{const w=weekSummary();
      utile di un 100% ripulito.
    · SI DICE CHE LE STIME SONO STIME. Un professionista che scopre da
      sé che i numeri sono stimati smette di fidarsi di tutto il resto. */
-function datiVisita(){
-  const p=S.profile,fd=flattenDiet();
-  const gg=Math.max(1,+((S.ui||{}).visitaGiorni||90));
-  const periodo=fd.slice(-gg);
-  const conPasti=periodo.filter(d=>(d.eat||0)>0);
-  const difficili=periodo.filter(d=>d.hard).length;
-  const med=(arr,f)=>arr.length?Math.round(arr.reduce((a,x)=>a+(x[f]||0),0)/arr.length):null;
-  /* Aderenza = giorni dentro il target sui giorni registrati. Non sul
-     totale: chi non registra non ha "sbagliato", ha solo non registrato. */
-  const inTarget=conPasti.filter(d=>(d.def||0)>=0).length;
-  const ws=(p.weights||[]).filter(x=>x.w);
-  const primo=ws.length?ws[0]:null,ultimo=ws.length?ws[ws.length-1]:null;
-  const delta=(primo&&ultimo)?Math.round((ultimo.w-primo.w)*10)/10:null;
-  /* Ritmo settimanale reale: è il numero che un medico guarda per primo. */
-  let ritmo=null;
-  if(primo&&ultimo&&primo.d!==ultimo.d){
-    const sett=(Date.parse(ultimo.d)-Date.parse(primo.d))/(7*86400000);
-    if(sett>=1)ritmo=Math.round((ultimo.w-primo.w)/sett*100)/100;}
-  return {giorni:gg,registrati:conPasti.length,difficili,
-    aderenza:conPasti.length?Math.round(inTarget/conPasti.length*100):null,
-    kcal:med(conPasti,"eat"),prot:med(conPasti,"prot"),
-    carb:med(conPasti,"c"),gras:med(conPasti,"f"),fib:med(conPasti,"fib"),
-    tdee:med(conPasti,"tdee"),burn:med(periodo,"burn"),
-    allenamenti:periodo.reduce((a,d)=>a+((d.workouts||[]).length),0),
-    sonno:med(conPasti,"sleep"),umore:med(conPasti,"feel"),
-    pesoDa:primo?primo.w:null,pesoA:ultimo?ultimo.w:null,delta,ritmo,
-    misure:ws.slice(-6)};}
-window.datiVisita=datiVisita;
-
-window.printVisita=()=>{
-  busy(tr("Preparo il foglio per la visita…"));
-  const p=S.profile,v=datiVisita();
-  const nd=x=>(x==null?"–":x);
-  const bio=v.misure.map(x=>
-    `<tr><td>${giornoDa(x.d).toLocaleDateString(dataLoc())}</td><td>${x.w} kg</td>`+
-    `<td>${x.fat??"–"}</td><td>${esc(x.pa??"–")}</td><td>${x.spo2??"–"}</td></tr>`).join("");
-  const h=`<h1>${tr("Foglio per la visita")}</h1>
-  <div>${esc(p.name||tr("Paziente"))} · ${age()} ${tr("anni")} · ${p.h} cm · ${p.w} kg
-    ${p.goalW?" · "+tr("obiettivo")+" "+p.goalW+" kg":""} · ${fmtDate(new Date())}</div>
-  <h2>${trh("Ultimi {v1} giorni",{v1:v.giorni})}</h2>
-  <table>
-  <tr><th>${tr("Giorni registrati")}</th><td>${v.registrati} / ${v.giorni}${v.difficili?" · "+trh("{v1} dichiarati difficili",{v1:v.difficili}):""}</td></tr>
-  <tr><th>${tr("Aderenza al target")}</th><td>${v.aderenza==null?"–":v.aderenza+"%"} ${tr("(sui giorni registrati)")}</td></tr>
-  <tr><th>${tr("Energia media assunta")}</th><td>${nd(v.kcal)} kcal/${tr("giorno")}</td></tr>
-  <tr><th>${tr("Fabbisogno stimato")}</th><td>${nd(v.tdee)} kcal/${tr("giorno")}</td></tr>
-  <tr><th>${tr("Proteine · carboidrati · grassi · fibre")}</th><td>${nd(v.prot)} · ${nd(v.carb)} · ${nd(v.gras)} · ${nd(v.fib)} g</td></tr>
-  <tr><th>${tr("Attività fisica")}</th><td>${v.allenamenti} ${tr("sedute")} · ${nd(v.burn)} kcal/${tr("giorno")}</td></tr>
-  <tr><th>${tr("Sonno · umore (autovalutati 1-5)")}</th><td>${nd(v.sonno)} · ${nd(v.umore)}</td></tr>
-  </table>
-  <h2>${tr("Andamento del peso")}</h2>
-  <table>
-  <tr><th>${tr("Da")} → ${tr("a")}</th><td>${nd(v.pesoDa)} kg → ${nd(v.pesoA)} kg</td></tr>
-  <tr><th>${tr("Variazione")}</th><td>${v.delta==null?"–":(v.delta>0?"+":"")+v.delta+" kg"}</td></tr>
-  <tr><th>${tr("Ritmo settimanale")}</th><td>${v.ritmo==null?"–":(v.ritmo>0?"+":"")+v.ritmo+" kg/"+tr("settimana")}</td></tr>
-  </table>
-  ${bio?`<h2>${tr("Misure registrate")}</h2><table>
-  <tr><th>${tr("Data")}</th><th>${tr("Peso")}</th><th>${tr("Grasso %")}</th><th>${tr("Pressione")}</th><th>SpO2</th></tr>
-  ${bio}</table>`:""}
-  <p style="margin-top:16px;font-size:11.5px">${tr("Dati raccolti dalla persona con un diario alimentare. Le energie e i macronutrienti sono STIME calcolate da tabelle e da riconoscimento automatico: vanno lette come ordini di grandezza, non come misure. Questo foglio non contiene diagnosi né indicazioni terapeutiche.")}</p>
-  <p style="font-size:10.5px;color:#666">${tr("Generato con Nuvia · nuviahealth.app")}</p>`;
-  document.getElementById("printreport").innerHTML=h;
-  setTimeout(()=>{busyOff();window.print();},120);};
-
+/* ── IL FOGLIO PER LA VISITA VIVE IN 69_visita.js (v15.12.0) ─────
+   `datiVisita` e `printVisita` stavano qui e leggevano una finestra
+   fissa (`S.ui.visitaGiorni`, che nessuno impostava mai). Ora il
+   foglio ha periodo e raggruppamenti — primo passo del canale
+   nutrizionisti — e vive nel suo modulo. Sono stati TOLTI da qui,
+   non lasciati come doppione: nel monolite due `window.printVisita`
+   si sovrascrivono in silenzio, e vincerebbe l'ultimo caricato (la
+   lezione dei due `zenAttiva`, pagata a luglio). */
 /* Report PDF (Modalità Nuviazionista): costruisce una vista stampabile */
 /* Bannerino con rotella per le operazioni che non passano dall'AI
    (download, stampa): senza feedback sembra che il tocco non abbia funzionato. */
@@ -4460,16 +4832,22 @@ function busyOff(){const b=document.getElementById("aiSpin");if(!b)return;
      si dichiara che il file è pronto e decide la porta unica */
   aiFileOff();}
 window.printReport=()=>{busy("Preparo il report…");const p=S.profile,w=weekSummary();
-  const fd=flattenDiet();const last30=fd.slice(-30).filter(d=>!d.hard);
+  const fd=flattenDiario();const last30=fd.slice(-30).filter(d=>!d.hard);
   const wm=last30.filter(d=>(d.eat||0)>0);
   const avg=(arr,f)=>arr.length?Math.round(arr.reduce((a,x)=>a+(x[f]||0),0)/arr.length):"–";
   const ws=(p.weights||[]).filter(x=>x.w);
   const wchange=ws.length>=2?Math.round((ws[ws.length-1].w-ws[0].w)*10)/10:null;
   const woCount=last30.reduce((a,d)=>a+((d.workouts||[]).length),0);
   const sim=simulateWeightDescent(p.w,new Date());
+  /* Stesso discorso di printVisita: report per il professionista, ma
+     stampato dalla persona — segue le sue unità (28/08, audit unità). */
+  const pTxt=x=>(x==null?"–":((typeof pesoTxt==="function")?pesoTxt(x,1):x+" kg"));
+  const aTxt=x=>(x==null?"–":((typeof altTxt==="function")?altTxt(x):x+" cm"));
+  const pSeg=(d)=>{if(d==null)return "–";
+    const dt=pTxt(Math.abs(d));return (d>0?"+":d<0?"−":"")+dt;};
   let img="";try{if(typeof GOALCH!=="undefined"&&GOALCH&&GOALCH.toBase64Image){img='<h2>Andamento peso e proiezione</h2><img src="'+GOALCH.toBase64Image()+'" style="max-width:100%"/>';}}catch(e){}
   let h=`<h1>Report — ${esc(p.name||"Paziente")}</h1>
-  <div>${fmtDate(new Date())} · ${age()} anni · ${p.h} cm · ${p.w} kg${parseFloat(p.fatp)>0?" · grasso "+p.fatp+"% (magra "+(p.w*(1-p.fatp/100)).toFixed(1)+" kg)":""} · BMR ${bmr()} · TDEE ${tdee()}${p.goalW?" · obiettivo "+p.goalW+" kg (BMI "+bmiFor(p.goalW)+", "+bmiClass(bmiFor(p.goalW)).label+")":""}</div>
+  <div>${fmtDate(new Date())} · ${age()} anni · ${aTxt(p.h)} · ${pTxt(p.w)}${parseFloat(p.fatp)>0?" · grasso "+p.fatp+"% (magra "+pTxt(p.w*(1-p.fatp/100))+")":""} · BMR ${bmr()} · TDEE ${tdee()}${p.goalW?" · obiettivo "+pTxt(p.goalW)+" (BMI "+bmiFor(p.goalW)+", "+bmiClass(bmiFor(p.goalW)).label+")":""}</div>
   <h2>${tr("Riepilogo ultimi 30 giorni")}</h2><table>
   <tr><th>${tr("Giorni con pasti registrati")}</th><td>${wm.length}${last30.filter(d=>d.hard).length?" (esclusi "+fd.slice(-30).filter(d=>d.hard).length+" giorni difficili)":""}</td></tr>
   <tr><th>Kcal medie</th><td>${avg(wm,"eat")}</td></tr>
@@ -4478,16 +4856,16 @@ window.printReport=()=>{busy("Preparo il report…");const p=S.profile,w=weekSum
   <tr><th>Dispendio sport medio</th><td>${avg(last30,"burn")} kcal/g</td></tr>
   <tr><th>${tr("Allenamenti (30 gg)")}</th><td>${woCount}</td></tr>
   <tr><th>Sonno / Umore medi</th><td>${avg(wm,"sleep")} / ${avg(wm,"feel")}</td></tr>
-  <tr><th>${tr("Variazione peso registrata")}</th><td>${wchange!=null?(wchange>0?"+":"")+wchange+" kg":"–"}</td></tr>
+  <tr><th>${tr("Variazione peso registrata")}</th><td>${wchange!=null?pSeg(wchange):"–"}</td></tr>
   ${sim&&!sim.stalled?`<tr><th>${tr("Proiezione obiettivo")}</th><td>${trh("~{v1} giorni ({v2})",{v1:sim.etaDays,v2:sim.etaDate.toLocaleDateString(dataLoc())})}</td></tr>`:""}
   </table>
   ${img}
   <h2>Biometriche registrate</h2><table><tr><th>Data</th><th>Peso</th><th>Grasso %</th><th>Pressione</th><th>SpO2</th></tr>`;
-  p.weights.forEach(x=>h+=`<tr><td>${giornoDa(x.d).toLocaleDateString(dataLoc())}</td><td>${x.w} kg</td><td>${x.fat??"–"}</td><td>${esc(x.pa??"–")}</td><td>${x.spo2??"–"}</td></tr>`);
+  p.weights.forEach(x=>h+=`<tr><td>${giornoDa(x.d).toLocaleDateString(dataLoc())}</td><td>${pTxt(x.w)}</td><td>${x.fat??"–"}</td><td>${esc(x.pa??"–")}</td><td>${x.spo2??"–"}</td></tr>`);
   h+=`</table><h2>${tr("Settimana in corso")}</h2><table><tr><th>${tr("Giorno")}</th><th>Kcal</th><th>Prot</th><th>Sport</th><th>Sonno</th><th>Relax</th><th>Umore</th><th>Deficit</th><th>Note</th></tr>`;
   w.days.forEach(d=>h+=`<tr><td>${giorno(d.day)}</td><td>${d.eat}</td><td>${d.prot}g</td><td>${d.burn}</td><td>${d.sleep||"–"}</td><td>${d.relax||"–"}</td><td>${d.feel||"–"}</td><td>${d.def}</td><td>${esc(cap(d.note))}</td></tr>`);
   h+=`</table><h2>${tr("Storico settimane")}</h2><table><tr><th>Periodo</th><th>Kcal medie</th><th>Prot medie</th><th>Deficit medio</th><th>Peso</th></tr>`;
-  S.history.forEach(x=>h+=`<tr><td>${dateIT(x.from)} → ${dateIT(x.to)}</td><td>${x.avgEat}</td><td>${x.avgProt}g</td><td>−${x.avgDef}</td><td>${x.weight} kg</td></tr>`);
+  S.history.forEach(x=>h+=`<tr><td>${dateIT(x.from)} → ${dateIT(x.to)}</td><td>${x.avgEat}</td><td>${x.avgProt}g</td><td>−${x.avgDef}</td><td>${pTxt(x.weight)}</td></tr>`);
   h+=`</table><p style="margin-top:16px;font-size:11.5px">${tr("Generato dal Diario personale. Stime caloriche indicative — da validare col professionista.")}</p>`;
   document.getElementById("printreport").innerHTML=h;
   setTimeout(()=>{busyOff();window.print();},120);};

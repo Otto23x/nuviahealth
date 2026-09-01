@@ -116,7 +116,7 @@ const TRAGUARDI=[
   {k:"streak100", t:"Cento giorni in target",          quando:()=>(S.streak.count||0)>=100},
   {k:"pesata1",   t:"La prima pesata",                 quando:()=>((S.profile.weights||[]).length)>=1},
   {k:"pesate10",  t:"Dieci pesate segnate",            quando:()=>((S.profile.weights||[]).length)>=10},
-  {k:"piano1",    t:"Il primo piano della settimana",  quando:()=>!!S.customPlan&&!planIsEmpty()},
+  {k:"piano1",    t:"Il primo piano della settimana",  quando:()=>!!S.ricette&&!ricetteVuote()},
   {k:"missioni7", t:"Sette missioni completate",       quando:()=>Object.keys(gioco().missioni||{}).length>=7},
   {k:"settimana1",t:"La prima settimana archiviata",   quando:()=>((S.history||[]).length)>=1}
 ];
@@ -147,13 +147,11 @@ function traguardiControlla(){
   }
   return null;}
 window.traguardiControlla=traguardiControlla;
-/* La costellazione si controlla dove si controllano i traguardi: un
-   giro solo, e non c'è modo di dimenticarne uno dei due. */
-const _trgOrig=traguardiControlla;
-window.traguardiControlla=function(){
-  const r=_trgOrig.apply(this,arguments);
-  try{if(typeof costControlla==="function")costControlla();}catch(e){}
-  return r;};
+/* Qui c'era un secondo giro di controllo per la costellazione
+   (v15.5.0): la costellazione è confluita nella ruota, e la ruota si
+   controlla già a OGNI salvataggio (ruotaDopoSalvataggio, in 11_2).
+   Un terzo controllo qui sarebbe stato solo un posto in più in cui
+   dimenticarsi di lei. */
 
 function traguardiHTML(){
   const presi=traguardiRaggiunti();

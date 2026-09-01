@@ -72,7 +72,7 @@ function mealOpt(pdi,mi){const st=S.week.days[pdi].meals[mi];
   return planOpt(pdi,mi);}
 function assignedDay(pdi,mi){const st=S.week.days[pdi].meals[mi];return st.movedTo===-1?pdi:st.movedTo;}
 function dayItems(di){const items=[];
-  PLAN.forEach((pd,pdi)=>pd.meals.forEach((m,mi)=>{if(assignedDay(pdi,mi)===di){
+  RICETTE.forEach((pd,pdi)=>pd.meals.forEach((m,mi)=>{if(assignedDay(pdi,mi)===di){
     const st=S.week.days[pdi].meals[mi];const slot=st.movedAs||m.n;
     items.push({pdi,mi,slot,ord:SLOTS.indexOf(slot)<0?9:SLOTS.indexOf(slot)});}}));
   items.sort((a,b)=>a.ord-b.ord);return items;}
@@ -97,7 +97,7 @@ function skippedOfDay(di){return dayItems(di).filter(it=>S.week.days[it.pdi].mea
 function rawPlanOpt(pdi,mi){const st=S.week.days[pdi].meals[mi];
   const perm=S.permMeals[pdi+"_"+mi];
   if(perm&&st.opt===0)return perm;
-  return PLAN[pdi].meals[mi].o[st.opt]||PLAN[pdi].meals[mi].o[0];}
+  return RICETTE[pdi].meals[mi].o[st.opt]||RICETTE[pdi].meals[mi].o[0];}
 /* ═══ RISCALATURA FISIOLOGICA DELLE PORZIONI ═══════════════════════
    Ciclo, allattamento, gravidanza (in più) e movimento ridotto (in meno)
    NON riscrivono il piano: agiscono come un MOLTIPLICATORE calcolato sulle
@@ -107,7 +107,7 @@ function rawPlanOpt(pdi,mi){const st=S.week.days[pdi].meals[mi];
    Presupposto: il piano di base deve essere in stato NEUTRO, cioè scritto
    senza avere già conteggiato ciclo/allattamento/gravidanza. */
 function planBaseKOfDay(di){let k=0;
-  if(!S||!S.week||!S.week.days||!S.week.days[di]||!PLAN||!PLAN.length)return 0;
+  if(!S||!S.week||!S.week.days||!S.week.days[di]||!RICETTE||!RICETTE.length)return 0;
   dayItems(di).forEach(it=>{const o=rawPlanOpt(it.pdi,it.mi);k+=(o&&+o.k)||0;});return k;}
 function physFactor(di){
   const d=physDelta();if(!d)return 1;
@@ -154,10 +154,10 @@ function simulateWeightDescent(startW,startDate){
   const p=S.profile,goal=p.goalW;
   startW=startW||p.w;const start=startDate?new Date(startDate):new Date();start.setHours(12,0,0,0);
   if(!goal||!startW||startW<=goal)return null;
-  /* Senza un piano, plannedDietSummary() vale 0 e il deficit diventerebbe
+  /* Senza un piano, riassuntoProposte() vale 0 e il deficit diventerebbe
      il fabbisogno INTERO: la discesa risulterebbe due o tre volte più
      veloce del vero. In quel caso si usa il target calorico del giorno. */
-  let intake=+plannedDietSummary().kcal_giorno||0;
+  let intake=+riassuntoProposte().kcal_giorno||0;
   if(!(intake>0))intake=dayTargetK();
   intake=Math.max(kcalFloor(),intake);
   const dailyDeficitStart=Math.round(bmrForWeight(startW)*p.act)+plannedActivityBurnFor(startW)-intake;

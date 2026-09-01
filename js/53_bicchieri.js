@@ -146,6 +146,12 @@ window.bicchiereMolla=(di,i)=>{
   clearTimeout(PREMUTO);PREMUTO=null;
   setWater(di,i);};
 
+/* IL FOGLIO CHE IL FOUNDER HA CHIESTO CON MISURA STANDARD E KCAL
+   (28/08, terza passata): mostrava sempre ml. Ogni altra riga dei
+   bicchieri era stata vestita — questa, il foglio vero e proprio,
+   no. (Prima versione di questa correzione metteva il commento
+   DENTRO il template literal: finiva stampato nell'HTML davanti
+   all'utente — trovato dalla controprova del collaudo, non a occhio.) */
 function bevandaScegli(di,i){
   const ora=bicchiereTipo(di,i);
   sheetShow(tr("Cosa c'era nel bicchiere?"),
@@ -153,7 +159,7 @@ function bevandaScegli(di,i){
       `<button class="bevbtn${b.k===ora?" on":""}" onclick="bevandaSet(${di},${i},'${b.k}')">
          <span style="color:${b.c}">${bicchiereSVG(true,b.c)}</span>
          <b>${esc(bevandaNome(b.k))}</b>
-         <small>${b.ml} ml${b.gradi?" · "+String(b.gradi).replace(".",",")+"°":""}</small>
+         <small>${(typeof volumeTxt==="function")?volumeTxt(b.ml):b.ml+" ml"}${b.gradi?" · "+String(b.gradi).replace(".",",")+"°":""}</small>
          <small>${b.kcal?b.kcal+" kcal · ":""}${esc(bevandaIdro(b))}</small>
        </button>`).join("")}</div>
      <div class="hint">${tr("Le calorie entrano nella giornata. Per l'obiettivo d'acqua contano l'acqua e le bibite; la birra conta poco più di tre quarti, perché l'alcol fa perdere liquidi — vino, cocktail e superalcolici non contano.")}</div>`);}

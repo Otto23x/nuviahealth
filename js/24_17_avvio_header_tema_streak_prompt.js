@@ -123,10 +123,10 @@ function guideAnyCheck(){
    (registro I18N_RIFAI in 10_base) */
 let GUIDE_STEPS;
 (window.I18N_RIFAI=window.I18N_RIFAI||[]).push(function(){GUIDE_STEPS=[
- {id:"plan", t:tr("Genera o importa il piano"),done:()=>!!S.customPlan&&!planIsEmpty(),page:"piano",sel:'[onclick="planMoreSheet()"]'},
+ {id:"plan", t:tr("Chiedi o importa le ricette"),done:()=>!!S.ricette&&!ricetteVuote(),page:"ricette",sel:'[onclick="ricetteMoreSheet()"]'},
  {id:"check",t:tr("Spunta il primo pasto"),done:()=>guideAnyCheck(),page:"oggi",sel:".chk"},
  {id:"weigh",t:tr("Registra una pesata"),done:()=>(S.profile.weights||[]).some(x=>x&&x.w),page:"io",sel:'[onclick^="saveWeighIn"]'},
- {id:"scan", t:tr("Fotografa uno scontrino"),done:()=>(((S.pantry||{}).items)||[]).length>0,page:"piano",sel:'[onclick="scontrinoScan()"]'},
+ {id:"scan", t:tr("Fotografa uno scontrino"),done:()=>(((S.pantry||{}).items)||[]).length>0,page:"ricette",sel:'[onclick="scontrinoScan()"]'},
  {id:"drive",t:tr("Attiva il backup su Drive"),done:()=>!!(S.drive&&S.drive.on),page:"sistema",sel:'[onclick="driveConnect()"]'}];});
 window.I18N_RIFAI[window.I18N_RIFAI.length-1]();
 function guideActive(){
@@ -167,7 +167,7 @@ function guideCardHTML(){
    al primo incontro con un gesto non ovvio. Una sola per visita, mai
    insieme al faro, si chiudono con un tocco ovunque. */
 const GUIDE_TIPS=[
- {id:"ricetta", page:"piano", sel:".mname",
+ {id:"ricetta", page:"ricette", sel:".mname",
   t:"Tocca il titolo di un pasto per vederne la ricetta o modificarlo."},
  {id:"fame", page:"oggi", sel:".hungry", when:()=>guideAnyCheck(),
   t:"Dopo la spunta, di' che fame avevi: serve a tarare i pasti su di te."},
@@ -242,6 +242,11 @@ window.i18nDinamiche=function(){
      i DATI che si traducono a schermo passano dal registro, così i
      collaudi delle traduzioni li vedono e nessuna lingua può dirsene
      pronta senza averli tutti. */
+  /* i periodi e i raggruppamenti del foglio per la visita (v15.12.0):
+     stanno in VISITA_PERIODI/VISITA_GRUPPI e arrivano a tr() da una
+     variabile, come le frasi degli stati vuoti */
+  try{VISITA_PERIODI.forEach(x=>agg(x[1]));}catch(e){}
+  try{VISITA_GRUPPI.forEach(agg);}catch(e){}
   try{INTOL_LIST.forEach(agg);}catch(e){}
   /* le due liste nate con la separazione del 27/08: allergeni e
      terapie sono etichette che passano da tr() dentro una variabile */
@@ -251,9 +256,25 @@ window.i18nDinamiche=function(){
   try{OCC_LIST.forEach(agg);}catch(e){}
   try{PAT_LIST.forEach(x=>agg(x.l));}catch(e){}
   try{(typeof PROTO_LIST!=="undefined"?PROTO_LIST:[]).forEach(x=>agg(x.l));}catch(e){}
+  /* i ripieghi del piano Free (v15.21.0): arrivano a tr() da
+     `ALTERNATIVE`, cioè da una variabile — senza registro
+     risulterebbero orfani, e nessuno si accorgerebbe del giorno in
+     cui uno resta senza inglese */
+  try{Object.keys(ALTERNATIVE).forEach(k=>{agg(ALTERNATIVE[k].t);agg(ALTERNATIVE[k].eti);});}catch(e){}
+  /* le unità della tabella delle Regole (v15.21.0): il suffisso
+     arriva a tr() come argomento della funzione `num()`, quindi da
+     una variabile. «giorni» e «passi» sono le uniche italiane —
+     «%», «kcal», «g/kg» e «×» si scrivono uguale ovunque — ma
+     nel registro entrano SOLO queste due. Dichiarare anche le
+     altre sembrava più fedele, e invece rompeva due collaudi con la
+     stessa contraddizione: il registro pretende una traduzione per
+     ogni voce, e `t_lingua_contenuto` vieta le traduzioni-segnaposto
+     (valore uguale alla chiave). Una voce che non ha bisogno di
+     essere tradotta non va dichiarata traducibile. */
+  ["giorni","passi"].forEach(agg);
   try{SHOP_CATS.forEach(agg);SHOP.forEach(([c,items])=>items.forEach(agg));}catch(e){}
   try{SPORTS_DEFAULT.forEach(s=>agg(s.name));}catch(e){}
-  try{BASE_PLAN.forEach(d=>{agg(d.ctx);(d.meals||[]).forEach(m=>(m.o||[]).forEach(o=>agg(o.d)));});}catch(e){}
+  try{BASE_RICETTE.forEach(d=>{agg(d.ctx);(d.meals||[]).forEach(m=>(m.o||[]).forEach(o=>agg(o.d)));});}catch(e){}
   try{DIGIUNI&&Object.keys(DIGIUNI).forEach(k=>{agg(DIGIUNI[k].l);agg(DIGIUNI[k].d);});}catch(e){}
   /* etichette passate come argomento (tagChecksHTML, periodLabel, 40/59) */
   ["Integratori in uso","Il punto","La giornata","Il piano","La spesa",
@@ -318,10 +339,10 @@ function render(p){
      Con la ricerca per nome su window, una funzione mancante rende
      vuota una sola pagina invece di rompere tutta l'app: un guasto
      che resta piccolo invece di allargarsi. */
-  const NOMI={punto:"renderPunto",oggi:"renderOggi",piano:"renderPiano",
+  const NOMI={punto:"renderPunto",oggi:"renderOggi",ricette:"renderRicette",
     spesa:"renderSpesa",sport:"renderSport",comestai:"renderComeStai",
     storico:"renderStorico",mia:"renderMia",insieme:"renderInsieme",
-    io:"renderIo",ruota:"renderRuota",conto:"renderConto",costellazione:"renderCostellazione",sistema:"renderSistema",regole:"renderRegole",
+    io:"renderIo",ruota:"renderRuota",conto:"renderConto",documenti:"renderDocumenti",sistema:"renderSistema",regole:"renderRegole",
     tools:"renderTools",onb2:"renderOnb2",
     piani:"renderPiani",guida:"renderGuida",nuvia:"renderNuvia",
     setup:"renderSetup"};
@@ -398,7 +419,7 @@ function a11yLega(p){
 const REDUCED=window.matchMedia&&window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 /* Al primo avvio dopo l'aggiornamento la cache qualità può essere vuota:
    la riempiamo in sottofondo, senza toccare l'esperienza. */
-setTimeout(()=>{try{qPlanPrecompute();
+setTimeout(()=>{try{qRicettePrecompute();
 /* La proposta del ciclo: si affaccia dopo che l'app si è accesa, una
    volta sola, e solo se ha davvero imparato il ritmo. Mai all'apertura
    secca: la prima cosa che vedi aprendo l'app non può essere una
@@ -624,7 +645,10 @@ window.addEventListener("error",function(ev){
      se una runa richiedesse un tocco per accendersi, sarebbe una
      missione da accettare, cioè esattamente ciò che non facciamo. */
   try{ruotaControlla();}catch(e){}
-  try{setTimeout(()=>{try{contoAggiorna().then(()=>{try{prescrizioneApplica();render(cur);}catch(e){}});}catch(e){}},1500);}catch(e){}
+  /* dopo il conto: i parametri decisi dallo studio E le misure fatte
+     in studio (v15.13.0) — due cose diverse con la stessa vita: una
+     decisione e un fatto, entrambe firmate */
+  try{setTimeout(()=>{try{contoAggiorna().then(()=>{try{prescrizioneApplica();if(typeof misureStudioApplica==="function")misureStudioApplica();render(cur);}catch(e){}});}catch(e){}},1500);}catch(e){}
   try{setTimeout(()=>{try{pianiCarica();}catch(e){}},2500);}catch(e){}
   try{cobrandApplica();}catch(e){}
   /* Chi ha uno studio: si rimanda il riassunto (così l'operatore non
@@ -636,6 +660,19 @@ window.addEventListener("error",function(ev){
   try{/* Si apre SEMPRE sul Punto: è la pagina che dice come stai e cosa ti
        aspetta. Da lì si passa a Oggi con un tocco. */
     start=S.onboard.done?(S.profile.dob?"punto":"io"):"onb2";
+    /* ── I DOCUMENTI VENGONO PRIMA DI QUALUNQUE PAGINA (v15.7.0) ───
+       E valgono per TUTTI, non solo per chi arriva nuovo: anche chi
+       usa Nuvia da mesi deve accettare termini e informativa, perché
+       «li usavi già» non è un consenso e i documenti sono nuovi per
+       tutti. Chi aveva accettato una versione precedente trova la
+       schermata che glielo dice (legaleAggiornato), non una da
+       utente appena arrivato.
+       Il controllo sta QUI, all'avvio, e non dentro show(): show() è
+       il traffico interno dell'app, l'avvio è la porta. Chi non ha
+       accettato la porta non la passa, e l'unica altra cosa che
+       raggiunge è la pagina dei documenti — quelli che deve leggere
+       prima di accettarli. */
+    if(typeof legaleServe==="function"&&legaleServe())start="onb2";
     /* L'UNICA eccezione: chi si è composto la sua pagina E ha chiesto
        di aprirla per prima. Due condizioni esplicite, non una
        preferenza dedotta: cambiare il punto di partenza di un'app è

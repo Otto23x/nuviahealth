@@ -22,7 +22,7 @@ function shopQ(t){ // pulizia testo per la ricerca sul sito del supermercato
 window.subAI=async(txt,ci,ii)=>{
   if(!aiOn())return aiFail(new Error("nokey"));
   try{
-    const j=await aiQuiet(()=>aiAskJSON('Al supermercato è esaurito: "'+txt+'". Proponi 3 alternative acquistabili in un supermercato italiano, coerenti con le caratteristiche alimentari dichiarate, con quantità equivalente dal punto di vista nutrizionale. '+dietStr()+
+    const j=await aiQuiet(()=>aiAskJSON('Al supermercato è esaurito: "'+txt+'". Proponi 3 alternative acquistabili in un supermercato italiano, coerenti con le caratteristiche alimentari dichiarate, con quantità equivalente dal punto di vista nutrizionale. '+vincoliStr()+
       ' Rispondi SOLO JSON: {"alt":[{"prodotto":"nome con quantità","perche":"motivo in massimo 12 parole"}]}',"sub"));
     const alt=(j&&Array.isArray(j.alt)?j.alt:[]).filter(x=>x&&x.prodotto).slice(0,3);
     if(!alt.length)throw new Error("Nessuna alternativa utile");
@@ -42,7 +42,7 @@ async function sostituisciProdotto(ci,ii,vecchio,nuovo){
   S.shop={};save();render("spesa");
   const key=ingrKey(vecchio);
   const tocca=[];
-  PLAN.forEach((d,di)=>{(d.meals||[]).forEach((m,mi)=>{
+  RICETTE.forEach((d,di)=>{(d.meals||[]).forEach((m,mi)=>{
     const o=(m.o&&m.o[0])?m.o[0]:null;if(!o||!o.d)return;
     if(shopParts(o.d).some(part=>ingrKey(part)===key))tocca.push({di,mi,o,giorno:d.day,pasto:m.n});});});
   if(!tocca.length){toast(tr("Sostituito in lista ✓"));return;}
@@ -50,7 +50,7 @@ async function sostituisciProdotto(ci,ii,vecchio,nuovo){
       {ok:tr("Sì, aggiorna il piano"),ko:tr("No, solo la lista")}))return;
   const box=document.getElementById("shopOut");
   try{
-    const j=await aiAskJSON('In questi pasti sostituisci "'+vecchio+'" con "'+nuovo+'", adattando la grammatura per restare il più vicino possibile a kcal e proteine originali. Riscrivi la descrizione completa del piatto con tutte le grammature e ricalcola i valori REALI. '+dietStr()+
+    const j=await aiAskJSON('In questi pasti sostituisci "'+vecchio+'" con "'+nuovo+'", adattando la grammatura per restare il più vicino possibile a kcal e proteine originali. Riscrivi la descrizione completa del piatto con tutte le grammature e ricalcola i valori REALI. '+vincoliStr()+
       ' Pasti: '+JSON.stringify(tocca.map((t,i)=>({i,piatto:t.o.d,kcal:t.o.k,prot:t.o.p})))+
       ' Rispondi SOLO JSON: [{"i":indice,"d":"nuova descrizione","k":kcal,"p":prot,"c":carb,"f":grassi}]',"sostituzione");
     const arr=Array.isArray(j)?j:(j&&j.pasti);
@@ -66,16 +66,16 @@ async function sostituisciProdotto(ci,ii,vecchio,nuovo){
       t.o.fib=estFiberOf(t.o.d);t.o.z=estSugarOf(t.o.d);
       n++;});
     if(!n)throw new Error("Nessun pasto aggiornato");
-    S.customPlan=PLAN;pianoCambiato();save();render("spesa");
+    S.ricette=RICETTE;ricetteCambiate();save();render("spesa");
     dlgAlert(tr("Fatto: «{a}» è in lista e ha sostituito «{b}» in {c}{d} del piano. Le giornate si sono aggiornate di conseguenza.",{a:prodottoPrima(nuovo),b:prodottoPrima(vecchio),c:n,d:(n===1?" pasto":" pasti")}));
   }catch(e){aiFail(e);}}
 /* La lista base SHOP appartiene alla dieta standard: finché l'utente non ha un
    piano, la spesa resta vuota e si popola solo dopo la sincronizzazione. */
 const SHOPCUR=()=>{
   if(S.customShop)return S.customShop;      /* anche se svuotata del tutto: resta vuota */
-  if(planIsEmpty())return [];
-  if(!S.customPlan)return SHOP;             /* la lista base vale SOLO per il piano standard */
-  return buildShopFromPlan();               /* piano personalizzato: ingredienti del TUO piano */
+  if(ricetteVuote())return [];
+  if(!S.ricette)return SHOP;             /* la lista base vale SOLO per il piano standard */
+  return buildShopFromRicette();               /* piano personalizzato: ingredienti del TUO piano */
 };
 /* Genera la lista della spesa dal piano attuale (per i piani personalizzati) */
 /* Un solo comando per costruire la spesa: parte dagli ingredienti del piano e,
@@ -111,7 +111,7 @@ async function genShopCore(silent){
      piano: «si aggiorna da sola» deve valere per tutti, non solo per
      chi ha la chiave. */
   if(!aiOn()){
-    if(silent){try{if(!planIsEmpty()){S.customShop=buildShopFromPlan();S.shop={};save();if(cur==="spesa")render("spesa");}}catch(_){/* la lista resta quella di prima */}return null;}
+    if(silent){try{if(!ricetteVuote()){S.customShop=buildShopFromRicette();S.shop={};save();if(cur==="spesa")render("spesa");}}catch(_){/* la lista resta quella di prima */}return null;}
     return aiFail(new Error("nokey"));}
   if(!silent&&!await dlgConfirm(tr("Genero la lista della spesa dal piano attuale? Sostituisce quella corrente.")))return;
   try{
@@ -127,7 +127,7 @@ async function genShopCore(silent){
       try{
     const t=await conScadenza(aiAsk("Da questi pasti dei prossimi 7 giorni ("+shopWindowLabel()+") crea la lista della spesa SETTIMANALE"+dispensaForShop()+((!shopForMe()&&(S.family||[]).length)?" per "+(Math.round(famUnits()*100)/100)+" porzioni di riferimento (donna adulta=1, uomo=1,25, adolescente=1,10, bambino=0,75, infante=0,50)":" per UNA persona")+
       " con le quantita totali stimate. Sono già esclusi i pasti in mensa e quelli fuori casa: non aggiungere nulla per quelli. Raggruppa gli stessi ingredienti in una voce sola con la quantità totale della settimana. "+
-      "Scrivi SOLO il nome del prodotto e la quantità totale della settimana, senza formati commerciali, senza numero di confezioni e senza indicazioni fra parentesi su come distribuirla: chi compra sa già come si vende. "+dietStr()+" Non inserire alimenti incompatibili con l'impostazione alimentare, le intolleranze o le esclusioni dichiarate. Usa ESCLUSIVAMENTE queste categorie, nell'ordine dato, saltando quelle vuote: "+JSON.stringify(SHOP_CATS)+". Ogni prodotto va nella categoria giusta per la sua natura (es. lo yogurt in 'Uova e latticini', il pane in 'Cereali, pane e derivati', le patate in 'Verdura'). Rispondi SOLO con un JSON array di coppie [categoria, [prodotti]]. Pasti: "+JSON.stringify(meals)));
+      "Scrivi SOLO il nome del prodotto e la quantità totale della settimana, senza formati commerciali, senza numero di confezioni e senza indicazioni fra parentesi su come distribuirla: chi compra sa già come si vende. "+vincoliStr()+" Non inserire alimenti incompatibili con l'impostazione alimentare, le intolleranze o le esclusioni dichiarate. Usa ESCLUSIVAMENTE queste categorie, nell'ordine dato, saltando quelle vuote: "+JSON.stringify(SHOP_CATS)+". Ogni prodotto va nella categoria giusta per la sua natura (es. lo yogurt in 'Uova e latticini', il pane in 'Cereali, pane e derivati', le patate in 'Verdura'). Rispondi SOLO con un JSON array di coppie [categoria, [prodotti]]. Pasti: "+JSON.stringify(meals)));
     const o=parseAIJSON(t);
     if(!Array.isArray(o)||!o.length)throw new Error("formato non valido");
     /* La pulizia era scritta due volte, qui e in normSpesaAI, e solo
@@ -490,7 +490,7 @@ window.vaiPasto=(pdi,mi)=>{
     el.style.boxShadow="0 0 0 3px var(--menta),0 10px 26px -18px rgba(12,31,23,.3)";
     setTimeout(()=>{el.style.boxShadow="";},1800);
   },260);};
-window.planMoreSheet=()=>{
+window.ricetteMoreSheet=()=>{
   /* Le azioni rare (rifare o importare il piano) stanno in un pannello:
      la card resta pulita e ogni voce porta con sé la sua spiegazione,
      così il glossario a parte non serve più. */
@@ -499,22 +499,22 @@ window.planMoreSheet=()=>{
       <b>Alternativa stagionale</b>
       <small>${tr("Aggiunge a ogni pasto un'opzione con ingredienti di stagione, senza toccare il piano base.")}</small>
     </button>
-    <button class="shrow" onclick="sheetClose();genPlanAI()">
-      <b>${tr("Genera nuovo piano")}</b>
-      <small>${tr("L'AI costruisce sette giorni su misura per i tuoi obiettivi. Sostituisce il piano attuale.")}</small>
+    <button class="shrow" onclick="sheetClose();genRicetteAI()">
+      <b>${tr("Chiedi nuove ricette")}</b>
+      <small>${tr("L'AI ti propone sette giorni di ricette in linea con i tuoi obiettivi. Prendono il posto delle proposte attuali, e ogni piatto resta tuo da cambiare.")}</small>
     </button>
     <button class="shrow" onclick="sheetClose();importPlanPhotos()">
-      <b>Importa da foto</b>
-      <small>${tr("Fotografa un piano su carta o PDF: l'AI lo trascrive dentro l'app.")}</small>
+      <b>${tr("Importa quelle che hai")}</b>
+      <small>${tr("Il PDF del nutrizionista, o le foto di un foglio: l'AI lo trascrive dentro l'app.")}</small>
     </button>
     <button class="shrow" onclick="sheetClose();vaiScontrino()">
-      <b>${tr("Piano dalla spesa")}</b>
+      <b>${tr("Ricette dalla spesa")}</b>
       <small>${tr("Dallo scontrino ai giorni di piano: si usa quello che hai comprato, e ciò che manca finisce in lista della spesa.")}</small>
     </button>`);};
 window.vaiScontrino=()=>{
-  show("piano");
+  show("ricette");
   setTimeout(()=>{
-    const c=[...document.querySelectorAll("#pg-piano .card h2")].find(x=>/Scontrino e dispensa/.test(x.textContent));
+    const c=[...document.querySelectorAll("#pg-ricette .card h2")].find(x=>/Scontrino e dispensa/.test(x.textContent));
     if(!c)return;
     const card=c.closest(".card");
     portaInVista(card);
@@ -566,7 +566,7 @@ function freshDays(nome){
   return null;}   /* null = confezionato o lunga durata: fuori dal conto */
 /* Gli slot che l'utente ha davvero scelto: 5 pasti ⇒ 35 posizioni in 7 giorni */
 function planSlots(){
-  const raw=String((S.diet&&S.diet.slots)||"Colazione, Metà mattina, Pranzo, Metà pomeriggio, Cena");
+  const raw=String((S.pref&&S.pref.slots)||"Colazione, Metà mattina, Pranzo, Metà pomeriggio, Cena");
   const chosen=parseSlots(raw).filter(x=>SLOTS.indexOf(x)>-1);
   return chosen.length?SLOTS.filter(x=>chosen.indexOf(x)>-1):["Colazione","Pranzo","Cena"];}
 const SLOT_HOUR={"Colazione":8,"Metà mattina":10.5,"Pranzo":13,"Metà pomeriggio":16.5,"Tardo pomeriggio":18.5,"Cena":20,"Dopo cena":22};
@@ -639,7 +639,7 @@ window.pantryCucina=async()=>{
       "NON sei obbligato a usare tutto: se un alimento farebbe sforare le calorie o sbilanciare i macro, lascialo in dispensa e segnalalo nel campo nota. La priorità sono i target, non finire la spesa. "+
       "Fermati quando gli alimenti non bastano più: è normale coprire meno di sette giorni, NON inventare alimenti che non ho. "+
       "Se per completare o bilanciare i giorni servono alimenti che non ho (una fonte proteica, verdura, una base), elencali in manca come acquisti suggeriti, ordinati per importanza. "+
-      "Indica sempre le grammature. "+rulesForPlan()+
+      "Indica sempre le grammature. "+regoleRicette()+
       " Rispondi SOLO con questo JSON: {\"giorni\":[{\"n\":1,\"giorno\":\"Mercoledì\",\"pasti\":[{\"nome\":\"\",\"piatto\":\"\",\"kcal\":0,\"prot\":0}]}],\"cuoci_e_congela\":[{\"alimento\":\"\",\"ora\":\"\",\"congela\":\"\",\"per\":\"\"}],\"manca\":[\"\"],\"nota\":\"\"}");
     const j=parseAIJSON(t);
     if(!j||!Array.isArray(j.giorni)||!j.giorni.length)throw new Error("Non sono riuscito a costruire i pasti");
@@ -672,7 +672,7 @@ window.pantryCucina=async()=>{
    arrotondamento ai formati del supermercato, ma la lista c'è. Restare
    senza spesa perché un server è occupato non è accettabile. */
 async function shopRipiego(e,silent){
-  const locale=(function(){try{return buildShopFromPlan();}catch(_){return [];}})();
+  const locale=(function(){try{return buildShopFromRicette();}catch(_){return [];}})();
   if(!locale.length){if(!silent)aiFail(e);return;}
   const perche=aiReason(e);
   if(!silent&&!await dlgConfirm(tr("L'AI non è riuscita a preparare la lista ({a}).\n\nPosso calcolarla direttamente dagli ingredienti del piano: le quantità restano quelle esatte dei pasti. Al prossimo cambiamento del piano si riallinea da sola.",{a:esc(perche)}),
@@ -795,7 +795,7 @@ function dispensaForShop(){
 function shopWindow(){
   const t=wd(new Date()),out=[];
   for(let n=0;n<7;n++){
-    const di=(t+n)%7;const d=PLAN[di];if(!d)continue;
+    const di=(t+n)%7;const d=RICETTE[di];if(!d)continue;
     (d.meals||[]).forEach(function(m,mi){
       if(n===0){const st=S.week.days[di]&&S.week.days[di].meals[mi];
         if(st&&(st.done||st.skip))return;}
@@ -803,19 +803,19 @@ function shopWindow(){
   return out;}
 function shopWindowLabel(){
   const t=wd(new Date());
-  return PLAN[t]?trh("da {v1} a {v2}",{v1:giorno(PLAN[t].day),v2:giorno(PLAN[(t+6)%7].day)}):tr("7 giorni");}
+  return RICETTE[t]?trh("da {v1} a {v2}",{v1:giorno(RICETTE[t].day),v2:giorno(RICETTE[(t+6)%7].day)}):tr("7 giorni");}
 /* Quando il piano cambia, la lista della spesa è vecchia: rifarla a
    mano era un pulsante in più da ricordarsi. Si rifà da sé, tenendo le
    spunte già fatte sui prodotti che restano. */
 let _shopTimer=null;
-function pianoCambiato(){
-  qPlanPrecompute();          /* qualità dei piatti: si ricalcola solo ciò che manca */
+function ricetteCambiate(){
+  qRicettePrecompute();          /* qualità dei piatti: si ricalcola solo ciò che manca */
   clearTimeout(_shopTimer);
   _shopTimer=setTimeout(()=>{
     try{
-      if(planIsEmpty())return;
+      if(ricetteVuote())return;
       const prese=Object.assign({},S.shop||{});
-      S.customShop=buildShopFromPlan();
+      S.customShop=buildShopFromRicette();
       S.shop={};
       /* le spunte sopravvivono se il prodotto è ancora in lista */
       (S.customShop||[]).forEach((c,ci)=>(c[1]||[]).forEach((it,ii)=>{
@@ -824,7 +824,7 @@ function pianoCambiato(){
       if(cur==="spesa")render("spesa");
     }catch(e){}
   },700);}
-function buildShopFromPlan(){
+function buildShopFromRicette(){
   const order=SHOP_CATS,acc={},seq=[];
   const fact=shopForMe()?1:Math.max(1,famUnits());
   shopWindow().forEach(function(w){const d=w.d,m=w.m;
@@ -850,9 +850,9 @@ function buildShopFromPlan(){
 /* Insieme normalizzato di tutte le voci di una lista, per confrontarle */
 function shopItemSet(arr){const m={};(arr||[]).forEach(([,items])=>items.forEach(it=>{m[ingrKey(it)]=it;}));return m;}
 /* Sincronizza la lista con il piano: mostra le differenze e chiede conferma */
-window.syncShopFromPlan=()=>{
-  if(planIsEmpty())return dlgAlert(tr("Non c'è ancora un piano da cui calcolare la spesa.\n\nGenera o carica un piano dalla sezione Regole, poi torna qui."));
-  const next=buildShopFromPlan();
+window.syncShopFromRicette=()=>{
+  if(ricetteVuote())return dlgAlert(tr("Non c'è ancora un piano da cui calcolare la spesa.\n\nGenera o carica un piano dalla sezione Regole, poi torna qui."));
+  const next=buildShopFromRicette();
   if(!next.length)return dlgAlert(tr("Nessun ingrediente ricavabile dal piano."));
   const cur=shopItemSet(SHOPCUR());const nw=shopItemSet(next);
   const added=Object.keys(nw).filter(k=>!cur[k]).map(k=>nw[k]);
@@ -890,7 +890,7 @@ window.removeShopItem=async (ci,ii)=>{
    il resto c'è la sezione Extra in fondo alla lista. */
 /* «Nuova categoria» e «Ripristina dal piano» non servono più: le
    categorie le decide la lista costruita dal piano, e l'allineamento
-   al piano avviene da solo a ogni modifica (pianoCambiato). */
+   al piano avviene da solo a ogni modifica (ricetteCambiate). */
 
 /* ═══ I TUOI SUPERMERCATI ═══════════════════════════════════════════
    Nessun indirizzo predefinito: l'app non sa e non indovina come è fatto
@@ -1049,6 +1049,7 @@ function renderSpesa(){const el=document.getElementById("pg-spesa");
     <label class="ck"><input type="radio" name="shopFor" ${shopForMe()?"checked":""} onchange="shopForSet('me')"> ${tr("Solo per me")}</label>
     <label class="ck"><input type="radio" name="shopFor" ${!shopForMe()?"checked":""} onchange="shopForSet('fam')"> ${trh("Tutta la famiglia ({v1} porz.)",{v1:Math.round(famUnits()*100)/100})}</label>
   </div>`:""}
+  ${budgetSpesaHTML()}
   <div class="btngrid2">
     <button class="btn ghost small" onclick="resetShop()">${tr("Pulisci le spunte")}</button>
     <button class="btn ghost small" onclick="waShop()">Manda su WhatsApp</button>
@@ -1056,7 +1057,7 @@ function renderSpesa(){const el=document.getElementById("pg-spesa");
   <div class="hint" style="margin-top:8px">${trh("Copre i {b} ({v1}). Si aggiorna da sola quando cambi il piano.",{b:"<b>"+tr("7 giorni da oggi")+"</b>",v1:esc(shopWindowLabel())})}</div></div>`;
   if(!SHOPCUR().length)h+=`<div class="card" style="text-align:center">
     <h2 style="margin-top:4px">Lista vuota</h2>
-    <div class="hint">${planIsEmpty()
+    <div class="hint">${ricetteVuote()
       ?"La lista si costruisce dal piano: appena avrai un piano attivo, la spesa della settimana comparirà qui da sola."
       :"Hai tolto tutto a mano. La lista si riallinea al piano al prossimo cambiamento del piano, oppure aggiungi i prodotti con ＋."}</div></div>`;
   const rigaShop=(id,it,delFn,ci,ii)=>{const c=S.shop[id];   /* ci/ii: posizione in lista, serve alla sostituzione */
@@ -1096,11 +1097,84 @@ window.removeShopExtra=(ii)=>{
 /* I formati commerciali aiutano chi non vuole sprechi, ma allungano
    ogni riga con «(2 confezioni da 80 g)» e a chi fa la spesa da anni
    danno solo fastidio. Si sceglie. */
+/* ═══ IL BUDGET DELLA SPESA, DOVE SI FA LA SPESA ═══════════════════
+   RICHIESTA DEL FOUNDER (29/08): «Budget della spesa non può essere
+   sia medio che un numero, l'utente si confonde: il numero mettilo in
+   Spesa, non nell'onboarding. E considera sempre — e aiuta l'utente a
+   considerare — il numero di persone per cui deve fare la spesa
+   quando mette un budget, con degli esempi in base al contesto anno e
+   luogo in cui si trova.»
+
+   Tre cose, tutte giuste:
+
+   1. UNA DOMANDA SOLA PER VOLTA. Nel percorso guidato restava la
+      tendina (Contenuto/Medio/Senza limiti), che si risponde a
+      memoria; la cifra esatta è un'altra domanda, e sta qui.
+
+   2. LA CIFRA VIVE ACCANTO A CIÒ CHE LA CONSUMA. Qui c'è la lista
+      che quella cifra deve pagare, e qui c'è già «per chi fai la
+      spesa»: le due domande si guardano.
+
+   3. PER QUANTE PERSONE. Era il buco vero: 60 euro a settimana per
+      una persona e 60 per una famiglia di quattro sono due mondi, e
+      il modello riceveva solo «60 EUR». Adesso riceve anche le
+      porzioni, e la persona vede la stessa divisione che vede il
+      modello.
+
+   SUGLI «ESEMPI IN BASE AL CONTESTO»: qui NON si scrivono prezzi.
+   Un listino cablato invecchia in silenzio e vale per un paese solo,
+   e questa app vive in 86 paesi. Quello che si mostra è l'ARITMETICA
+   — quanto resta a persona al giorno — che è vera ovunque e che è la
+   cosa con cui una persona giudica davvero se la cifra sta in piedi.
+   Il contesto (paese, anno, valuta, e adesso le porzioni) va al
+   modello, che i prezzi di quel posto li conosce meglio di una
+   tabella scritta da noi: è la stessa scelta già presa per le valute
+   il 28/08, e per la stessa ragione. */
+function budgetPorzioni(){
+  try{
+    if(shopForMe())return 1;
+    const u=(typeof famUnits==="function")?famUnits():1;
+    return Math.max(1,Math.round(u*100)/100);
+  }catch(e){return 1;}}
+window.budgetPorzioni=budgetPorzioni;
+
+function budgetSpesaHTML(){
+  const val=(S.pref&&+S.pref.budgetCifra>0)?+S.pref.budgetCifra:0;
+  const cur=(typeof laValuta==="function")?laValuta()[0]:"EUR";
+  const porz=budgetPorzioni();
+  let conto="";
+  if(val>0){
+    const perGiorno=val/7/porz;
+    /* due decimali, e la virgola segue la LINGUA come ovunque */
+    const n=(x)=>{const s=(x>=10?Math.round(x):Math.round(x*10)/10).toFixed(x>=10?0:1);
+      return (typeof dec2loc==="function")?dec2loc(s):s;};
+    conto=`<div class="hint" style="margin-top:8px">`+
+      trh("Fanno circa {v1} {v2} a persona al giorno, su {v3}.",
+        {v1:n(perGiorno),v2:esc(cur),v3:(porz===1?tr("una persona"):trh("{v1} porzioni di riferimento",{v1:(typeof numLoc==="function")?numLoc(porz):porz}))})+
+      " "+esc(tr("È il numero con cui capisci se la cifra sta in piedi: i prezzi di dove vivi li conosci tu."))+
+      `</div>`;}
+  return `<label style="margin-top:16px">${trh("Budget a settimana ({v1})",{v1:esc(cur)})}</label>
+    <input type="number" id="shBudget" inputmode="decimal" min="0" max="100000" step="1"
+      value="${val||""}" placeholder="${esc(tr("facoltativo"))}"
+      onchange="budgetSpesaSalva()">
+    ${(porz>1)?`<div class="hint">${trh("Copre {v1} porzioni di riferimento: è la scelta qui sopra.",{v1:(typeof numLoc==="function")?numLoc(porz):porz})}</div>`
+              :`<div class="hint">${tr("Copre una persona sola: se compri anche per altri, dillo qui sopra.")}</div>`}
+    ${conto}`;}
+window.budgetSpesaHTML=budgetSpesaHTML;
+
+window.budgetSpesaSalva=()=>{
+  const e=document.getElementById("shBudget");
+  const v=e?parseFloat(String(e.value).replace(",",".")):NaN;
+  S.pref=S.pref||{};
+  if(isFinite(v)&&v>0)S.pref.budgetCifra=Math.round(v);
+  else delete S.pref.budgetCifra;
+  save();render("spesa");};
+
 function shopForMe(){return (S.shopFor||((S.family||[]).length?"fam":"me"))==="me";}
 window.shopForSet=(v)=>{S.shopFor=v;save();
   /* Cambiare i destinatari cambia le quantità: la lista si rifà da sé,
      esattamente come per ogni modifica del piano. */
-  pianoCambiato();render("spesa");
+  ricetteCambiate();render("spesa");
   toast(v==="me"?tr("Dosi per una persona — la lista si sta aggiornando"):tr("Dosi per tutta la famiglia — la lista si sta aggiornando"));};
 window.tglShop=id=>{S.shop[id]=!S.shop[id];save();render("spesa");};
 window.resetShop=()=>{S.shop={};save();render("spesa");};

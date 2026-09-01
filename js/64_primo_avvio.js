@@ -12,9 +12,24 @@
    1. IL BACKUP SU DRIVE. I dati non stanno sui nostri server —
       questo è il punto di tutta l'app — quindi il posto sicuro è
       il TUO Drive. E qui va detta una cosa scomoda invece di
-      nasconderla: **se cancelli quei file dal Drive, i dati sono
-      persi.** Non ne abbiamo una copia. È il prezzo di non
-      averli noi, e chi lo scopre dopo si sente ingannato.
+      nasconderla: **se togli quella copia, i dati sono persi.**
+      Non ne abbiamo una copia. È il prezzo di non averli noi, e
+      chi lo scopre dopo si sente ingannato.
+
+      ── DOV'È DAVVERO QUELLA COPIA (founder, 29/08) ────────────
+      «Ma la cartella in Drive non si vede, sicuro che l'utente
+      possa cancellarla?» Domanda giusta, e la risposta era: no,
+      non come diceva questa schermata. Il codice chiede lo scope
+      `drive.appdata` e scrive dentro `appDataFolder` (vedi
+      23_16): uno spazio riservato all'app che NON compare fra i
+      file del Drive. Sfogliando il Drive quella cartella non c'è,
+      e «cancelli quei file dal Drive» descriveva un gesto che la
+      persona non può fare.
+      Cancellabile lo è — Impostazioni del Drive → Gestisci app →
+      elimina i dati nascosti, oppure revocando l'accesso — ma è
+      un'altra strada, e dirla storta è peggio che non dirla: la
+      parte «scomoda» esiste apposta per essere vera. Adesso i tre
+      testi dicono dov'è quella copia e come si toglie.
    2. RITROVARE L'ABBONAMENTO. Cambi telefono, reinstalli, e con
       la stessa email ritrovi quello che hai pagato. Senza,
       dovresti ricomprare — ed è il motivo per cui l'email si
@@ -127,6 +142,10 @@ window.salutoHTML=()=>`<div class="primo saluto">
   </div>
 
   <button class="btn saluto-via" type="button" onclick="salutoChiudi()">${esc(tr("Comincia"))}</button>
+  ${/* corta di proposito: t_saluto tiene il saluto sotto 140 parole e
+       senza parole-funzione («ricette» è una spia): qui si dice solo
+       la responsabilità, «Le cose chiare» in Nuvia dice il resto */""}
+  <div class="hint" style="margin-top:12px;font-size:12px;opacity:.85">${esc(tr("Iniziando confermi di avere almeno 18 anni. Nuvia non è un dispositivo medico e non sostituisce medici o nutrizionisti: i suoi suggerimenti si cambiano liberamente."))}</div>
 </div>`;
 
 /* La G di Google. Sul pulsante di accesso il marchio va messo come
@@ -184,7 +203,7 @@ function primoCollegatoHTML(){
       <div class="primo-perche">
         <div class="pp">
           <b>${esc(tr("Il backup va sul TUO Drive"))}</b>
-          <span>${esc(tr("I dati vivono sul telefono; una copia va nel tuo Drive, in una cartella dell'app. Noi non la vediamo e non ne teniamo un'altra."))}</span>
+          <span>${esc(tr("I dati vivono sul telefono; una copia va nel tuo Drive, in uno spazio riservato a Nuvia che non compare fra i tuoi file. Noi non la vediamo e non ne teniamo un'altra."))}</span>
         </div>
         <div class="pp">
           <b>${esc(tr("L'abbonamento ti segue"))}</b>
@@ -192,7 +211,7 @@ function primoCollegatoHTML(){
         </div>
         <div class="pp">
           <b>${esc(tr("E la cosa scomoda, detta adesso"))}</b>
-          <span>${esc(tr("Se un giorno cancelli quei file dal Drive, i dati sono persi: noi non ne abbiamo una copia. È il prezzo di non averli noi."))}</span>
+          <span>${esc(tr("Quella copia non la trovi sfogliando il Drive: si toglie da Impostazioni → Gestisci app. Se lo fai, i dati sono persi: noi non ne abbiamo una copia. È il prezzo di non averli noi."))}</span>
         </div>
       </div>
       <button class="btn acc-b" onclick="primoSalta()">${esc(tr("Cominciamo"))}</button>
@@ -247,7 +266,7 @@ window.primoHTML=()=>{
         <div class="pp">
           <b>${esc(tr("Per non perdere niente"))}</b>
           <span>${esc(tr("I tuoi dati non stanno sui nostri server: stanno sul tuo telefono e sul TUO Drive. Con la stessa email ritrovi l'abbonamento se cambi telefono."))}
-            <b class="primo-scomodo">${esc(tr("Se un giorno cancelli quei file dal Drive, i dati sono persi: noi non ne abbiamo una copia."))}</b></span>
+            <b class="primo-scomodo">${esc(tr("Quella copia sta in uno spazio riservato all'app, che nel Drive non si vede: se la togli da Gestisci app, i dati sono persi — noi non ne abbiamo una copia."))}</b></span>
         </div>
       </div>
 
@@ -275,9 +294,18 @@ window.primoHTML=()=>{
   </div>`;};
 
 /* Il blocco tecnico è lo stesso nelle due pagine: una funzione sola,
-   così non nascono due copie che poi divergono — e a pubblicazione
-   avvenuta se ne toglie una, non due. */
+   così non nascono due copie che poi divergono.
+   ── E ADESSO HA UN INTERRUTTORE (v15.20.0) ────────────────────────
+   Qui c'era scritto «a pubblicazione avvenuta se ne toglie una, non
+   due»: la sicurezza dipendeva dal RICORDARSI di cancellare delle
+   righe il giorno giusto. Il founder ha deciso — «credo sia meglio
+   nessuna porta» — e una porta che si chiude a memoria non è chiusa.
+   Con `MODO_BANCO=false` questa funzione non disegna niente: non un
+   pannello nascosto, non un campo disabilitato, NIENTE. Quello che
+   non si scrive non si trova nel sorgente e non si riattiva con un
+   ispettore aperto. */
 function primoTecHTML(cid,key){
+  if(!MODO_BANCO)return "";
   return `<details class="primo-tec">
       <summary>${esc(tr("Impostazioni di prova"))}</summary>
       <div class="hint">${esc(tr("Servono solo finché l'app non è pubblicata: dopo, la chiave arriva dal nostro server e il collegamento è già configurato. Un utente non vedrà mai questa parte."))}</div>
@@ -385,7 +413,14 @@ function primoTecSalvaZitto(){
 
 window.primoCollega=()=>{
   const cid=(S.drive&&S.drive.cid)||"";
-  if(!cid)return dlgAlert(tr("Per provare il collegamento serve il CLIENT_ID, che trovi nelle impostazioni di prova qui sotto. A pubblicazione avvenuta sarà già configurato."));
+  /* ── LA FRASE SEGUE L'INTERRUTTORE (v15.20.0) ──────────────────
+     Spento il modo banco, «lo trovi nelle impostazioni di prova qui
+     sotto» mandava la persona a cercare un pannello che non esiste:
+     una frase che promette quello che il codice non fa è un difetto,
+     e questa lo sarebbe diventata il giorno della pubblicazione. */
+  if(!cid)return dlgAlert(MODO_BANCO
+    ?tr("Per provare il collegamento serve il CLIENT_ID, che trovi nelle impostazioni di prova qui sotto. A pubblicazione avvenuta sarà già configurato.")
+    :tr("Il collegamento a Google non è ancora attivo. Puoi proseguire: i tuoi dati restano sul telefono, e lo colleghi più tardi da Sistema."));
   try{
     /* si passa il NOME del campo: qui si chiama primoCid, in Sistema
        dCid. Prima driveConnect cercava sempre quello di Sistema. */

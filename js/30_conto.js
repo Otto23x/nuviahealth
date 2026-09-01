@@ -21,7 +21,7 @@
       diario, le spunte, il peso e il piano già scaricato funzionano
       esattamente come prima. L'AI no, e si dice — senza drammi.   */
 
-const CONTO_BASE="https://api.nuvia.app";     /* si cambia in Regole → Avanzate */
+const CONTO_BASE="https://api.nuviahealth.app";     /* si cambia in Regole → Avanzate */
 
 function contoUrl(){
   try{return (S.conto&&S.conto.base)||CONTO_BASE;}catch(e){return CONTO_BASE;}}
@@ -66,7 +66,7 @@ window.contoResta=contoResta;
 /* I nomi dei pilastri arrivano a tr() da una variabile (le chiavi delle
    quote che il server manda): invisibili a una ricerca testuale, come le
    frasi degli stati vuoti e del tono. Si dichiarano al registro. */
-const CONTO_PILASTRI=["piano","analisi","foto","supporto","allenamenti"];
+const CONTO_PILASTRI=["ricette","analisi","foto","supporto","allenamenti"];
 window.contoFrasi=function(){return CONTO_PILASTRI.concat(["senza limiti"]);};
 
 /* ── Le chiamate ────────────────────────────────────────────────
