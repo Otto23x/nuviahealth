@@ -1,0 +1,82 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 300 300" role="img" aria-label="Nuvia">
+  <style>
+    @keyframes float-saluta { 0%, 100% { transform: translateY(0px); } 50% { transform: translateY(-6px); } }
+    @keyframes blink-saluta { 0%, 94%, 100% { transform: scaleY(1); } 97% { transform: scaleY(0.1); } }
+    .mascot-body-saluta { animation: float-saluta 3.5s ease-in-out infinite; }
+    .eyes-saluta { animation: blink-saluta 4s infinite; transform-origin: 150px 185px; }
+  
+    /* IL RESPIRO — 1,5%: sotto la soglia di ciò che si nota, sopra
+       quella di ciò che si sente. È questo che separa un
+       personaggio da un disegno. */
+    @keyframes respiro-saluta{0%,100%{transform:scale(1,1)}50%{transform:scale(1.015,0.99)}}
+    .respira-saluta{animation:respiro-saluta 4.1s ease-in-out infinite;transform-origin:150px 280px}
+    /* L'AMMICCO — due periodi non multipli (4,3 e 7,1 s) così
+       l'occhio non trova mai il ritmo: un blink regolare è la cosa
+       più inquietante che si possa fare a una faccia. */
+    @keyframes ammicco-saluta{0%,92%,100%{transform:scaleY(1)}95%{transform:scaleY(0.08)}}
+    @keyframes ammicco2-saluta{0%,96%,100%{transform:scaleY(1)}98%{transform:scaleY(0.12)}}
+    .occhi-saluta{animation:ammicco-saluta 4.3s infinite,ammicco2-saluta 7.1s infinite;
+      transform-origin:150px 185px}
+
+
+    /* LO SGUARDO — sinistra, pausa, destra, pausa. È la pausa a fare
+       la differenza fra guardarsi intorno e agitarsi. Le sopracciglia
+       girano sullo STESSO periodo e nella stessa direzione: senza di
+       loro le pupille scivolano e la faccia resta inespressiva. */
+    @keyframes sguardo-saluta{0%,16%{transform:translateX(0)}28%,42%{transform:translateX(-4px)}54%,68%{transform:translateX(4px)}80%,100%{transform:translateX(0)}}
+    .pupille-saluta{animation:sguardo-saluta 8.2s ease-in-out infinite}
+    @keyframes so-saluta{0%,16%{transform:translate(0,0) rotate(0)}28%,42%{transform:translate(-2px,-2px) rotate(-2deg)}54%,68%{transform:translate(2px,-2px) rotate(2deg)}80%,100%{transform:translate(0,0) rotate(0)}}
+    .sopracciglia-saluta{animation:so-saluta 8.2s ease-in-out infinite;transform-origin:150px 159px}
+    /* LA BOCCA si muove POCO e con un periodo diverso da tutto
+       il resto: se battesse a tempo col respiro sembrerebbe un
+       meccanismo, non una creatura. */
+    @keyframes bocca-saluta{0%,100%{transform:scale(1,1)}50%{transform:scale(1.06,1.1)}}
+    .bocca-saluta{animation:bocca-saluta 5.3s ease-in-out infinite;transform-origin:150px 223px}
+    /* IL DONDOLIO — un grado e mezzo, lentissimo: nessuno lo nota
+       guardando, tutti lo notano se manca. */
+    @keyframes ondeggio-saluta{0%,100%{transform:rotate(-1.2deg)}50%{transform:rotate(1.2deg)}}
+    .ondeggia-saluta{animation:ondeggio-saluta 6.7s ease-in-out infinite;transform-origin:150px 280px}
+    /* IL CENNO DELLA TESTA. Prima accompagnava la mano; adesso che
+       il braccio non c'è più È lui il saluto — due gradi, brevi, sul
+       ritmo di un cenno vero e non di un dondolio. */
+    @keyframes testa-saluta{0%,100%{transform:rotate(-2deg)}50%{transform:rotate(2deg)}}
+    .corpo-saluta{animation:testa-saluta 1.9s ease-in-out infinite;transform-origin:150px 260px}
+    /* LA MANINA. Il perno stava FUORI dalla mano, dove finiva il
+       braccio: ruotare intorno a un punto lontano solleva e abbassa
+       tutta la mano, e infatti sembrava sventolare, non salutare.
+       Adesso il perno è il polso — il fondo del palmo — e la mano si
+       inclina di quattordici gradi da una parte e dall'altra: è così
+       che si saluta. */
+    @keyframes mano-saluta{0%,100%{transform:rotate(-14deg)}50%{transform:rotate(14deg)}}
+    .manina-saluta{animation:mano-saluta 1.5s ease-in-out infinite;transform-origin:257px 159px}
+    /* LE GUANCE si accendono nel momento buono, non sempre */
+    @keyframes guance-saluta{0%,60%,100%{opacity:.25}80%{opacity:.6}}
+    .guance-saluta{animation:guance-saluta 3.1s ease-in-out infinite}
+  @media (prefers-reduced-motion: reduce){*{animation:none!important}}</style>
+  <defs>
+    <linearGradient id="tealGrad-saluta" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="#00E0C6" /><stop offset="100%" stop-color="#00AFA3" /></linearGradient>
+    <linearGradient id="coralGrad-saluta" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="#FFA07A" /><stop offset="100%" stop-color="#FF7F50" /></linearGradient>
+  </defs>
+  <g class="ondeggia-saluta"><g class="respira-saluta"><g class="corpo-saluta"><g class="mascot-body-saluta">
+    <path d="M 150,140 C 170,70 220,70 220,120 C 220,150 170,160 150,140" fill="url(#coralGrad-saluta)"/>
+    <path d="M 70,230 C 70,140 110,130 150,130 C 190,130 230,140 230,230 C 230,280 190,280 150,280 C 110,280 70,280 70,230" fill="url(#tealGrad-saluta)"/>
+    <g class="occhi-saluta">
+      <circle cx="120" cy="185" r="8" fill="#1A4D40"/><circle cx="180" cy="185" r="8" fill="#1A4D40"/>
+      <g class="pupille-saluta"><circle cx="120" cy="183" r="3" fill="#FFFFFF"/><circle cx="180" cy="183" r="3" fill="#FFFFFF"/></g>
+    </g>
+    
+    
+    <g class="sopracciglia-saluta" opacity=".85"><path d="M 111 159 q 9 -5 18 0" stroke="#1A4D40" stroke-width="4" stroke-linecap="round" fill="none"/><path d="M 171 159 q 9 -5 18 0" stroke="#1A4D40" stroke-width="4" stroke-linecap="round" fill="none"/></g>
+    <path class="bocca-saluta" d="M 138 223 q 12 10 24 0" stroke="#1A4D40" stroke-width="4.5" stroke-linecap="round" fill="none"/>
+    <g class="guance-saluta" fill="#FF7F50" opacity=".25"><circle cx="103" cy="205" r="11"/><circle cx="197" cy="205" r="11"/></g>
+  </g></g></g></g>
+  <g class="manina-saluta">
+    <!-- SAGOMA RICALCATA DAL RIFERIMENTO DEL FOUNDER (25/08).
+         Non ridisegnata a occhio: estratta dal contorno del suo
+         disegno, semplificata a 88 nodi e riportata in questo
+         riquadro. Le fessure fra le dita, nel riferimento, sono
+         l'uno per cento della larghezza della mano: alla misura in
+         cui la mascotte compare davvero sparirebbero, quindi sono
+         state allargate al due e mezzo prima di ricalcare. -->
+    <path d="M 271.7,110.7 L 272.8,111.1 L 274.0,112.1 L 274.6,113.0 L 274.9,114.9 L 270.8,127.6 L 270.6,129.2 L 270.8,129.6 L 272.4,130.0 L 273.0,129.4 L 276.5,118.8 L 277.3,117.5 L 278.5,116.5 L 280.3,116.0 L 281.5,116.4 L 282.7,117.2 L 283.3,118.3 L 283.7,119.9 L 283.6,120.7 L 282.0,125.6 L 279.2,132.8 L 278.9,134.3 L 279.1,134.7 L 280.8,135.1 L 281.2,134.8 L 283.9,128.0 L 284.5,127.0 L 285.4,126.3 L 287.1,125.9 L 288.2,126.1 L 289.1,126.8 L 290.0,127.8 L 290.4,129.1 L 290.1,130.9 L 286.7,139.7 L 284.2,147.0 L 282.7,150.5 L 281.3,153.1 L 280.1,155.0 L 277.3,158.0 L 275.1,159.7 L 272.3,160.8 L 269.7,161.5 L 266.1,161.5 L 264.1,161.2 L 261.3,160.4 L 253.2,157.7 L 249.4,156.0 L 246.0,153.6 L 243.7,151.2 L 241.6,148.1 L 238.2,141.7 L 236.0,138.8 L 233.0,135.7 L 231.9,134.2 L 231.3,132.6 L 231.5,131.0 L 232.2,129.9 L 232.9,129.2 L 234.9,127.9 L 236.3,127.5 L 237.5,127.5 L 239.4,128.0 L 241.5,129.0 L 245.6,132.4 L 247.7,132.9 L 248.6,132.5 L 249.7,131.6 L 250.8,129.8 L 256.5,114.3 L 257.8,112.9 L 259.7,112.1 L 260.7,112.1 L 262.2,112.9 L 263.0,113.8 L 263.7,115.1 L 263.7,116.9 L 261.2,124.9 L 261.0,126.5 L 261.6,127.1 L 262.6,127.3 L 263.1,127.1 L 263.5,126.3 L 267.8,113.1 L 268.3,112.2 L 269.3,111.4 L 270.5,110.8 L 271.7,110.8 Z" fill="url(#tealGrad-saluta)"/></g>
+</svg>
