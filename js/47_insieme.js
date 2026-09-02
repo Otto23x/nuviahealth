@@ -183,7 +183,7 @@ function renderInsieme(){
   /* i numeri di tutti */
   if(agg)h+=`<div class="card"><h2>${tr("Questa settimana, insieme")}</h2>
     <div class="ins-num">
-      ${agg.riparati!=null?`<div><b>${esc(String(agg.riparati))}</b><span>${esc(tr("imprevisti riassorbiti dai piani"))}</span></div>`:""}
+      ${agg.riparati!=null?`<div><b>${esc(String(agg.riparati))}</b><span>${esc(tr("imprevisti riassorbiti"))}</span></div>`:""}
       ${agg.piani!=null?`<div><b>${esc(String(agg.piani))}</b><span>${esc(tr("settimane portate a casa"))}</span></div>`:""}
       ${agg.persone!=null?`<div><b>${esc(String(agg.persone))}</b><span>${esc(tr("persone che hanno acceso i numeri anonimi"))}</span></div>`:""}
     </div>

@@ -25,7 +25,7 @@
 const CONS_CAT=[
   {k:"peso",     t:"Il tuo peso",
    d:"Peso di partenza, quello di oggi e l'obiettivo. Non le singole pesate."},
-  {k:"aderenza", t:"Quanto segui il piano",
+  {k:"aderenza", t:"Quanto segui le ricette",
    d:"Una percentuale della settimana e del mese, e da quanti giorni segni."},
   {k:"sport",    t:"Gli allenamenti",
    d:"Quanti ne fai in una settimana e di che tipo."},

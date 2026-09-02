@@ -13,7 +13,7 @@ function mealCard(pdi,mi){
       <div class="mtop"><span class="mname tap" onclick="editMeal(${pdi},${mi})" title="${tr("Tocca per modificare")}">${esc(fascia(dispName))}${st.skip?" "+tr("(saltato)"):""}</span>${
         st.done&&!st.skip
           ? (function(){const q=qOf(st,o.d)??qPeek(o.d);return `<span class="qwrap">${qDot(q)}${q!=null?q+"%":(aiOn()?"…":"")}</span>`;})()
-          : (function(){const q=qPeek(o.d);return q!=null?`<span class="qwrap" title="${tr("Qualità stimata del piatto in piano")}">${qDot(q)}${q}%</span>`:"";})()}</div>
+          : (function(){const q=qPeek(o.d);return q!=null?`<span class="qwrap" title="${tr("Qualità stimata del piatto previsto")}">${qDot(q)}${q}%</span>`:"";})()}</div>
       <div class="mdesc tap" onclick="editMeal(${pdi},${mi})" title="${tr("Tocca per modificare")}">${esc(cap(tr(o.d)))}</div>
       <div class="mkcal">~${o.k}kcal · ${o.p}g ${tr("proteine")}${o.c!=null?` · ${o.c}g ${tr("carboidrati")}`:""}${o.f!=null?` · ${o.f}g ${tr("grassi")}`:""}${o.fib!=null?` · ${o.fib}g ${tr("fibre")}`:""}${o.z!=null?` · ${o.z}g ${tr("zuccheri")}`:""} ${st.custom?'<span class="badge ai">'+tr("modificato")+'</span>':(S.permMeals[pdi+"_"+mi]&&st.opt===0?'<span class="badge ai">'+tr("alternativa fissa")+'</span>':"")}</div>`;
   h+=hungryHTML(pdi,mi);
@@ -109,7 +109,7 @@ window.mealPhoto=async(pdi,mi,gal)=>{
           k:st.custom.k+nk,p:(st.custom.p||0)+np,c:(st.custom.c||0)+nc,f:(st.custom.f||0)+nf,fib:(st.custom.fib||0)+nfib,z:(st.custom.z||0)+nz};
         save();render(cur);toast(tr("Portata aggiunta al pasto ✓"));return;}}
     else{const dev=nk-o.k;
-      if(!await dlgConfirm(tr(" {a}\n~{b} kcal · {c} g prot ({d}{e} kcal vs piano)\n\nI pesi sono stimati dalla foto: dopo la conferma puoi correggerli con la matita e l\'AI ricalcola.\n\nOK = registra questa portata come pasto reale (poi puoi aggiungerne altre con )",{a:j.nome,b:nk,c:np,d:(dev>=0?"+":""),e:dev})))return;}
+      if(!await dlgConfirm(tr(" {a}\n~{b} kcal · {c} g prot ({d}{e} kcal vs previsto)\n\nI pesi sono stimati dalla foto: dopo la conferma puoi correggerli con la matita e l\'AI ricalcola.\n\nOK = registra questa portata come pasto reale (poi puoi aggiungerne altre con )",{a:j.nome,b:nk,c:np,d:(dev>=0?"+":""),e:dev})))return;}
     st.custom={d:j.nome+" (da foto)",k:nk,p:np,c:nc||null,f:nf||null,fib:nfib||null,z:nz||estSugarOf(j.nome)};
     save();render(cur);toast(tr("Pasto aggiornato dalla foto ✓ Pesi sbagliati? Correggili con "));
   }catch(e){if(e.message!=="annullato")aiFail(e);}};
@@ -1158,7 +1158,7 @@ function waterPredict(di){
   if(cycleDay()){cause.push("sei in fase luteale, quando la ritenzione è fisiologica");g+=0.8;}
   if(!cause.length)return "";
   return "Se ti pesi stamattina, potresti trovare fino a <b>"+(Math.round(g*10)/10).toString().replace(".",",")+" kg in più</b> rispetto a ieri: "+
-    cause.join("; ")+". È <b>acqua, non grasso</b> — se ne va da sola in un paio di giorni. Non cambiare il piano per questo.";}
+    cause.join("; ")+". È <b>acqua, non grasso</b> — se ne va da sola in un paio di giorni. Non cambiare le ricette per questo.";}
 /* ═══  CRONONUTRIZIONE ═══ */
 function chronoForAI(di){
   const d=S.week.days[di===undefined?viewIdx():di];if(!d)return "";
@@ -1554,11 +1554,11 @@ window.predictive=async(di)=>{
         /* il «+» mancava: senza, JavaScript chiudeva il return qui e tutto
            il resto del risultato (tesoretto, strategia, bottone) era codice
            morto. Il tool sembrava funzionare e non diceva nulla. */
-        '\n\nCosto stimato: <b>~'+Math.round(j.costo||0)+' kcal</b> · già previste dal piano: '+Math.round(j.giaPrevisto||0)+
+        '\n\nCosto stimato: <b>~'+Math.round(j.costo||0)+' kcal</b> · già previste dalle ricette: '+Math.round(j.giaPrevisto||0)+
         ' · da mettere da parte: <b>'+Math.round(j.delta||0)+' kcal</b>'+
         (PRED.length?'\n\n<b>Il tesoretto</b> (piccoli tagli, proteine intatte)\n'+
           PRED.map(x=>'• '+esc(x.slot||"")+': −'+Math.round(x.tolto||0)+' kcal → '+esc(x.nuovo||"")).join('\n')+
-          '\n\nTotale accantonato: <b>'+Math.round(tot)+' kcal</b>':'\n\n Il delta è coperto dal piano: nessun taglio necessario.')+
+          '\n\nTotale accantonato: <b>'+Math.round(tot)+' kcal</b>':'\n\n Il delta è coperto dal previsto: nessun taglio necessario.')+
         (Array.isArray(j.strategia)&&j.strategia.filter(Boolean).length?
           '\n\n<b>A tavola</b>\n'+j.strategia.filter(Boolean).map(x=>'• '+esc(x)).join('\n'):'')+
         (j.messaggio?'\n\n<i>'+esc(j.messaggio)+'</i>':'')+
@@ -1669,7 +1669,7 @@ window.reverseToggle=async()=>{
   if(reverseOn()){
     if(!await dlgConfirm(tr("Chiudo l'uscita morbida?\n\nHai risalito {a} kcal in {b} settimane. Il target torna al calcolo normale.",{a:reverseBonus(),b:(S.reverse.step||0)})))return;
     S.reverse={on:false,start:null,step:0,kcal:0,lastCheck:null};save();render(cur);
-    if(!ricetteVuote()&&aiOn()&&await dlgConfirm(tr("Uscita morbida chiusa.\n\nIl target torna al calcolo normale: ritaro piano e spesa?"),
+    if(!ricetteVuote()&&aiOn()&&await dlgConfirm(tr("Uscita morbida chiusa.\n\nIl target torna al calcolo normale: ritaro ricette e spesa?"),
        {ok:tr("Ritara ora"),ko:tr("Più tardi")}))
       return recalibrate();
     return toast(tr("Uscita morbida chiusa"));}
@@ -1679,7 +1679,7 @@ window.reverseToggle=async()=>{
   /* Il target è cambiato: se il piano resta sulle vecchie calorie
      l'uscita morbida non esiste nei fatti, esiste solo nello stato.
      Prima si limitava a salvare e non ricalcolava niente. */
-  if(!ricetteVuote()&&aiOn()&&await dlgConfirm(tr(" Uscita morbida attiva.\n\nDa adesso il target sale di 60 kcal a settimana. Ritaro subito piano e spesa sulle nuove calorie?"),
+  if(!ricetteVuote()&&aiOn()&&await dlgConfirm(tr(" Uscita morbida attiva.\n\nDa adesso il target sale di 60 kcal a settimana. Ritaro subito ricette e spesa sulle nuove calorie?"),
      {ok:tr("Ritara ora"),ko:tr("Più tardi")}))
     return recalibrate();
   toast(tr("Uscita morbida attiva · +60 kcal a settimana"));};
@@ -1879,7 +1879,7 @@ function stampPhys(){
   const D=S.week.days[di];
   D.cycle=!!cycleDay();D.lact=(S.phys&&S.phys.lact)||"no";D.preg=pregOn();D.inj=injOn();D.ill=illOn();D.physK=physDelta();}
 /* Avviso comune a tutti gli stati che riscalano le porzioni */
-const PHYS_NEUTRAL_WARN="\n\n Le porzioni del piano vengono riscalate in proporzione partendo dalle kcal del TUO piano (non da una stima): perché il conto torni, il piano di base deve essere in stato NEUTRO, cioè scritto senza avere già conteggiato queste calorie. Spegnendo lo stato si torna esattamente alle grammature di base.";
+const PHYS_NEUTRAL_WARN="\n\n Le porzioni delle ricette vengono riscalate in proporzione partendo dalle kcal delle TUE ricette (non da una stima): perché il conto torni, il piano di base deve essere in stato NEUTRO, cioè scritto senza avere già conteggiato queste calorie. Spegnendo lo stato si torna esattamente alle grammature di base.";
 window.cycleToggle=async()=>{
   if(cycleDay()){
     if(!await dlgConfirm(tr("Chiudo la fase luteale?")+"\n\n"+tr("Il target torna al fabbisogno di base, senza le {k}",{k:cycleKcal()})+" kcal aggiuntive."))
@@ -1915,7 +1915,7 @@ window.pregSet=async(v)=>{
   if(on&&!physAllowed())return dlgAlert(tr("La gravidanza si può indicare solo su un profilo femminile.\n\nSe il genere non è corretto, cambialo in Io → Anagrafica."));
   if(on&&S.phys.preg!==v){
     const k={t1:70,t2:260,t3:450},kk=(+S.profile["preg"+v.toUpperCase()]>0)?+S.profile["preg"+v.toUpperCase()]:k[v];
-    if(!await dlgConfirm(tr("Gravidanza, {a}?\n\nIl fabbisogno sale di {b} kcal al giorno, che si SOMMANO al target.\n\n In gravidanza il piano va sempre concordato con il medico o l'ostetrica: l'app non sostituisce il controllo clinico e NON applica alcun deficit.{c}",{a:PREG_LBL[v],b:kk,c:PHYS_NEUTRAL_WARN}))){render(cur);return;}}
+    if(!await dlgConfirm(tr("Gravidanza, {a}?\n\nIl fabbisogno sale di {b} kcal al giorno, che si SOMMANO al target.\n\n In gravidanza le ricette vanno sempre concordate con il medico o l'ostetrica: l'app non sostituisce il controllo clinico e NON applica alcun deficit.{c}",{a:PREG_LBL[v],b:kk,c:PHYS_NEUTRAL_WARN}))){render(cur);return;}}
   S.phys.preg=on?v:"no";stampPhys();save();render(cur);
   toast(on?("Gravidanza · "+PREG_LBL[v]+" · +"+pregKcal()+" kcal"):"Gravidanza disattivata");};
 /* ── Infortunio: movimento ridotto, il fabbisogno scende ── */
@@ -1932,7 +1932,7 @@ window.illSet=async(on)=>{
   toast(on?tr("Malattia attiva · deficit sospeso"):tr("Malattia disattivata"));};
 /* Ritara il piano e la spesa sui numeri di adesso: fisiologia compresa */
 window.recalibrate=async()=>{
-  if(ricetteVuote())return dlgAlert(tr("Non c'è ancora un piano da ricalibrare."));
+  if(ricetteVuote())return dlgAlert(tr("Non ci sono ancora ricette da ricalibrare."));
   if(!aiOn())return aiFail(new Error("nokey"));
   const righe=[
     "• fabbisogno di base: "+tdeeTarget()+" kcal",
@@ -1944,7 +1944,7 @@ window.recalibrate=async()=>{
       if(d.sleep)v.push("sonno "+d.sleep+"/5");if(d.relax)v.push("relax "+d.relax+"/5");if(d.feel)v.push("come ti senti "+d.feel+"/5");
       return v.length?"• come stai oggi: "+v.join(" · "):null;})()
   ].filter(Boolean).join("\n");
-  if(!await dlgConfirm(tr("Ricalibro i 7 giorni che partono da oggi?\n\n{a}\n\nI piatti restano gli stessi: cambiano le grammature. Poi rigenero la lista della spesa.\n\nVale solo per questa settimana: il piano di base resta quello che è, e la settimana prossima si riparte da lì.",{a:righe}),
+  if(!await dlgConfirm(tr("Ricalibro i 7 giorni che partono da oggi?\n\n{a}\n\nI piatti restano gli stessi: cambiano le grammature. Poi rigenero la lista della spesa.\n\nVale solo per questa settimana: le ricette di base restano quelle che sono, e la settimana prossima si riparte da lì.",{a:righe}),
     {ok:tr("Ricalibra la settimana"),ko:tr("Lascia com'è")}))return;
   if(await ritaraRicette()){S.ricetteW=S.profile.w;save();
     await genShop(true);            /* lista SETTIMANALE ricalcolata sul piano nuovo */
@@ -1954,7 +1954,7 @@ window.recalibrate=async()=>{
 window.recalibrateToday=async()=>{
   const di=viewIdx();
   if(di<0)return dlgAlert(tr("Torna a Oggi per ricalibrare i pasti di oggi."));
-  if(ricetteVuote())return dlgAlert(tr("Non c'è ancora un piano da ricalibrare."));
+  if(ricetteVuote())return dlgAlert(tr("Non ci sono ancora ricette da ricalibrare."));
   if(!aiOn())return aiFail(new Error("nokey"));
   const dopo=pendingMeals(di);
   if(!dopo.length)return dlgAlert(tr("Oggi non ci sono più pasti da ricalibrare: sono tutti spuntati o saltati."));

@@ -47,8 +47,8 @@ const DUO_CARATTERI={
     passoIndietro:1
   },
   ombra:{
-    nome:"L'Ombra del piano",
-    come:"Segue il tuo stesso piano, quasi alla lettera: si ferma sempre un passo prima dell'ultimo.",
+    nome:"L'Ombra delle ricette",
+    come:"Segue le tue stesse ricette, quasi alla lettera: si ferma sempre un passo prima dell'ultimo.",
     tiene:0.95,
     passoIndietro:1
   }

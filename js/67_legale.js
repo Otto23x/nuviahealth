@@ -126,7 +126,7 @@ window.legaleAccetta=()=>{
      l'aveva portato il gate. */
   try{
     if(S.onboard.done)show(S.profile&&S.profile.dob?"punto":"io");
-    else render(cur);
+    else{render(cur);paginaInCima();}
   }catch(e){}};
 
 /* Il consenso all'AI si accende e si spegne quando si vuole, dalla
@@ -186,15 +186,36 @@ function legaleGateHTML(){
 
       <label class="lgriga"><input type="checkbox" id="lgAi" ${legaleAiOk()?"checked":""}>
         <span>${esc(tr("Acconsento a che, quando chiedo dei suggerimenti, i miei dati alimentari — e se li compilo peso, età, condizioni di salute e farmaci — siano inviati al modello di intelligenza artificiale di Google per scrivere la risposta."))}</span></label>
-      <div class="hint">${esc(tr("Questa è facoltativa e si cambia quando vuoi. Senza, Nuvia funziona lo stesso: il piano di partenza lo calcola da sola, e diario, spesa e peso non passano da nessun modello."))}</div>
+      <div class="hint">${esc(tr("Questa è facoltativa e si cambia quando vuoi. Senza, Nuvia funziona lo stesso: le ricette di partenza le calcola da sola, e diario, spesa e peso non passano da nessun modello."))}</div>
 
-      <div class="mtools" style="margin-top:16px">
-        <button class="btn" id="lgVia" type="button" disabled onclick="legaleAccetta()">${esc(tr("Accetto e comincio"))}</button>
+      <div class="mtools" style="margin-top:12px">
         <button class="btn ghost small" type="button" onclick="show('documenti')">${esc(tr("Leggi i documenti"))}</button>
       </div>
     </div>
+    ${/* ── AVANTI E INDIETRO COME NELLE ALTRE SCHERMATE (founder,
+          02/09): «anche da questa si dovrebbe poter andare avanti o
+          indietro». Il gate stava fuori dal percorso, con un solo
+          bottone e nessuna via per tornare alla lingua appena scelta.
+          Adesso ha la stessa barra delle domande: Indietro riporta
+          alla schermata della lingua; Avanti è l'accettazione, e si
+          accende solo con le due spunte obbligatorie. Chi è già
+          dentro l'app da tempo (documenti cambiati) non ha un
+          «indietro» che abbia senso: per lui c'è solo Avanti. */""}
+    <div class="o2nav o2nav2">
+      ${(S.onboard&&S.onboard.done)?"":`<button class="btn ghost o2back" type="button" onclick="legaleIndietro()"
+        aria-label="${esc(tr("Torna indietro"))}">${esc(tr("Indietro"))}</button>`}
+      <button class="btn o2next" id="lgVia" type="button" disabled onclick="legaleAccetta()">${esc(tr("Accetto e vado avanti"))}</button>
+    </div>
   </div>`;}
 window.legaleGateHTML=legaleGateHTML;
+
+/* Indietro dal gate: si torna alla schermata della lingua (step 0 del
+   percorso), che è la porta appena attraversata. Non si tocca nessun
+   consenso — non ne è stato dato nessuno. */
+window.legaleIndietro=()=>{
+  try{const o=onb2Stato();o.step=0;save();}catch(e){}
+  try{renderOnb2();}catch(e){}
+  paginaInCima();};
 
 /* Il bottone si accende solo con le due spunte obbligatorie. Non è
    un vezzo: un «Accetto» premuto senza spuntare niente è la prova
@@ -237,7 +258,7 @@ function documentiHTML(){
       <span>${esc(tr("Invio dei miei dati al modello di AI per i suggerimenti"))}</span></label>
     <div class="hint">${legaleAiOk()
       ? esc(tr("Dato il {q}. Togliendo la spunta l'app smette di mandare qualsiasi cosa al modello, da subito.",{q:legaleData(L.ai.quando)}))
-      : esc(tr("Non attivo: nessun dato esce dal telefono verso il modello. Il piano di partenza si calcola comunque, in locale."))}</div>
+      : esc(tr("Non attivo: nessun dato esce dal telefono verso il modello. Le ricette di partenza si calcolano comunque, in locale."))}</div>
   </div>`;
 
   h+=`<div class="card"><h2>${esc(tr("Termini di servizio"))}</h2>

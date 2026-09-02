@@ -132,8 +132,8 @@ function fragMessaggio(){
 
   const sil=fragSilenzioDopoPeso();
   if(sil)return curaComponi({
-    messaggio:piatto?tr("C'è {p} nel piano, quando vuoi.",{p:piatto})
-                    :tr("Il piano è pronto quando lo sei tu."),
+    messaggio:piatto?tr("C'è {p} nelle ricette, quando vuoi.",{p:piatto})
+                    :tr("Le ricette sono pronte quando lo sei tu."),
     mossa:tr("Dai un'occhiata")});
 
   const meta=fragGiornataAMeta();

@@ -43,7 +43,7 @@ window.LIVELLI=LIVELLI;
 /* La strada Free per ogni funzione a pagamento: è l'antidoto al
    vicolo cieco. Ogni voce dice cosa si può fare comunque, e come. */
 const ALTERNATIVE={
-  ricette:    {t:"Puoi comporre la settimana a mano dal Piano: ci vuole più tempo, ma il risultato è tuo.",azione:"show('ricette')",eti:"Vai al piano"},
+  ricette:    {t:"Puoi comporre la settimana a mano da Ricette: ci vuole più tempo, ma il risultato è tuo.",azione:"show('ricette')",eti:"Vai alle ricette"},
   analisi:    {t:"Puoi scrivere il pasto a mano: il bilancio del giorno si aggiorna lo stesso.",azione:"show('oggi')",eti:"Scrivi il pasto"},
   foto:       {t:"Puoi scrivere cosa hai mangiato: il conto delle calorie è identico.",azione:"show('oggi')",eti:"Scrivi il pasto"},
   supporto:   {t:"Nella pagina Come stai trovi comunque i tuoi schemi e i tuoi numeri.",azione:"show('comestai')",eti:"Vai a Come stai"},
@@ -82,11 +82,11 @@ function cancelloHTML(pilastro){
     if(!P.tentati.includes(pilastro)){P.tentati.push(pilastro);save();}}catch(e){}
   const alt=g.alternativa;
   return `<div class="card" data-gate="${esc(pilastro)}">
-    <div class="hint">${esc(tr("Questa funzione è inclusa nei piani con l'AI."))}</div>
+    <div class="hint">${esc(tr("Questa funzione è inclusa negli abbonamenti con l'AI."))}</div>
     ${alt?`<div class="hint" style="margin-top:8px"><b>${esc(tr(alt.t))}</b></div>
       <button class="btn ghost small" type="button" onclick="${alt.azione}">${esc(tr(alt.eti))}</button>`:""}
     ${contoSenzaPrezzi()?"":`<div class="mtools"><button class="btn ghost small" type="button"
-      onclick="show('piani')">${esc(tr("Vedi i piani"))}</button></div>`}
+      onclick="show('piani')">${esc(tr("Vedi gli abbonamenti"))}</button></div>`}
   </div>`;}
 window.cancelloHTML=cancelloHTML;
 
@@ -171,7 +171,7 @@ function propostaHTML(){
   return `<div class="card" data-proposta="${esc(p.k)}">
     <div class="hint">${esc(tr(p.t))}</div>
     <div class="mtools">
-      <button class="btn ghost small" type="button" onclick="propostaApri('${esc(p.k)}')">${esc(tr("Vedi i piani"))}</button>
+      <button class="btn ghost small" type="button" onclick="propostaApri('${esc(p.k)}')">${esc(tr("Vedi gli abbonamenti"))}</button>
       <button class="btn ghost small" type="button" onclick="propostaNo('${esc(p.k)}')">${esc(tr("Non ora"))}</button>
     </div></div>`;}
 window.propostaHTML=propostaHTML;
@@ -209,14 +209,14 @@ function renderPiani(){
   const el=document.getElementById("pg-piani");if(!el)return;
   /* Chi non paga non deve nemmeno vedere che esiste un listino. */
   if(contoSenzaPrezzi()){
-    el.innerHTML=`<div class="card"><h2>${esc(tr("Il tuo piano"))}</h2>
+    el.innerHTML=`<div class="card"><h2>${esc(tr("Il tuo abbonamento"))}</h2>
       <div class="hint">${esc(tr("Il tuo studio ha attivato tutte le funzioni: non c'è nulla da pagare e nulla da scegliere."))}</div>
       <button class="btn ghost" type="button" onclick="show('io')">${esc(tr("Torna a Io"))}</button></div>`;
     return;}
 
   const listino=(S.ui&&S.ui.listino)||null;
-  let h=`<div class="card"><h2>${esc(tr("I piani"))}</h2>
-    <div class="hint">${esc(tr("Il piano Free resta com'è: diario, peso, progressi e backup, senza scadenza e senza pagare. Gli abbonamenti aggiungono l'AI — e il mensile è sempre l'annuale diviso 8."))}</div></div>`;
+  let h=`<div class="card"><h2>${esc(tr("Gli abbonamenti"))}</h2>
+    <div class="hint">${esc(tr("Il livello Free resta com'è: diario, peso, progressi e backup, senza scadenza e senza pagare. Gli abbonamenti aggiungono l'AI — e il mensile è sempre l'annuale diviso 8."))}</div></div>`;
 
   if(!listino){
     h+=`<div class="card"><div class="hint">${esc(tr("Non riesco a leggere i prezzi in questo momento: serve la connessione."))}</div>

@@ -136,7 +136,7 @@ function provaHTML(){
   }
   /* la regola, SEMPRE dichiarata: un numero senza la sua regola è un
      giudizio, e questo è il posto in cui Nuvia non può permetterselo */
-  h+='<div class="hint provaregola">'+esc(tr("Storta = un pasto saltato o uno sforamento oltre il 15%. Rimessa in piedi = chiusa comunque vicino al piano, o con l'eccesso riassorbito nei giorni dopo."))+'</div>';
+  h+='<div class="hint provaregola">'+esc(tr("Storta = un pasto saltato o uno sforamento oltre il 15%. Rimessa in piedi = chiusa comunque vicino alle ricette, o con l'eccesso riassorbito nei giorni dopo."))+'</div>';
   h+='</div>';
   return h;}
 window.provaHTML=provaHTML;

@@ -184,7 +184,7 @@ function contoHTML(){
   return `<div class="card" data-conto="dentro"><h2>${esc(tr("Il tuo conto"))}</h2>
     <div class="p3" style="margin:8px 0 12px">
       <div><div class="pv ora" style="font-size:20px">${esc(v.nomePiano||"—")}</div>
-        <div class="pl">${esc(v.studio?tr("dal tuo studio"):tr("il tuo piano"))}</div></div>
+        <div class="pl">${esc(v.studio?tr("dal tuo studio"):tr("il tuo abbonamento"))}</div></div>
     </div>
     <div class="hint">${esc(v.email||"")}</div>
     ${righe.length?`<div class="lgrid" style="margin-top:12px">${righe.map(k=>

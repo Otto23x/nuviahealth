@@ -35,11 +35,11 @@ const SEG_GRAVITA=[
 
 /* Le schermate con il nome che usa la persona, non quello del codice */
 const SEG_SCHERMI={
-  punto:"Il punto", oggi:"La giornata", piano:"Il piano", spesa:"La spesa",  /* tradotte al disegno */
+  punto:"Il punto", oggi:"La giornata", ricette:"Le ricette", spesa:"La spesa",  /* tradotte al disegno */
   sport:"Sport", comestai:"Come stai", storico:"Numeri e storico",
   io:"Io", sistema:"Sistema", regole:"Regole", tools:"Strumenti",
   guida:"Guida", nuvia:"Nuvi", setup:"Configurazione",
-  onb2:"Primo avvio", piani:"Piani"
+  onb2:"Primo avvio", piani:"Abbonamenti"
 };
 
 function segLista(){
@@ -86,7 +86,7 @@ function segTecnici(){
   try{r.push("Installata: "+(window.matchMedia("(display-mode: standalone)").matches?"sì (PWA)":"no (browser)"));}catch(e){}
   try{r.push("Rete: "+(navigator.onLine?"online":"offline"));}catch(e){}
   try{r.push("AI configurata: "+(typeof aiOn==="function"&&aiOn()?"sì":"no"));}catch(e){}
-  try{r.push("Piano: "+(typeof ricetteVuote==="function"&&ricetteVuote()?"vuoto":
+  try{r.push("Ricette: "+(typeof ricetteVuote==="function"&&ricetteVuote()?"vuoto":
     (S&&S.ricette?"personalizzato":"originale")));}catch(e){}
   return r.join("\n");}
 window.segTecnici=segTecnici;

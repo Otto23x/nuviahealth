@@ -116,7 +116,7 @@ const TRAGUARDI=[
   {k:"streak100", t:"Cento giorni in target",          quando:()=>(S.streak.count||0)>=100},
   {k:"pesata1",   t:"La prima pesata",                 quando:()=>((S.profile.weights||[]).length)>=1},
   {k:"pesate10",  t:"Dieci pesate segnate",            quando:()=>((S.profile.weights||[]).length)>=10},
-  {k:"piano1",    t:"Il primo piano della settimana",  quando:()=>!!S.ricette&&!ricetteVuote()},
+  {k:"piano1",    t:"Le prime ricette della settimana",  quando:()=>!!S.ricette&&!ricetteVuote()},
   {k:"missioni7", t:"Sette missioni completate",       quando:()=>Object.keys(gioco().missioni||{}).length>=7},
   {k:"settimana1",t:"La prima settimana archiviata",   quando:()=>((S.history||[]).length)>=1}
 ];

@@ -103,7 +103,10 @@ function safeRender(p,fn){
   try{fn();}
   catch(e){
     try{const el=document.getElementById("pg-"+p);
-      if(el)el.innerHTML=errorCardHTML(p,e);}catch(_){}
+      /* la scheda d'errore invalida la memoria «già scritto» del
+         percorso guidato (onb2Scrivi): al prossimo giro la pagina si
+         riscrive davvero, invece di lasciare l'errore a schermo */
+      if(el){el.innerHTML=errorCardHTML(p,e);el.__o2html=null;}}catch(_){}
     try{console.error("Nuvia render:",p,e);}catch(_){}
   }}
 /* ═══ GUIDA ATTIVA — faro + primi passi ═══════════════════════════
@@ -277,7 +280,7 @@ window.i18nDinamiche=function(){
   try{BASE_RICETTE.forEach(d=>{agg(d.ctx);(d.meals||[]).forEach(m=>(m.o||[]).forEach(o=>agg(o.d)));});}catch(e){}
   try{DIGIUNI&&Object.keys(DIGIUNI).forEach(k=>{agg(DIGIUNI[k].l);agg(DIGIUNI[k].d);});}catch(e){}
   /* etichette passate come argomento (tagChecksHTML, periodLabel, 40/59) */
-  ["Integratori in uso","Il punto","La giornata","Il piano","La spesa",
+  ["Integratori in uso","Il punto","La giornata","Le ricette","La spesa",
    "Digiuno intermittente","Dieta","Libero","Periodo libero",
    "Mattina","Pomeriggio","Sera","Stagionale"].forEach(agg);
   try{tonoFrasi().forEach(agg);}catch(e){}

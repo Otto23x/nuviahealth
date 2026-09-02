@@ -479,7 +479,7 @@ function liberaHTML(){
       <button title="${tr("Apri")}" class="btn ghost small" id="vocePastoMic" type="button" onclick="vocePasto()">${ic("mic",15)} ${esc(tr("Raccontalo"))}</button>
     </div>
     <div class="hint" style="margin-top:8px">${esc(!isFinite(rim)
-      ? tr("Foto senza limiti con il tuo piano.")
+      ? tr("Foto senza limiti con le tue ricette.")
       : (rim>0 ? tr("Ti restano {n} foto questa settimana.",{n:rim})
                : tr("Foto finite per questa settimana: puoi sempre raccontare o scrivere.")))}</div>
     <div class="aibox" id="fotoOut" aria-live="polite" style="display:none"></div>

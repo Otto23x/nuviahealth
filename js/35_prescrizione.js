@@ -118,7 +118,7 @@ function prescrizioneHTML(){
     carboidrati:tr("Carboidrati"),
     grassi:tr("Grassi"),
     attivita:tr("Livello di attività"),
-    pianoDaStudio:tr("Il piano lo prepara lo studio"),
+    pianoDaStudio:tr("Le ricette le prepara lo studio"),
     formula:tr("Formula del fabbisogno")};
   const unita={obiettivoPeso:"kg",altezza:"cm",kcal:"kcal",
     proteine:"g",carboidrati:"g",grassi:"g"};

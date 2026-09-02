@@ -1035,6 +1035,25 @@ label{font-size:11.5px;font-weight:700;letter-spacing:.09em;text-transform:upper
 .famrow .fetan{flex:0 0 76px;min-width:0;text-align:center;font-size:13px;
   padding-left:4px;padding-right:4px}
 .famrow .fbadge{flex:0 0 auto;font-size:13px;color:var(--grigio);white-space:nowrap;min-width:44px;text-align:right}
+/* La persona di casa su DUE righe (founder, 02/09): «il nome sopra e
+   la riga sotto genere e data». Su una riga sola, a 390px, la data
+   finiva stretta in un campo che tagliava le cifre e il nome si
+   comprimeva a quattro lettere. Una scheda per persona: il nome
+   prende tutta la larghezza, sotto stanno sesso e data con l'aria
+   che gli serve. */
+.fampers{border:1px solid var(--linea);border-radius:16px;padding:12px;margin-bottom:12px;background:var(--card)}
+.fampers .famrow{margin-bottom:8px}
+.fampers .famrow:last-child{margin-bottom:0}
+.fampers .fsex{flex:0 0 72px}
+.fampers .fdob{flex:1 1 auto;font-size:var(--t-base)}
+/* Il campo del paese con l'elenco che compare scrivendo (02/09) */
+.o2combo{position:relative}
+.o2lista{position:absolute;left:0;right:0;top:calc(100% + 4px);z-index:8;background:var(--card);
+  border:1px solid var(--linea);border-radius:16px;box-shadow:var(--shadow-lift);overflow:hidden;max-height:300px;overflow-y:auto}
+.o2voce{display:block;width:100%;text-align:left;background:transparent;border:0;border-bottom:1px solid var(--linea);
+  padding:12px;font-size:var(--t-base);color:var(--ink);cursor:pointer}
+.o2voce:last-child{border-bottom:0}
+.o2voce:hover,.o2voce:focus{background:var(--menta)}
 .water span:hover{transform:translateY(-3px)}
 
 html[data-theme="dark"] .water span.f{background:#0E2C29}
@@ -1676,7 +1695,20 @@ body.onb{padding-bottom:0}
 .o2prem-d+.o2prem-d{margin-top:12px;color:var(--grigio)}
 /* I tre piatti del secondo premio: righe a sinistra dentro la carta
    centrata — un elenco di cibo si legge, non si contempla. */
-.o2prem-p{margin-top:8px;font-size:14px;line-height:1.5;color:var(--ink);text-align:left}
+.o2prem-p{margin-top:8px;font-size:14px;line-height:1.5;color:var(--ink);text-align:left;padding-left:16px;position:relative}
+.o2prem-p::before{content:"•";position:absolute;left:0;color:var(--azione)}
+/* I CONTI DEL PREMIO (02/09): il numero grande sopra, e sotto i pezzi
+   da cui nasce — etichetta a sinistra, valore a destra, nota piccola
+   sotto. Un totale senza i suoi addendi non si può controllare, e il
+   founder l'aveva scambiato per un altro numero proprio per questo. */
+.o2conti{margin-top:16px;text-align:left;border-top:1px solid var(--linea);padding-top:4px}
+.o2conto{display:grid;grid-template-columns:1fr auto;gap:0 12px;padding:8px 0;border-bottom:1px solid var(--linea)}
+.o2conto:last-child{border-bottom:0}
+.o2conto-e{font-size:14px;color:var(--ink);line-height:1.4}
+.o2conto-v{font-size:14px;font-weight:700;color:var(--bosco);white-space:nowrap;text-align:right}
+.o2conto-v.o2conto-t{white-space:normal;max-width:60%;font-weight:600}
+.o2conto-n{grid-column:1/-1;font-size:13px;line-height:1.4;color:var(--grigio)}
+.o2prem-nota{color:var(--grigio)}
 .o2entra{width:100%;margin-top:20px}
 /* Lo stato del piano: cosa è fatto, cosa manca. */
 .o2genl{list-style:none;margin:16px 0 0;padding:0;display:grid;gap:8px}

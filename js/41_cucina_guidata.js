@@ -58,7 +58,7 @@ window.commensali=(pdi,mi,poi)=>{
      la pentola senza commensali chiedeva prima questo foglio, e
      dall'esterno le due strade parevano identiche). */
   sheetShow(poi?tr("Chi mangia oggi — poi ti guido a cucinare"):tr("Chi mangia oggi"),
-   `<div class="hint">${esc(tr("Vale per tutta la giornata: la spesa e le dosi si moltiplicano, la TUA porzione resta quella del piano."))}</div>
+   `<div class="hint">${esc(tr("Vale per tutta la giornata: la spesa e le dosi si moltiplicano, la TUA porzione resta quella delle ricette."))}</div>
     <label>${esc(tr("Adulti"))}</label>
     <div class="mopts" id="cucAd">${[1,2,3,4,5,6].map(n=>
       `<button type="button" class="${n===c.a?"on":""}" onclick="cucSetA(${n})">${n}</button>`).join("")}
@@ -151,7 +151,7 @@ window.comeCucino=async(pdi,mi)=>{
         `<li><b>${esc(p.t||tr("Passo {n}",{n:i+1}))}</b>${(+p.min)?`<span class="cucmin">${esc(tr("{m} min",{m:+p.min}))}</span>`:""}
           <div>${esc(p.d||"")}</div></li>`).join("")}</ol>
       ${j.nota?`<div class="cucnota">${esc(String(j.nota))}</div>`:""}
-      <div class="hint" style="margin-top:12px">${esc(tr("La tua porzione resta quella del piano: qui sono moltiplicate solo le quantità da cucinare."))}</div>
+      <div class="hint" style="margin-top:12px">${esc(tr("La tua porzione resta quella delle ricette: qui sono moltiplicate solo le quantità da cucinare."))}</div>
       <button class="btn ghost" style="margin-top:12px" onclick="sheetClose()">${esc(tr("Ho finito"))}</button>`);
   }catch(e){
     sheetClose();

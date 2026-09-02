@@ -26,7 +26,7 @@ window.setPermOpt=(d,m,oi)=>{const o=RICETTE[d].meals[m].o[oi];
 window.resetPerm=(d,m)=>{delete S.permMeals[d+"_"+m];save();render("ricette");};
 window.editMealPerm=(d,m)=>{
   const o=templateOpt(d,m);
-  sheetShow("Modifica il piano (permanente)",`
+  sheetShow("Modifica le ricette (permanente)",`
     <textarea id="empTxt" rows="5" style="width:100%">${esc(o.d)}</textarea>
     La modifica resta valida anche nelle settimane successive; kcal e macro si ristimano da sole.
     <div class="mtools" style="margin-top:12px">
@@ -52,7 +52,7 @@ window.altMealPerm=async(d,m)=>{if(!aiOn())return aiFail(new Error("nokey"));con
     const j=parseAIJSON(t);
     /* la rete vale anche sulla porta permanente (29/08): vedi altMeal */
     if(typeof pastoSicuro==="function")j.piatto=pastoSicuro(j.piatto).d;
-    if(!await dlgConfirm(tr("Alternativa permanente:\n{a}\n~{b} kcal · ~{c}g proteine\n\nOK = usala sempre nel piano",{a:j.piatto,b:Math.round(j.kcal),c:Math.round(j.prot)})))return;
+    if(!await dlgConfirm(tr("Alternativa permanente:\n{a}\n~{b} kcal · ~{c}g proteine\n\nOK = usala sempre nelle ricette",{a:j.piatto,b:Math.round(j.kcal),c:Math.round(j.prot)})))return;
     S.altSeen[akey]=(visti.concat(String(j.piatto).slice(0,60))).slice(-6);
     S.permMeals[d+"_"+m]={d:j.piatto,k:Math.round(j.kcal),p:Math.round(j.prot),c:Math.round(j.carb)||null,f:Math.round(j.gras)||null};ricetteCambiate();save();render("ricette");}catch(e){aiFail(e);}};
 function renderRicette(){const el=document.getElementById("pg-ricette");const ti=wd(new Date());
@@ -65,8 +65,8 @@ function renderRicette(){const el=document.getElementById("pg-ricette");const ti
      divergere, e la seconda a divergere è quella che nessuno collauda. */
   let h=ricetteVuote()?`<div class="card">${vuotoDi("ricette")}</div>`:"";
   h+=`<div class="card"><h2>${tr("La tua settimana")}</h2>
-  ${hint2(tr("Questo è il tuo <b>piano</b>: il modello fisso. Le spunte e il tracciamento si fanno in <b>Oggi</b>."),tr("Le modifiche fatte qui (opzione ·  · ) restano valide anche nelle settimane successive. Il piano <b>non cambia</b> quando ribilanci o correggi un pasto in Oggi: resta il riferimento con cui confrontare quello che mangi davvero."))}
-  <button class="btn" style="width:100%;margin:12px 0 8px" onclick="wizEditCurrent()">${tr("Gestisci piano")}</button>
+  ${hint2(tr("Queste sono le tue <b>ricette</b>: il modello fisso. Le spunte e il tracciamento si fanno in <b>Oggi</b>."),tr("Le modifiche fatte qui (opzione ·  · ) restano valide anche nelle settimane successive. Le ricette <b>non cambiano</b> quando ribilanci o correggi un pasto in Oggi: restano il riferimento con cui confrontare quello che mangi davvero."))}
+  <button class="btn" style="width:100%;margin:12px 0 8px" onclick="wizEditCurrent()">${tr("Gestisci ricette")}</button>
   <div class="btngrid2" style="margin-top:0">
     <button class="btn ghost small" onclick="stimaRicette()">Stima risultati</button>
     <button class="btn ghost small" onclick="ricetteMoreSheet()">Altre azioni…</button>
@@ -77,12 +77,12 @@ function renderRicette(){const el=document.getElementById("pg-ricette");const ti
        avviso vive nella pagina Piano, è il primo testo che si legge,
        e diceva «kg» a chiunque — trovato con la ricerca larga dopo la
        domanda «sono tutte corrette?», non con la prima passata */
-    return `<div class="hint" style="color:var(--zafft);font-weight:600"> ${trh("Il piano è stato costruito a {v1}, oggi ne pesi {v2}: {v3}{v4}.",{v1:pesoTxt(S.ricetteW,1),v2:pesoNum(S.profile.w,1),v3:(d>0?"−":"+"),v4:pesoTxt(Math.abs(d),1)})}${Math.abs(d)>=PLANW_TRIGGER?` ${trh("Il fabbisogno è cambiato: conviene {b1} sui numeri di adesso.",{b1:"<b>ritararlo</b>"})}`:" Ancora nessuna differenza rilevante."}</div>`;})()}
+    return `<div class="hint" style="color:var(--zafft);font-weight:600"> ${trh("Le ricette sono state scritte a {v1}, oggi ne pesi {v2}: {v3}{v4}.",{v1:pesoTxt(S.ricetteW,1),v2:pesoNum(S.profile.w,1),v3:(d>0?"−":"+"),v4:pesoTxt(Math.abs(d),1)})}${Math.abs(d)>=PLANW_TRIGGER?` ${trh("Il fabbisogno è cambiato: conviene {b1} sui numeri di adesso.",{b1:"<b>ritararlo</b>"})}`:" Ancora nessuna differenza rilevante."}</div>`;})()}
   <div class="aibox genout" id="planOut" style="display:none"></div></div>`;
   h+=weekOutCardHTML();
   h+=`<div class="gsec">${tr("La spesa che hai fatto")}</div>
     <div class="card"><h2>Scontrino e dispensa</h2>
-    ${hint2(tr("Fotografa lo scontrino: riconosco i prodotti, ti dico com'è andata la spesa e costruisco i giorni di piano con quello che hai."),tr("Gli scontrini si <b>sommano</b>: puoi completare la settimana in più spese. Il piano non è obbligato a usare <b>tutto</b>: ciò che sfora resta in dispensa. Ciò che manca te lo dico io, e con un tocco va in lista. Lo scontrino non viene conservato: parte solo la foto a Gemini con la tua chiave."))}
+    ${hint2(tr("Fotografa lo scontrino: riconosco i prodotti, ti dico com'è andata la spesa e costruisco i giorni della settimana con quello che hai."),tr("Gli scontrini si <b>sommano</b>: puoi completare la settimana in più spese. Le ricette non sono obbligate a usare <b>tutto</b>: ciò che sfora resta in dispensa. Ciò che manca te lo dico io, e con un tocco va in lista. Lo scontrino non viene conservato: parte solo la foto a Gemini con la tua chiave."))}
     ${(function(){
       const v=spesaVoto();
       if(!v)return tr("La dispensa è vuota. Fotografa uno scontrino per cominciare.");
@@ -106,11 +106,11 @@ function renderRicette(){const el=document.getElementById("pg-ricette");const ti
         return `<div class="hint" style="margin-top:12px;border-left:4px solid ${col};padding-left:12px">
           <b>${trh("Copre {v1}% di quello che serve</b> nei prossimi 7 giorni ({v3} ingredienti su {v2}).",{v1:k.pc,v3:k.coperti,v2:k.richiesti})}${k.manca.length?`<br><b style="color:var(--zafft)">Manca:</b> ${k.manca.map(m=>esc(m.k)+(m.pasti[0]?` <span style="color:var(--grigio)">(${esc(m.pasti[0])})</span>`:"")).join(" · ")}${k.mancaTot>k.manca.length?` e altri ${k.mancaTot-k.manca.length}`:""}.`:""}
           ${k.scarso.length?`<br><b>Poco:</b> ${k.scarso.map(m=>esc(m.k)+" (~"+Math.round(m.hai)+"g su ~"+Math.round(m.g)+"g)").join(" · ")}.`:""}
-          ${k.avanza.length?`<br><b>${tr("Fuori piano:")}</b> ${k.avanza.map(a=>esc(a.k)).join(" · ")}${k.avanzaTot>k.avanza.length?` e altri ${k.avanzaTot-k.avanza.length}`:""} ${tr("— non serve a nessun pasto della settimana.")}`:""}
+          ${k.avanza.length?`<br><b>${tr("Fuori dal previsto:")}</b> ${k.avanza.map(a=>esc(a.k)).join(" · ")}${k.avanzaTot>k.avanza.length?` e altri ${k.avanzaTot-k.avanza.length}`:""} ${tr("— non serve a nessun pasto della settimana.")}`:""}
           ${(!k.manca.length&&!k.scarso.length)?`<br>${tr("Il carrello basta per la settimana.")}`:""}</div>`;})()}`;})()}
     <div class="mtools">
       <button class="btn ghost small" onclick="scontrinoScan()">${tr("Fotografa lo scontrino")}</button>
-      ${pantry().items.length?`<button class="btn ghost small" onclick="pantryCucina()">${tr("Piano da quello che ho")}</button>`:""}
+      ${pantry().items.length?`<button class="btn ghost small" onclick="pantryCucina()">${tr("Ricette da quello che ho")}</button>`:""}
     </div>
     <div class="aibox" aria-live="polite" id="scoOut" style="display:none"></div>
     ${pantry().items.length?`
@@ -128,10 +128,10 @@ function renderRicette(){const el=document.getElementById("pg-ricette");const ti
 
   h+=`<div class="card" style="display:none">
   <div class="mtools" style="margin-top:8px">
-    <input type="text" id="planCode" placeholder="codice piano" style="max-width:150px;margin:0">
+    <input type="text" id="planCode" placeholder="codice ricette" style="max-width:150px;margin:0">
     <button class="btn ghost small" onclick="loadPlanCode(false)">${tr("Ripristina")}</button>
   </div>
-  Con <b>00000000</b> ripristini il piano principale di Nuvia.
+  Con <b>00000000</b> ripristini le ricette di partenza di Nuvia.
 </div>`;
   /* Le CORREZIONI stanno subito sotto gli attrezzi del piano: è la
      porta con cui si dice «questo non mi va» e diventa una regola.
@@ -142,16 +142,16 @@ function renderRicette(){const el=document.getElementById("pg-ricette");const ti
      in un posto che restasse visibile). */
   if(!ricetteVuote()&&S.ui&&S.ui.ricetteOrigine==="base")
     h+=`<div class="hint" style="background:var(--menta);padding:12px;border-radius:12px;margin-bottom:12px">${
-      esc(tr("Questo è il piano di partenza con le quantità rifatte sui tuoi numeri: l'AI non era disponibile quando è nato. Quando vuoi, rigeneralo da qui."))}</div>`;
+      esc(tr("Queste sono le ricette di partenza con le quantità rifatte sui tuoi numeri: l'AI non era disponibile quando sono nate. Quando vuoi, rigenerale da qui."))}</div>`;
   if(!ricetteVuote()&&typeof correzioniCardHTML==="function")h+=correzioniCardHTML();
   if(ricetteVuote())h+=`<div class="card" style="text-align:center">
-    <h2 style="margin-top:4px">${tr("Piano vuoto")}</h2>
+    <h2 style="margin-top:4px">${tr("Nessuna ricetta")}</h2>
     <div class="hint">${trh("Chiedi all'AI sette giorni di ricette partendo dalle tue caratteristiche, oppure scrivili tu: per ogni piatto c'è {b} e {b2}, così non devi calcolare nulla a mano.",{b:"<b>Stima</b>",b2:"<b>"+tr("Bilancia la giornata")+"</b>"})}</div></div>`;
   RICETTE.forEach((d,di)=>{
     h+=`<div class="dayname">${giorno(d.day)}${di===ti?'<span class="todaytag">'+tr("OGGI")+'</span>':""}</div><div class="dayctx">${esc(tr(d.ctx||""))}</div>`;
     (d.meals||[]).forEach((m,mi)=>h+=mealCardStatic(di,mi));
     const pl=plannedTemplateOfDay(di);
-    h+=`<div class="daytotal">${tr("Piano:")} <span>~${pl.k} kcal · ${pl.p}g ${tr("proteine")} · ${pl.c}g ${tr("carboidrati")} · ${pl.f}g ${tr("grassi")} · ${pl.fib}g ${tr("fibre")} · ${pl.z||0}g ${tr("zuccheri")}</span></div>`;
+    h+=`<div class="daytotal">${tr("Ricette:")} <span>~${pl.k} kcal · ${pl.p}g ${tr("proteine")} · ${pl.c}g ${tr("carboidrati")} · ${pl.f}g ${tr("grassi")} · ${pl.fib}g ${tr("fibre")} · ${pl.z||0}g ${tr("zuccheri")}</span></div>`;
   });
   el.innerHTML=h;}
 
@@ -433,7 +433,7 @@ function renderPunto(){const el=document.getElementById("pg-punto");const di=vie
          giornata conclusa bene — vuol dire che non c'è ancora niente. */
       const previsti=dayItems(di).length;
       let cap,ton="hi";
-      if(!previsti&&!eat.k){cap="Non hai ancora un piano.";ton="warn";}
+      if(!previsti&&!eat.k){cap="Non hai ancora le ricette.";ton="warn";}
       else if(!previsti){cap="Stai segnando a mano.";}
       else if(!eat.k&&dopo.length){cap=tr("Giornata da iniziare.");}
       else if(eat.k>plan*1.08){cap="Sei un po' oltre.";ton="warn";}
@@ -526,7 +526,7 @@ function renderPunto(){const el=document.getElementById("pg-punto");const di=vie
           "digiunoSet(this.checked)")
       +`</div>`;
     return g;})()}
-  ${(cycleDay()&&cycleDay()<=5)?`<div class="hint" style="background:var(--zaffbg);padding:12px 12px;border-radius:12px;margin-top:12px">${trh("Nei giorni del ciclo è normale pesare {b1}: è acqua, non grasso. Non toccare il piano per questo — passa da sé.",{b1:"<b>"+trh("{v1} in più",{v1:(typeof pesoNum==="function")?(pesoNum(1,0)+"-"+pesoTxt(2,0)):"1-2 kg"})+"</b>"})}</div>`:""}
+  ${(cycleDay()&&cycleDay()<=5)?`<div class="hint" style="background:var(--zaffbg);padding:12px 12px;border-radius:12px;margin-top:12px">${trh("Nei giorni del ciclo è normale pesare {b1}: è acqua, non grasso. Non toccare le ricette per questo — passa da sé.",{b1:"<b>"+trh("{v1} in più",{v1:(typeof pesoNum==="function")?(pesoNum(1,0)+"-"+pesoTxt(2,0)):"1-2 kg"})+"</b>"})}</div>`:""}
   ${physDurationNote()}
   ${tr("Se hai acceso o spento qualcosa, le grammature della settimana vanno ritarate.")}
   <div class="mtools">
@@ -537,7 +537,7 @@ function renderPunto(){const el=document.getElementById("pg-punto");const di=vie
   }
   // Pasti
   if(ricetteVuote()){h+=`<div class="card" style="text-align:center">
-    <h2 style="margin-top:4px">${tr("Non hai ancora un piano")}</h2>
+    <h2 style="margin-top:4px">${tr("Non hai ancora le ricette")}</h2>
     <div class="hint">${trh("Puoi comunque usare Nuvia da subito: aggiungi {b1} per registrare quello che mangi e segna gli allenamenti in Sport.",{b1:"<b>+ Extra</b>"})}</div>
     <div class="mtools" style="justify-content:center;margin-top:12px">
       <button class="btn small" onclick="genRicetteAI()">${tr("Chiedi le ricette")}</button>
@@ -570,7 +570,7 @@ function renderPunto(){const el=document.getElementById("pg-punto");const di=vie
       <button class="btn small" onclick="show('storico')">${tr("Vai al riepilogo")}</button>
       <button class="ibtn" onclick="dismissWeek()" title="${tr("Nascondi per oggi")}">${ic("x",15)}</button></div></div>`);
   if(!aiOn()&&!S.ui.dismissAI)avvisi.push(`<div class="card nota">
-    <div style="font-size:13px"><b>${tr("Manca la chiave AI</b>: senza, restano spenti piano automatico, stime dei piatti, foto, menù, ribilanciamenti e recuperi. È gratuita e si crea in un minuto.")}</div>
+    <div style="font-size:13px"><b>${tr("Manca la chiave AI</b>: senza, restano spenti ricette automatiche, stime dei piatti, foto, menù, ribilanciamenti e recuperi. È gratuita e si crea in un minuto.")}</div>
     <div class="mtools">
       <a class="btn small" href="https://aistudio.google.com/app/apikey" target="_blank" rel="noopener" style="text-decoration:none">${tr("Crea la chiave ↗")}</a>
       <button class="btn ghost small" onclick="show('sistema')">${tr("Incollala")}</button>

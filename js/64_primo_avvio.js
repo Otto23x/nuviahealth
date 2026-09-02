@@ -71,7 +71,7 @@ window.salutoFatto=salutoFatto;
 
 window.salutoChiudi=()=>{
   try{localStorage.setItem(SALUTO_KEY,"1");}catch(e){}
-  render(cur);try{window.scrollTo(0,0);}catch(e){}};
+  render(cur);paginaInCima();};
 
 /* ── I QUATTRO PUNTI, RIFATTI (founder, 24/08) ─────────────────────
    Cosa c'era e perché non andava:
@@ -124,8 +124,8 @@ window.salutoHTML=()=>`<div class="primo saluto">
 
   <div class="card saluto-card">
   <div class="saluto-p">
-    <b>${esc(tr("Il piano è tuo, non di un manuale"))}</b>
-    <span>${esc(tr("Nasce dai tuoi orari, dai cibi che eviti e da quelli che ti piacciono. E si riscrive quando cambia qualcosa, senza ricominciare da capo."))}</span>
+    <b>${esc(tr("Si parte da te, non da un manuale"))}</b>
+    <span>${esc(tr("La tua settimana nasce dai tuoi orari, dai cibi che eviti e da quelli che ti piacciono. E si riscrive quando cambia qualcosa, senza ricominciare da capo."))}</span>
   </div>
   <div class="saluto-p">
     <b>${esc(tr("Serve a raddrizzare una giornata storta"))}</b>
@@ -142,10 +142,15 @@ window.salutoHTML=()=>`<div class="primo saluto">
   </div>
 
   <button class="btn saluto-via" type="button" onclick="salutoChiudi()">${esc(tr("Comincia"))}</button>
-  ${/* corta di proposito: t_saluto tiene il saluto sotto 140 parole e
-       senza parole-funzione («ricette» è una spia): qui si dice solo
-       la responsabilità, «Le cose chiare» in Nuvia dice il resto */""}
-  <div class="hint" style="margin-top:12px;font-size:12px;opacity:.85">${esc(tr("Iniziando confermi di avere almeno 18 anni. Nuvia non è un dispositivo medico e non sostituisce medici o nutrizionisti: i suoi suggerimenti si cambiano liberamente."))}</div>
+  ${/* LA RIGA DEI 18 ANNI NON STA PIÙ QUI (founder, 02/09): «si può
+       togliere da qui la scritta dei 18 anni, ci sarà già nella pagina
+       legale più avanti». Aveva ragione due volte: la pagina legale
+       arriva SUBITO DOPO questa e chiede la stessa cosa con una spunta
+       vera — dirla qui in piccolo era una premessa che nessuno
+       leggeva prima di una spunta che tutti devono mettere. E «Nuvia
+       non è un dispositivo medico» sta nel riquadro del gate, a
+       caratteri normali. Il saluto dice cos'è Nuvia; la pagina dopo
+       dice le condizioni. Una cosa per pagina. */""}
 </div>`;
 
 /* La G di Google. Sul pulsante di accesso il marchio va messo come
@@ -165,7 +170,7 @@ window.primoFatto=primoFatto;
 
 window.primoSalta=()=>{
   try{localStorage.setItem(PRIMO_KEY,"1");}catch(e){}
-  render(cur);};
+  render(cur);paginaInCima();};
 
 /* Serve mostrarla? Solo a chi non l'ha ancora vista e non ha già
    un conto: chi torna non deve rifare la strada. */
@@ -373,7 +378,10 @@ window.primoTecProva=async()=>{
   if(!key)righe.push(["no",tr("AI: nessuna chiave scritta.")]);
   else{
     try{
-      const r=await aiAsk(tr("Rispondi soltanto con la parola OK."),"prova");
+      /* la frase è FISSA e in italiano: non passa da tr() perché non
+         è interfaccia, è il testo che parte — e deve essere sempre lo
+         stesso, senza dati della persona (vedi geminiCall, «prova») */
+      const r=await aiAsk("Rispondi soltanto con la parola OK.","prova");
       righe.push(String(r||"").trim()
         ? ["si",tr("AI: risponde.")]
         : ["no",tr("AI: ha risposto vuoto.")]);

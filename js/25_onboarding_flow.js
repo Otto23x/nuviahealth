@@ -72,7 +72,7 @@ function ONB2t(){return [
 
  {k:"obiettivo",sez:"profilo",tipo:"scelta",
   q:tr("Cosa vorresti fare?"),
-  sub:tr("Da qui parte tutto il resto: il fabbisogno, il piano, il ritmo."),
+  sub:tr("Da qui parte tutto il resto: il fabbisogno, le ricette, il ritmo."),
   op:[["perdere",tr("Perdere peso"),tr("Con calma e senza fame nera")],
       ["mantenere",tr("Mantenere"),tr("Stare bene dove sono")],
       ["massa",tr("Mettere massa"),tr("Crescere, non solo pesare di più")]]},
@@ -224,13 +224,13 @@ function ONB2t(){return [
      .concat((typeof PROT_LIST!=="undefined"?PROT_LIST:[]).map(x=>[x.k,tr(x.l).trim(),""])),
   gr2:tr("Vincoli religiosi o etici"),
   /* la riga che spiega la differenza: qui non si «orienta», si VIETA */
-  gr2sub:tr("Un'altra cosa: questi non sono preferenze. Quello che segni qui non entra mai nel piano, per nessun motivo."),
+  gr2sub:tr("Un'altra cosa: questi non sono preferenze. Quello che segni qui non entra mai nelle ricette, per nessun motivo."),
   op2:[["nessuno",tr("Nessun vincolo"),""]]
      .concat((typeof REL_LIST!=="undefined"?REL_LIST:[]).map(x=>[x,O2CAP(x),""]))},
 
  {k:"cibi",sez:"alimentazione",tipo:"cibi",
   q:tr("Cosa eviti e cosa ami"),
-  sub:tr("Non intolleranze: gusti. Il piano gira intorno alle prime e punta sulle seconde.")},
+  sub:tr("Non intolleranze: gusti. Le ricette girano intorno alle prime e puntano sulle seconde.")},
 
  /* La frase diceva «niente più liste» — e la prima cosa dopo era
     un'altra schermata di scelte. Il founder: «ha senso? non credo».
@@ -283,7 +283,7 @@ function ONB2t(){return [
      tutto quello che le legge — o2Att, i passi base, il turnista —
      continua a funzionare senza saperlo. */
   q:tr("Le tue giornate"),
-  sub:tr("Servono due cose: quanto ti muovi, e dove passi il tempo. Il piano si adatta a tutte e due."),
+  sub:tr("Servono due cose: quanto ti muovi, e dove passi il tempo. Le ricette si adattano a tutte e due."),
   gr1:tr("Quanto ti muovi, in una settimana normale?"),
   op:[["fermo",tr("Quasi per niente"),tr("Niente sport e poca camminata")],
       ["poco",tr("Poco"),tr("Qualche camminata, nessun allenamento fisso")],
@@ -336,11 +336,11 @@ function ONB2t(){return [
     una lista decorativa. */
  {k:"pausa2",sez:"vita",tipo:"pausa",posa:"cucina",
   q:tr("Sedici risposte. Guarda cosa ne esce."),
-  sub:tr("Tre piatti scelti con quello che mi hai detto finora — è un assaggio, il piano vero arriva alla fine.")},
+  sub:tr("Tre piatti scelti con quello che mi hai detto finora — è un assaggio, le ricette vere arrivano alla fine.")},
 
  {k:"pasti",sez:"vita",tipo:"pasti",
   q:tr("Quali pasti fai davvero?"),
-  sub:tr("Il piano non proporrà quelli spenti.")},
+  sub:tr("Le ricette non proporranno quelli spenti.")},
 
  /* ── QUANTO TEMPO HAI, E PER CHI CUCINI (founder, 28/08) ────────
     Erano due schermate di fila, e sono la stessa scena: la cucina.
@@ -349,13 +349,13 @@ function ONB2t(){return [
     la stessa cosa di una per uno. */
  {k:"cucina",sez:"vita",tipo:"famiglia",
   q:tr("Quanto tempo hai per cucinare, e per chi?"),
-  sub:tr("Un piano che non entra nella tua settimana non lo segue nessuno."),
+  sub:tr("Ricette che non entrano nella tua settimana non le segue nessuno."),
   op:[["veloce",tr("Pochissimo"),tr("Cose pronte o da 10 minuti")],
       ["normale",tr("Il giusto"),tr("Mezz'ora, di solito")],
       ["amoCucinare",tr("Mi piace cucinare"),tr("Il tempo lo trovo volentieri")]]},
 
  {k:"preferenze",sez:"vita",tipo:"preferenze",
-  q:tr("Le ultime tre cose per il piano")},
+  q:tr("Le ultime tre cose per le ricette")},
 
  /* ── I PIANI, PRIMA DELLE DOMANDE PER CONOSCERSI (founder, 23/08) ──
     Sta qui e non alla fine per una ragione precisa: **la scelta
@@ -369,14 +369,14 @@ function ONB2t(){return [
     percorso. */
  {k:"piani",sez:"conoscerti",tipo:"piani",
   q:tr("Come vuoi che ti segua?"),
-  sub:tr("Da qui dipende come nasce il piano. Si cambia quando vuoi.")},
+  sub:tr("Da qui dipende come nascono le ricette. Si cambia quando vuoi.")},
 
  /* `genera` sta sulla PAUSA e non sulla schermata dei piani: la
     generazione deve partire DOPO la scelta, perché è la scelta a
     decidere se e come generare. */
  {k:"pausa3",sez:"conoscerti",tipo:"pausa",posa:"cerca",genera:true,
-  q:tr("Ho tutto quello che serve al piano."),
-  sub:tr("Comincio a scriverlo adesso, mentre rispondi alle ultime domande: qui sotto vedrai a che punto è.")},
+  q:tr("Ho tutto quello che serve alle ricette."),
+  sub:tr("Comincio a scriverle adesso, mentre rispondi alle ultime domande: qui sotto vedrai a che punto sono.")},
 
  /* ── IL CIBO E IL PERCHÉ, INSIEME (founder, 28/08) ──────────────
     Erano due schermate a scelta multipla nello stesso blocco, dopo
@@ -405,16 +405,27 @@ function ONB2t(){return [
     Sapere COM'È ANDATA vale quanto sapere che c'è stato un tentativo:
     un piano che ha funzionato finché è durato chiede continuità, uno
     che non ha mai funzionato chiede un approccio diverso. */
+ /* ── LA SECONDA DOMANDA SI VEDE SUBITO (founder, 02/09) ─────────
+    «Come ti ho già detto tante volte deve essere già visibile, non
+    deve apparire quando l'utente seleziona una delle risposte sopra,
+    esattamente come funziona nelle altre pagine.» Il gruppo compariva
+    solo dopo la prima risposta (`se2`): un pezzo di schermata che
+    nasce sotto il dito è un movimento che la persona non ha chiesto.
+    Adesso c'è sempre, e la sua riga dice quando si può saltare: la
+    risposta è obbligatoria solo per chi una dieta l'ha fatta.
+    E via «ALTRE diete»: lasciava intendere che questa app ne faccia
+    una — che è proprio la lettura che non vogliamo. */
  {k:"tentativi",sez:"conoscerti",tipo:"scelta",
   k2:"tentativi_esito",
-  se2:()=>{const v=onb2Stato().ris.tentativi;return !!v&&v!=="mai";},
-  q:tr("Hai già provato altre diete?"),
-  sub:tr("Serve a non riproporti quello che non ha funzionato."),
+  serve2:()=>{const v=onb2Stato().ris.tentativi;return !!v&&v!=="mai";},
+  q:tr("Hai già fatto diete?"),
+  sub:tr("Così so cosa non riproporti."),
   op:[["mai",tr("No, è la prima volta"),tr("Comincio da qui")],
       ["qualcuno",tr("Sì, qualche volta"),tr("Qualche periodo, poi ho lasciato")],
-      ["molti",tr("Sì, spesso"),tr("Ne ho seguiti parecchi, di tipi diversi")],
+      ["molti",tr("Sì, spesso"),tr("Ne ho seguite parecchie, di tipi diversi")],
       ["yoyo",tr("Sì, e faccio fatica a restarci"),tr("Parto bene e poi si interrompe")]],
-  gr2:tr("E com'era andata?"),
+  gr2:tr("Com'era andata?"),
+  gr2sub:tr("Se non ne hai mai fatte, salta pure."),
   op2:[["funzionato",tr("Aveva funzionato"),tr("Poi la vita si è messa in mezzo")],
       ["ripreso",tr("Peso perso, poi ripreso"),tr("L'effetto fisarmonica")],
       ["parziale",tr("In parte"),tr("Qualche risultato, non quello che speravo")],
@@ -532,30 +543,64 @@ function onb2MicBarra(campo,passo){
    si accende e la barra che avanza. `confermaPasso` resta viva nel
    resto dell'app, dove un gesto isolato un cenno se lo merita.
    ── Render ───────────────────────────────────────────────────── */
+/* ═══ SCRIVERE LA PAGINA UNA VOLTA SOLA (founder, 02/09) ═══════════
+   «Quando apro l'app la pagina con le cose legali si refresha più
+   volte» e «quando parte Nuvia […] viene renderizzata due volte».
+   Aveva visto giusto, e la causa non era in queste schermate: è
+   l'avvio dell'app, che a 1,5 s (il conto), a 2,5 s (i piani) e alla
+   chiusura delle settimane vecchie chiama `render(cur)` — e `cur`,
+   al primo avvio, è questa pagina. Ogni chiamata riscriveva
+   l'innerHTML da capo: le immagini ricaricavano (il lampo), le
+   spunte appena messe sparivano, il testo scritto in un campo
+   andava perso.
+   Qui la pagina si scrive SOLO SE È CAMBIATA: si confronta il testo
+   che si sta per scrivere con l'ultimo scritto. Se è uguale, il DOM
+   resta com'è — con le spunte, il testo digitato e la posizione. Un
+   ridisegno che non cambia niente non deve toccare niente. */
+function onb2Scrivi(el,html){
+  if(el.__o2html===html&&el.firstElementChild)return false;
+  el.__o2html=html;el.innerHTML=html;return true;}
+window.onb2Scrivi=onb2Scrivi;
+
+/* ═══ L'ORDINE DELLE PORTE (founder, 02/09) ═══════════════════════
+   «La pagina legale è utile che ci sia, ma andrebbe DOPO la scelta
+   della lingua, per proporla nella lingua corretta.»
+   Prima l'ordine era: documenti → saluto → account → domande (con la
+   lingua come prima domanda). Cioè si chiedeva di accettare un
+   contratto in una lingua che la persona non aveva ancora scelto: a
+   un inglese il gate arrivava in italiano. Adesso:
+     1. lingua e paese     (la prima schermata del percorso, step 0)
+     2. il saluto          (cos'è Nuvia, nella sua lingua)
+     3. i documenti        (nella sua lingua, con Indietro e Avanti)
+     4. l'account          (Google, e il banco di prova finché c'è)
+     5. le domande         (dallo step 1 in poi)
+   Le porte 2-4 si aprono quando lo step è >0, cioè dopo la lingua.
+   Chi ha già finito il percorso (`S.onboard.done`) e trova i
+   documenti cambiati salta la lingua — ne ha già una — e va dritto
+   alla porta 3, come prima. La regola «collegare l'account è già un
+   trattamento di dati, va DOPO i documenti» (v15.7.0) resta intatta:
+   la porta 4 viene sempre dopo la 3. */
 function renderOnb2(){
   const el=document.getElementById("pg-onb2");if(!el)return;
-  /* ── PRIMA ANCORA DELL'ACCOUNT: I DOCUMENTI (v15.7.0) ───────────
-     Collegare un account Google è già un trattamento di dati:
-     chiederlo prima di aver detto come si trattano sarebbe l'ordine
-     sbagliato, e un consenso raccolto dopo il fatto non è un
-     consenso. Quindi il gate legale sta davanti a tutto. */
-  try{
-    if(typeof legaleServe==="function"&&legaleServe()){
-      el.innerHTML=legaleGateHTML();
-      try{if(typeof a11yLega==="function")a11yLega("onb2");}catch(e){}
-      return;}
-  }catch(e){}
-  /* Poi l'account. È la schermata che decide se una
-     persona resta, e va prima delle domande — non dopo, quando
-     ha già investito dieci minuti e scopre che serviva un
-     collegamento. */
-  try{
-    if(typeof primoServe==="function"&&primoServe()){
-      el.innerHTML=primoHTML();
-      try{if(typeof a11yLega==="function")a11yLega("onb2");}catch(e){}
-      return;}
-  }catch(e){}
-  const o=onb2Stato(),i=o.step,sc=ONB2c()[i];
+  const o=onb2Stato();
+  const porte=!!(S.onboard&&S.onboard.done)||o.step>0;
+  if(porte){
+    try{
+      if(!(S.onboard&&S.onboard.done)&&typeof salutoFatto==="function"&&!salutoFatto()
+         &&typeof primoServe==="function"&&primoServe()){
+        onb2Scrivi(el,salutoHTML());return;}
+    }catch(e){}
+    try{
+      if(typeof legaleServe==="function"&&legaleServe()){
+        if(onb2Scrivi(el,legaleGateHTML())){try{if(typeof a11yLega==="function")a11yLega("onb2");}catch(e){}}
+        return;}
+    }catch(e){}
+    try{
+      if(typeof primoServe==="function"&&primoServe()){
+        if(onb2Scrivi(el,primoHTML())){try{if(typeof a11yLega==="function")a11yLega("onb2");}catch(e){}}
+        return;}
+    }catch(e){}}
+  const i=o.step,sc=ONB2c()[i];
   let c="";
   if(sc.tipo==="scelta")c=onb2Scelta(sc);
   else if(sc.tipo==="modulo")c=onb2Modulo(sc);
@@ -593,16 +638,16 @@ function renderOnb2(){
        messaggio dell'AI al lavoro. Adesso «pronto» pretende anche il
        piano fra le mani — lo stato da solo non basta più. */
     const inMano=!!(g.piano||(S.genPronto&&S.genPronto.piano));
-    if((g.stato==="fatto"||g.stato==="base")&&inMano){q=tr("Il tuo piano è pronto.");sub=tr("Lo trovi in Piano, con la spesa già scritta. Benvenuto.");}
-    else if(g.stato==="fatto"||g.stato==="base"){q=tr("Ci siamo quasi.");sub=tr("Il piano è scritto, lo sto sistemando: entra pure, si attiva da solo.");}
-    else if(g.stato==="lavoro"){q=tr("Sto scrivendo il tuo piano…");sub=tr("Puoi già entrare: si attiva da solo appena è finito.");}
-    else if(g.stato==="errore"){q=tr("Il piano non è arrivato.");
-      sub=g.riga||tr("Il diario è già tuo: il piano lo rifai da Piano quando vuoi, in un tocco.");}
+    if((g.stato==="fatto"||g.stato==="base")&&inMano){q=tr("Le tue ricette sono pronte.");sub=tr("Lo trovi in Ricette, con la spesa già scritta. Benvenuto.");}
+    else if(g.stato==="fatto"||g.stato==="base"){q=tr("Ci siamo quasi.");sub=tr("Le ricette sono scritte, le sto sistemando: entra pure, si attivano da sole.");}
+    else if(g.stato==="lavoro"){q=tr("Sto scrivendo le tue ricette…");sub=tr("Puoi già entrare: si attiva da solo appena è finito.");}
+    else if(g.stato==="errore"){q=tr("Le ricette non sono arrivate.");
+      sub=g.riga||tr("Il diario è già tuo: le ricette le rifai da Ricette quando vuoi, in un tocco.");}
     else{q=tr("Ci siamo.");sub=tr("Il diario è pronto: si comincia da lì.");}}
   /* Tutto il percorso vive dentro un riquadro, come il resto
      dell'app (founder, 26/08): stessa carta, stessa distanza dai
      bordi delle altre pagine. */
-  el.innerHTML=onb2Barra()+
+  const scritto=onb2Scrivi(el,onb2Barra()+
    `<div class="o2wrap" data-passo="${i+1}" data-chiave="${esc(sc.k)}">
       <div class="card o2card">
         <h1 class="o2q">${esc(q)}</h1>
@@ -615,11 +660,11 @@ function renderOnb2(){
         ${sc.tipo!=="fine"?`<button class="btn o2next" type="button"
           onclick="onb2AvantiSchermo()">${esc(tr("Avanti"))}</button>`
         :`<button class="btn o2next o2entra" type="button"
-          onclick="onb2Chiudi('piano')">${esc(tr("Entra"))}</button>`}
+          onclick="onb2Chiudi('ricette')">${esc(tr("Entra"))}</button>`}
         ${onb2MicBarra(sc.k,i)}
       </div>
-    </div>`;
-  try{if(typeof a11yLega==="function")a11yLega("onb2");}catch(e){}}
+    </div>`);
+  if(scritto){try{if(typeof a11yLega==="function")a11yLega("onb2");}catch(e){}}}
 window.renderOnb2=renderOnb2;
 
 /* Schermata a scelta: card larghe, un tocco e si va avanti. */
@@ -645,7 +690,7 @@ function onb2Scelta(sc){
     const v2=o.ris[sc.k2];
     let serve=true;try{serve=!sc.se2||!!sc.se2();}catch(e){serve=true;}
     h+=`<div data-gruppo2="${esc(sc.k2)}"${serve?"":" hidden"}>
-      <div class="o2gr" style="margin-top:16px"><b class="o2grt">${esc(sc.gr2||"")}</b></div>
+      <div class="o2gr" style="margin-top:16px"><b class="o2grt">${esc(sc.gr2||"")}</b>${sc.gr2sub?`<span class="o2grs">${esc(sc.gr2sub)}</span>`:""}</div>
       <div class="o2ops" data-gruppo="${esc(sc.k2)}">`+sc.op2.map(([v,t,d])=>
       `<button class="o2op${v2===v?" scelta":""}" type="button" data-v="${esc(v)}"
          aria-pressed="${v2===v?"true":"false"}" onclick="onb2Set('${esc(sc.k2)}','${esc(v)}')">
@@ -834,17 +879,24 @@ function onb2Fam(){
   const f=o.ris.famiglia||(o.ris.famiglia={con:null,lista:[],piano:true,spesa:true});
   if(!Array.isArray(f.lista))f.lista=[];
   return f;}
+/* Una scheda per persona, su due righe (founder, 02/09): sopra il nome
+   e il tasto per toglierla, sotto sesso e data di nascita. Su una riga
+   sola la data non ci stava e il nome si stringeva a quattro lettere. */
 function onb2FamRiga(m,i){
-  return `<div class="famrow">
-    <input type="text" class="fnome" placeholder="${esc(tr("Nome"))}" value="${esc(m.nome||"")}"
-      onchange="onb2FamSet(${i},'nome',this.value)" aria-label="${esc(tr("Nome"))}">
-    <select class="fsex" aria-label="${esc(tr("Sesso"))}" onchange="onb2FamSet(${i},'gender',this.value)">
-      <option value="f"${m.gender!=="m"?" selected":""}>F</option>
-      <option value="m"${m.gender==="m"?" selected":""}>M</option></select>
-    <input type="text" class="fdob" inputmode="numeric" maxlength="10" placeholder="${esc(tr("gg/mm/aaaa"))}"
-      value="${esc(m.dob?dobPretty(m.dob):"")}" oninput="dateMask(this)"
-      onchange="onb2FamSet(${i},'dob',this.value)" aria-label="${esc(tr("Data di nascita"))}">
-    <button class="ibtn" type="button" title="${esc(tr("Togli"))}" onclick="onb2FamDel(${i})">✕</button></div>`;}
+  return `<div class="fampers" data-persona="${i}">
+    <div class="famrow">
+      <input type="text" class="fnome" placeholder="${esc(tr("Nome"))}" value="${esc(m.nome||"")}"
+        onchange="onb2FamSet(${i},'nome',this.value)" aria-label="${esc(tr("Nome"))}">
+      <button class="ibtn" type="button" title="${esc(tr("Togli"))}" onclick="onb2FamDel(${i})">✕</button>
+    </div>
+    <div class="famrow">
+      <select class="fsex" aria-label="${esc(tr("Sesso"))}" onchange="onb2FamSet(${i},'gender',this.value)">
+        <option value="f"${m.gender!=="m"?" selected":""}>F</option>
+        <option value="m"${m.gender==="m"?" selected":""}>M</option></select>
+      <input type="text" class="fdob" inputmode="numeric" maxlength="10" placeholder="${esc(tr("gg/mm/aaaa"))}"
+        value="${esc(m.dob?dobPretty(m.dob):"")}" oninput="dateMask(this)"
+        onchange="onb2FamSet(${i},'dob',this.value)" aria-label="${esc(tr("Data di nascita"))}">
+    </div></div>`;}
 function onb2FamBox(){
   const f=onb2Fam();
   return f.lista.map((m,i)=>onb2FamRiga(m,i)).join("");}
@@ -861,7 +913,7 @@ function onb2Famiglia(sc){
    <div class="o2ops">${tempo}</div>
    <div class="o2gr" style="margin-top:16px"><b class="o2grt">${esc(tr("Per chi cucini"))}</b></div>
    <div class="o2ops">
-     ${B(false,tr("Cucino solo per me"),tr("Piano e spesa per una persona"))}
+     ${B(false,tr("Cucino solo per me"),tr("Ricette e spesa per una persona"))}
      ${B(true,tr("Mangiamo insieme"),tr("Dimmi chi c'è: cambio la spesa, non le tue porzioni"))}
    </div>
    <div id="o2famBox" class="o2form" style="${f.con===true?"":"display:none"}">
@@ -873,7 +925,7 @@ function onb2Famiglia(sc){
      <label class="ckline"><input type="checkbox" id="o2famSpesa" ${f.spesa!==false?"checked":""}
        onchange="onb2FamFlag('spesa',this.checked)"> ${esc(tr("La spesa la faccio per tutti"))}</label>
    </div>
-   <div class="hint">${tr("Le porzioni del piano restano tue: le decidono i tuoi numeri, non quanti siete a tavola. Chi mangia con te cambia la spesa e mi fa scegliere piatti da cucinare una volta sola.")}</div>`;}
+   <div class="hint">${tr("Le porzioni delle ricette restano tue: le decidono i tuoi numeri, non quanti siete a tavola. Chi mangia con te cambia la spesa e mi fa scegliere piatti da cucinare una volta sola.")}</div>`;}
 /* La scelta accende o spegne il riquadro SUL POSTO: nessun ridisegno
    della pagina, come per le spunte e per le tendine degli integratori. */
 window.onb2CucSet=(v)=>{
@@ -948,11 +1000,23 @@ function onb2Dove(sc){
        `<button class="o2op${lingua===x[0]?" scelta":""}" type="button" data-ling="${esc(x[0])}"
           onclick="onb2DoveLingua('${esc(x[0])}')"><b>${esc(x[1])}</b></button>`).join("")}</div>
 
+     ${/* ── UN CAMPO SOLO PER IL PAESE (founder, 02/09) ──────────────
+           «Italia dovrebbe comparire dentro il quadratino. "Inserisci
+           il tuo paese" non dovrebbe essere un quadratino sotto,
+           perché così confonde gli utenti.»
+           C'erano due campi per una cosa sola: una casella di ricerca
+           vuota e, sotto, una tendina con il paese già scelto. Chi
+           guardava vedeva una domanda senza risposta sopra una
+           risposta senza domanda. Adesso è un campo: mostra il paese
+           scelto, e scrivendoci dentro propone quelli che combaciano —
+           un tocco e il nome torna nel campo. La tendina non c'è più. */""}
      <label for="o2cerca" style="margin-top:16px">${esc(tr("Dove vivi"))}</label>
-     <input type="search" id="o2cerca" inputmode="search" autocomplete="off"
-       placeholder="${esc(tr("cerca il tuo paese"))}" oninput="onb2DoveCerca(this.value)">
-     <select id="o2paese" size="1" onchange="onb2DovePaese(this.value)">${
-       paesi.map(p=>`<option value="${esc(p[0])}"${p[0]===paese?" selected":""}>${esc(tr(p[1]))}</option>`).join("")}</select>
+     <div class="o2combo">
+       <input type="text" id="o2cerca" inputmode="search" autocomplete="off" autocorrect="off"
+         value="${esc(tr(P[1]))}" data-paese="${esc(P[0])}" placeholder="${esc(tr("scrivi il tuo paese"))}"
+         oninput="onb2DoveCerca(this.value)" onfocus="onb2DoveCerca('')" onblur="onb2DoveChiudi()">
+       <div class="o2lista" id="o2paesiLista" role="listbox" hidden></div>
+     </div>
 
      <div class="grid2" style="margin-top:16px">
        <div>
@@ -971,16 +1035,44 @@ function onb2Dove(sc){
      <span class="o2hint">${tr("Il paese decide i prezzi e i prodotti che ti propongo per la spesa, e i piatti che si trovano dove sei. <b>Non converto valute</b>: i prezzi restano nei tuoi soldi.")}</span>
    </div>`;}
 
-/* La ricerca filtra la tendina invece di aprire un secondo elenco:
-   una lista sola, quella che si sta già guardando. */
-window.onb2DoveCerca=(q)=>{
-  const sel=document.getElementById("o2paese");if(!sel)return;
+/* Il campo del paese: scrivendo compare l'elenco di quelli che
+   combaciano (al massimo otto, tutti col nome nella lingua della
+   persona); toccandone uno il nome entra nel campo e la scelta si
+   salva. Chi lascia il campo senza scegliere ritrova il paese di
+   prima: un testo a metà non è una risposta. */
+function onb2DoveProposte(q){
+  const paesi=(typeof PAESI!=="undefined")?PAESI:[];
   const t=String(q||"").trim().toLowerCase();
-  let primo=null;
-  [...sel.options].forEach(op=>{
-    const ok=!t||op.textContent.toLowerCase().indexOf(t)>=0;
-    op.hidden=!ok;if(ok&&!primo)primo=op;});
-  if(primo&&t)  {sel.value=primo.value;onb2DovePaese(primo.value);}};
+  const norm=x=>String(x||"").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g,"");
+  const tn=norm(t);
+  const tutti=paesi.map(p=>[p[0],tr(p[1])]);
+  if(!tn)return tutti.slice(0,8);
+  const inizia=tutti.filter(p=>norm(p[1]).indexOf(tn)===0);
+  const dentro=tutti.filter(p=>norm(p[1]).indexOf(tn)>0);
+  return inizia.concat(dentro).slice(0,8);}
+window.onb2DoveCerca=(q)=>{
+  const box=document.getElementById("o2paesiLista");if(!box)return;
+  const prop=onb2DoveProposte(q);
+  box.innerHTML=prop.map(p=>`<button type="button" class="o2voce" role="option" data-k="${esc(p[0])}"
+      onmousedown="event.preventDefault()" onclick="onb2DoveScegli('${esc(p[0])}')">${esc(p[1])}</button>`).join("")
+    ||`<div class="hint" style="padding:8px 12px">${esc(tr("Nessun paese con questo nome."))}</div>`;
+  box.hidden=false;};
+window.onb2DoveScegli=(k)=>{
+  onb2DovePaese(k);
+  const inp=document.getElementById("o2cerca"),box=document.getElementById("o2paesiLista");
+  const P=paeseDi(k);
+  if(inp){inp.value=tr(P[1]);inp.setAttribute("data-paese",P[0]);}
+  if(box)box.hidden=true;};
+window.onb2DoveChiudi=()=>{
+  /* il tocco su una voce arriva DOPO il blur: si aspetta un attimo,
+     e se nel frattempo è stato scelto un paese il campo è già a posto */
+  setTimeout(()=>{
+    const inp=document.getElementById("o2cerca"),box=document.getElementById("o2paesiLista");
+    if(box)box.hidden=true;
+    if(!inp)return;
+    const k=inp.getAttribute("data-paese")||"IT";
+    const P=paeseDi(k);
+    if(inp.value.trim().toLowerCase()!==String(tr(P[1])).toLowerCase())inp.value=tr(P[1]);},160);};
 
 /* Scegliendo il paese arrivano valuta e unità: non si sovrascrive
    una scelta fatta a mano, si propone quella di casa a chi non ha
@@ -1359,7 +1451,7 @@ function onb2Pasti(sc){
 
 window.onb2PastiOk=()=>{
   const slots=O2SLOTS.filter((s,i)=>{const e=document.getElementById("o2sl"+i);return e&&e.checked;});
-  if(slots.length<2)return dlgAlert(tr("Seleziona almeno due pasti: con meno di due il piano non sta in piedi."));
+  if(slots.length<2)return dlgAlert(tr("Seleziona almeno due pasti: con meno di due le ricette non stanno in piedi."));
   const lib=Math.max(0,Math.min(7,+((document.getElementById("o2lib")||{}).value||0)));
   const o=onb2Stato();o.ris.pasti={slots,liberi:lib};
   onb2Salva();onb2Avanti();};
@@ -1380,7 +1472,7 @@ function onb2Cibi(sc){
       <label for="o2csi" style="margin-top:16px">${esc(tr("Cosa ti piace davvero"))}</label>
       <input type="text" id="o2csi" value="${esc(bz("o2csi",r.si||""))}"
         placeholder="${esc(tr("es. pesce, zuppe, uova"))}">
-      <span class="o2hint">${esc(tr("Su queste il piano punta: un piano fatto di cose che ami si segue da solo."))}</span>
+      <span class="o2hint">${esc(tr("Su queste le ricette puntano: ricette fatte di cose che ami si seguono da sole."))}</span>
       <label for="o2note" style="margin-top:16px">${esc(tr("Altro che dovrei sapere"))}</label>
       <input type="text" id="o2note" value="${esc(bz("o2note",r.note||""))}"
         placeholder="${esc(tr("facoltativo"))}">
@@ -1388,7 +1480,7 @@ function onb2Cibi(sc){
       <select id="o2calc">${[["mai",tr("Mai")],["raramente",tr("Raramente")],
           ["nel fine settimana",tr("Nel fine settimana")],["quotidiano",tr("Quasi ogni giorno")]]
         .map(x=>`<option value="${esc(x[0])}"${(r.alcol||"mai")===x[0]?" selected":""}>${esc(x[1])}</option>`).join("")}</select>
-      <span class="o2hint">${esc(tr("Non entra nel piano e non entra nella spesa: nel piano non ci va mai, e non è una cosa da programmare. Me lo dici perché quando capita va segnato nel diario — così i conti restano veri — e perché cambia il modo in cui ti parlo il giorno dopo."))}</span>
+      <span class="o2hint">${esc(tr("Non entra nelle ricette e non entra nella spesa: nelle ricette non ci va mai, e non è una cosa da programmare. Me lo dici perché quando capita va segnato nel diario — così i conti restano veri — e perché cambia il modo in cui ti parlo il giorno dopo."))}</span>
     </div>`;}
 window.onb2CibiOk=()=>{
   const v=id=>String((document.getElementById(id)||{}).value||"").trim();
@@ -1462,7 +1554,7 @@ function onb2Pref(sc){
       <label>${esc(tr("Budget spesa"))}</label>
       ${sel("o2pb",r.budget,[["medio",tr("Medio")],["contenuto",tr("Contenuto")],["senza limiti",tr("Senza limiti")]])}
       <span class="o2hint">${esc(tr("La cifra esatta la dai dalla Spesa, dove conto anche per quante persone compri."))}</span>
-      <label>${esc(tr("Quanta varietà vuoi nel piano"))}</label>
+      <label>${esc(tr("Quanta varietà vuoi nelle ricette"))}</label>
       ${sel("o2pv",r.varieta,[["media",tr("Media")],["bassa",tr("Bassa: pochi piatti che tornano, spesa corta")],["alta",tr("Alta: ogni giorno diverso")]])}
     </div>`;}
 
@@ -1514,21 +1606,68 @@ function onb2PremioHTML(sc){
        lui prima di me. */
     const nome=String(b.nome||"").trim();
     if(sc.k==="pausa1"){
+      /* ═══ IL PRIMO PREMIO, RIFATTO (founder, 02/09) ══════════════════
+         «Metterei le calorie già calcolate col deficit, non il basale.
+         Che poi, non sono alte? Quando ero seguito da uno studio mi
+         dava un basale di 2300 misurato con la macchina, qua è quasi
+         2900: se si sbaglia questo si sbaglia tutto quello che segue.»
+
+         Il numero NON era il basale: era il fabbisogno (basale ×
+         attività), e la frase «è quanto consumi in una giornata» lo
+         diceva — ma senza mostrare i pezzi, chi conosce il proprio
+         basale lo confronta con l'unico numero che vede e conclude che
+         è sbagliato. Il difetto era di trasparenza, non di formula: a
+         schermo c'era un totale e nessun conto.
+         Adesso il numero grande è quello che la persona mangerà — il
+         punto di partenza, deficit compreso — e sotto ci sono i TRE
+         pezzi da cui nasce, ognuno col suo nome: il basale con la
+         formula dichiarata (Mifflin-St Jeor), il fabbisogno con la
+         giornata, il deficit del ritmo scelto. Chi ha un basale
+         misurato può confrontarlo con la riga giusta, e sa dove
+         scriverlo. E c'è una verità in più che prima mancava: a questo
+         punto del percorso quanto ti muovi NON è ancora stato chiesto,
+         quindi la giornata è quella «poco attiva» di partenza — si
+         dice, e si dice che il numero sale quando lo si saprà. */
       const t=onb2Targets(b);
       if(!t)return "";
       const righe=[];
-      /* quello che il corpo consuma: il primo numero che l'app
-         RESTITUISCE, ed è tutto suo */
-      righe.push(`<div class="o2prem-n"><b>${esc(String(t.tdee))}</b> <span>${esc(tr("kcal al giorno"))}</span></div>`);
-      righe.push(`<div class="o2prem-d">${esc(nome
-        ? trh("{v1}, è quanto consumi in una giornata come le tue: non l'ha deciso una tabella, l'ho calcolato sui tuoi numeri.",{v1:nome})
-        : tr("È quanto consumi in una giornata come le tue: non l'ha deciso una tabella, l'ho calcolato sui tuoi numeri."))}</div>`);
+      const ob=o.ris.obiettivo||"perdere";
+      const attNota=(o.ris.attivita==null);
+      const uP=(typeof unitaPeso==="function")?unitaPeso():"kg";
+      let punto=t.kcal, ritmoKg=0, defG=0;
+      if(ob==="perdere"){
+        const rr=onb2RitmoReale(onb2RitmoScelto(),t.tdee);
+        defG=rr.def; ritmoKg=rr.kg; punto=Math.max(1,t.tdee-rr.def);}
+      else if(ob==="mantenere"){punto=t.tdee;}
+      const ritmoTxt=ritmoKg?((typeof pesoTxt==="function")?pesoTxt(ritmoKg,(uP==="lb"?1:2)):ritmoKg+" kg"):"";
+      righe.push(`<div class="o2prem-n"><b>${esc(String(punto))}</b> <span>${esc(tr("kcal al giorno"))}</span></div>`);
+      const frase=(ob==="perdere")
+        ? (nome?trh("{v1}, è il tuo punto di partenza per perdere {v2} a settimana. Non l'ha deciso una tabella: viene dai tuoi numeri, e sotto vedi come.",{v1:nome,v2:ritmoTxt})
+               :trh("È il tuo punto di partenza per perdere {v1} a settimana. Non l'ha deciso una tabella: viene dai tuoi numeri, e sotto vedi come.",{v1:ritmoTxt}))
+        : (ob==="massa")
+        ? (nome?trh("{v1}, è il tuo punto di partenza per crescere senza accumulare grasso. Non l'ha deciso una tabella: viene dai tuoi numeri, e sotto vedi come.",{v1:nome})
+               :tr("È il tuo punto di partenza per crescere senza accumulare grasso. Non l'ha deciso una tabella: viene dai tuoi numeri, e sotto vedi come."))
+        : (nome?trh("{v1}, è quanto ti serve per restare dove sei. Non l'ha deciso una tabella: viene dai tuoi numeri, e sotto vedi come.",{v1:nome})
+               :tr("È quanto ti serve per restare dove sei. Non l'ha deciso una tabella: viene dai tuoi numeri, e sotto vedi come."));
+      righe.push(`<div class="o2prem-d">${esc(frase)}</div>`);
+      /* i tre pezzi del conto, col nome di ciascuno */
+      const conti=[];
+      conti.push([tr("A riposo il tuo corpo consuma"),t.bmr+" kcal",
+        tr("Formula di Mifflin-St Jeor: sesso, età, altezza e peso")]);
+      conti.push([attNota?tr("Con una giornata poco attiva, per ora"):tr("Con le tue giornate"),t.tdee+" kcal",
+        attNota?tr("Quanto ti muovi te lo chiedo fra poco: se è di più, il numero sale"):""]);
+      if(ob==="perdere")conti.push([trh("Per perdere {v1} a settimana tolgo",{v1:ritmoTxt}),"−"+defG+" kcal",
+        tr("Un chilo di grasso vale circa 7700 kcal")]);
+      else if(ob==="massa")conti.push([tr("Per crescere aggiungo"),"+"+Math.max(0,t.kcal-t.tdee)+" kcal",""]);
+      righe.push(`<div class="o2conti">`+conti.map(c=>
+        `<div class="o2conto"><span class="o2conto-e">${esc(c[0])}</span><b class="o2conto-v">${esc(c[1])}</b>`+
+        (c[2]?`<span class="o2conto-n">${esc(c[2])}</span>`:"")+`</div>`).join("")+`</div>`);
+      righe.push(`<div class="o2prem-d o2prem-nota">${esc(tr("Se hai un metabolismo basale misurato in uno studio, in Utente puoi scriverlo al posto della stima: da lì si rifà tutto il conto."))}</div>`);
       const goal=+o.ris.pesoObiettivo||0;
       const gk=(typeof pesoIn==="function"&&goal)?pesoIn(String(goal)):goal;
-      if(gk>0&&b.w>0){
+      if(gk>0&&b.w>0&&ob==="perdere"){
         const diff=Math.round((b.w-gk)*10)/10;
-        if(diff>=0.5){
-          const defG=Math.max(1,t.tdee-t.kcal);
+        if(diff>=0.5&&defG>0){
           const sett=Math.max(1,Math.round(diff*7700/(defG*7)));
           righe.push(`<div class="o2prem-d">${esc(trh("E per i {v1} che ti mancano servono circa {v2} settimane: lo sai prima di cominciare, non dopo tre mesi.",
             {v1:((typeof pesoTxt==="function")?pesoTxt(diff,1):diff+" kg"),v2:sett}))}</div>`);}}
@@ -1543,8 +1682,16 @@ function onb2PremioHTML(sc){
          ancora: il travaso arriva alla fine). Un piatto mostrato qui
          e vietato dopo sarebbe una promessa rotta alla prima
          schermata utile. */
-      const no=[(Array.isArray(r.vincoli)?r.vincoli:[]).join(", "),
-                (Array.isArray(r.cibi_no)?r.cibi_no:[]).join(", ")].filter(Boolean).join(", ");
+      /* ── I CIBI NON GRADITI SI LEGGONO DOVE STANNO (02/09) ────────
+         Il premio leggeva `r.cibi_no`, una chiave che non esiste: la
+         schermata «Cosa eviti e cosa ami» salva in `r.cibi.no`. Così
+         a chi aveva scritto «frattaglie, arance, pomodori, aglio,
+         prezzemolo» il premio rispondeva «per ora non escludi niente»
+         — la prova che le risposte lavorano diceva che non lavoravano.
+         Trovato dal founder sul suo telefono, con quelle parole. */
+      const cibiNo=String((r.cibi&&r.cibi.no)||"").trim();
+      const vincoli=(Array.isArray(r.vincoli)?r.vincoli:[]).filter(x=>x&&x!=="nessuno");
+      const no=[vincoli.join(", "),cibiNo].filter(Boolean).join(", ");
       const intol=(Array.isArray(r.allergie)?r.allergie:[]).filter(x=>x!=="niente").join(", ");
       const gravi=(Array.isArray(r.allergie_gravi)?r.allergie_gravi:[]).join(", ");
       let vietati=[],assoluti=[];
@@ -1566,35 +1713,104 @@ function onb2PremioHTML(sc){
       const tre=[passano[0],passano[Math.floor(passano.length/2)],passano[passano.length-1]]
         .filter((x,i,a)=>a.indexOf(x)===i).slice(0,3);
       if(tre.length<3)return "";
-      const esclusi=vietati.length+assoluti.length;
+      /* ── IN PAROLE, NON IN GRAMMI (founder, 02/09) ────────────────
+         «Il secondo premio non dice praticamente niente all'utente, è
+         scritto male, con cose incomprensibili per una persona
+         comune.» Mostrava le descrizioni tecniche del piatto — «Pollo
+         200g + verdura + patate 150g + ½ avocado + EVO 10g + parmigiano
+         15g + 1 noce» — che sono istruzioni per la cucina, non un
+         piatto che si immagina. Qui si dicono gli INGREDIENTI, senza
+         pesi: le quantità le fa il conto sui suoi numeri, e a questo
+         punto non sono ancora sue. E quello che ha detto di non
+         volere si ripete con le SUE parole, non con un conteggio. */
       const pezzi2=[];
-      pezzi2.push(`<div class="o2prem-d">${esc(tr("Potresti provare, per dire:"))}</div>`);
-      tre.forEach(dsc=>{pezzi2.push(`<div class="o2prem-p">• ${esc(dsc)}</div>`);});
-      if(esclusi>0)
-        pezzi2.push(`<div class="o2prem-d">${esc(trh("E ho già tolto dal tavolo {v1} alimenti per te: le risposte non finiscono in un cassetto.",{v1:esclusi}))}</div>`);
+      pezzi2.push(`<div class="o2prem-d">${esc(tr("Tre piatti che potrebbero piacerti:"))}</div>`);
+      /* tr() prima: le descrizioni dei piatti di partenza hanno la loro
+         traduzione intera nel dizionario (t_lingua_inglese la pretende) */
+      tre.forEach(dsc=>{pezzi2.push(`<div class="o2prem-p">${esc(piattoInParole(tr(dsc)))}</div>`);});
+      pezzi2.push(`<div class="o2prem-d o2prem-nota">${esc(tr("Le quantità le faccio io sui tuoi numeri, piatto per piatto."))}</div>`);
+      const detti=[cibiNo,(gravi?tr("le allergie che hai segnato"):""),(vincoli.length?vincoli.map(O2CAP).join(", ").toLowerCase():"")]
+        .filter(Boolean).join("; ");
+      if(detti)
+        pezzi2.push(`<div class="o2prem-d">${esc(trh("E ho già messo da parte quello che mi hai detto: {v1}. Le risposte non finiscono in un cassetto.",{v1:detti}))}</div>`);
       else
         pezzi2.push(`<div class="o2prem-d">${esc(tr("Per ora non escludi niente: quando mi dirai di più, si adatteranno da soli."))}</div>`);
       return `<div class="o2prem">${pezzi2.join("")}</div>`;}
     if(sc.k==="pausa3"){
-      /* quante cose il piano sa DAVVERO di lei: si contano, non si
-         stimano — e se sono poche il numero è piccolo e va bene così */
+      /* ═══ IL TERZO PREMIO, RIFATTO (founder, 02/09) ══════════════════
+         «Non dice nulla di interessante e comunque sa più di 12 cose.
+         Ma potrebbe preoccupare un utente questa cosa: la metterei con
+         un numero diverso e indicherei qualcosa di diverso.»
+         «12 cose che sa di te» era un numero senza contenuto e con il
+         suono sbagliato: un contatore di quanto l'app sa di una persona
+         è la frase che si legge in un articolo sulla sorveglianza, non
+         in un premio. E il conto era parziale.
+         Il premio adesso è CONCRETO e VERIFICABILE: il numero grande è
+         quanti pasti si stanno scrivendo (i suoi pasti × 7 giorni), e
+         sotto c'è l'elenco di ciò che si tiene fermo mentre si
+         scrivono — con le sue parole. Chi legge può controllare riga
+         per riga che quello che ha detto è stato capito: è l'opposto
+         di «so tante cose di te». */
       const r=o.ris||{},d=S.pref||{};
       const pezzi=[];
-      const conta=(v)=>{ if(!v)return 0;
-        if(Array.isArray(v))return v.filter(x=>x&&x!=="nessuno"&&x!=="niente").length;
-        return String(v).trim()?1:0;};
-      let n=0;
-      n+=conta(d.intol); n+=conta(d.allergie); n+=conta(d.no); n+=conta(d.si);
-      n+=conta(d.religiose); n+=conta(d.protocolli); n+=conta(d.farmaci); n+=conta(d.medico);
-      n+=conta(d.tipo); n+=conta(d.slots?1:0); n+=conta(d.mensaGiorni);
-      n+=conta(r.attivita); n+=conta(r.cucina); n+=conta(r.sportPref);
-      if(n<3)return "";
-      pezzi.push(`<div class="o2prem-n"><b>${esc(String(n))}</b> <span>${esc(tr("cose che il piano sa di te"))}</span></div>`);
-      pezzi.push(`<div class="o2prem-d">${esc(tr("Nessuna è un valore di serie: le hai dette tu, e ognuna cambia il piano."))}</div>`);
+      const slots=String(d.slots||"").split(",").map(x=>x.trim()).filter(Boolean);
+      const nPasti=slots.length||(+d.nPasti||3);
+      pezzi.push(`<div class="o2prem-n"><b>${esc(String(nPasti*7))}</b> <span>${esc(tr("pasti in scrittura per la settimana"))}</span></div>`);
+      pezzi.push(`<div class="o2prem-d">${esc(tr("Mentre li scrivo tengo fermo quello che mi hai detto:"))}</div>`);
+      const righe=[];
+      const t=onb2Targets(o.ris.bio||{});
+      if(t){
+        const ob=r.obiettivo||"perdere";
+        let punto=t.kcal;
+        if(ob==="perdere"){const rr=onb2RitmoReale(onb2RitmoScelto(),t.tdee);punto=Math.max(1,t.tdee-rr.def);}
+        else if(ob==="mantenere")punto=t.tdee;
+        righe.push([tr("Ogni giorno"),trh("circa {v1} kcal e {v2} g di proteine",{v1:punto,v2:t.prot})]);}
+      if(slots.length)righe.push([tr("I tuoi pasti"),slots.map(x=>tr(x)).join(", ")]);
+      const noTxt=String(d.no||"").trim();
+      if(noTxt)righe.push([tr("Mai nel piatto"),noTxt]);
+      const siTxt=String(d.si||"").trim();
+      if(siTxt)righe.push([tr("Spesso nel piatto"),siTxt]);
+      const all=String(d.allergie||"").trim(),intol=String(d.intol||"").trim();
+      if(all)righe.push([tr("Allergie, in nessuna forma"),all]);
+      if(intol)righe.push([tr("Intolleranze"),intol]);
+      const rel=String(d.religiose||"").trim();
+      if(rel)righe.push([tr("Vincoli che rispetto"),rel]);
+      if(d.cucina)righe.push([tr("Tempo in cucina"),trh("circa {v1} minuti",{v1:d.cucina})]);
+      try{const f=onb2Fam();if(f&&f.con&&f.lista&&f.lista.length)
+        righe.push([tr("A tavola"),trh("tu e altre {v1} persone: cambio la spesa, non le tue porzioni",{v1:f.lista.length})]);}catch(e){}
+      if(d.mensaGiorni)righe.push([tr("Pasti fuori casa"),d.mensaGiorni]);
+      if(righe.length<2)return "";
+      pezzi.push(`<div class="o2conti">`+righe.map(c=>
+        `<div class="o2conto"><span class="o2conto-e">${esc(c[0])}</span><b class="o2conto-v o2conto-t">${esc(c[1])}</b></div>`).join("")+`</div>`);
+      pezzi.push(`<div class="o2prem-d o2prem-nota">${esc(tr("Se una riga non è come la volevi, torna indietro e correggila: le ricette si riscrivono."))}</div>`);
       return `<div class="o2prem">${pezzi.join("")}</div>`;}
   }catch(e){}
   return "";}
 window.onb2PremioHTML=onb2PremioHTML;
+
+/* Un piatto in parole: dalla descrizione tecnica («Pollo 200g +
+   verdura + patate 150g + ½ avocado + EVO 10g + parmigiano 15g + 1
+   noce») agli ingredienti che si immaginano («pollo, verdura, patate,
+   mezzo avocado, olio extravergine, parmigiano e una noce»). Niente
+   grammi: le quantità le fa il conto, e a chi non ha ancora un
+   conto suo i grammi di un altro non dicono niente. */
+function piattoInParole(d){
+  let s=String(d||"");
+  s=s.replace(/^MENSA:\s*/i,"");
+  s=s.replace(/\([^)]*\)/g," ");                      /* parentesi tecniche */
+  const pezzi=s.split(/\s*\+\s*|\s*,\s*/).map(x=>x.trim()).filter(Boolean).map(x=>{
+    x=x.replace(/\b\d+(?:[.,]\d+)?\s?(?:g|gr|ml|cl)\b/gi," ");   /* i pesi */
+    x=x.replace(/\bEVO\b/g,tr("olio extravergine"));
+    x=x.replace(/½/g,tr("mezzo")+" ");
+    x=x.replace(/\b1\s+(?=[a-zàèéìòù])/g,tr("una")+" ");
+    x=x.replace(/\b2\s+(?=[a-zàèéìòù])/g,tr("due")+" ");
+    x=x.replace(/\b3\s+(?=[a-zàèéìòù])/g,tr("tre")+" ");
+    x=x.replace(/\s{2,}/g," ").trim().toLowerCase();
+    return x;}).filter(Boolean);
+  if(!pezzi.length)return String(d||"");
+  let frase=pezzi.length>1?pezzi.slice(0,-1).join(", ")+" "+tr("e")+" "+pezzi[pezzi.length-1]:pezzi[0];
+  return frase.charAt(0).toUpperCase()+frase.slice(1);}
+window.piattoInParole=piattoInParole;
 
 function onb2Pausa(sc){
   /* Più grande (founder, 27/08): «così si vedono meglio e sono più
@@ -1873,11 +2089,11 @@ window.onb2GeneraOra=async()=>{
     if(piano){
       g.stato="base";
       g.riga=piano.tagliato
-        ? tr("Piano pronto: è quello di base, con le quantità rifatte sui tuoi numeri — alcune porzioni si sono fermate al limite di sicurezza.")
-        : tr("Piano pronto: è quello di base, con le quantità rifatte sui tuoi numeri.");
+        ? tr("Ricette pronte: sono quelle di base, con le quantità rifatte sui tuoi numeri — alcune porzioni si sono fermate al limite di sicurezza.")
+        : tr("Ricette pronte: sono quelle di base, con le quantità rifatte sui tuoi numeri.");
     }else{
       g.stato="senzaAI";
-      g.riga=tr("Il diario è già pronto: il piano lo scegli tu da Piano, quando vuoi.");}
+      g.riga=tr("Il diario è già pronto: le ricette le scegli tu da Ricette, quando vuoi.");}
     g.righe=[];return onb2GenTocca();}
   /* ── IL LAVORO SOPRAVVIVE ALLA PAGINA (25/08) ────────────────────
      `S.genPend` scrive su disco COSA si stava generando: se la scheda
@@ -1917,7 +2133,7 @@ async function onb2GeneraCore(dati,t){
   const mioGiro=(g.giro=(g.giro||0)+1);
   const mio=()=>onb2Gen().giro===mioGiro;
   g.ultimo=Date.now();
-  g.stato="lavoro";g.perc=2;g.fatti=0;g.riga=tr("Sto componendo il tuo piano…");
+  g.stato="lavoro";g.perc=2;g.fatti=0;g.riga=tr("Sto componendo le tue ricette…");
   /* Per l'orologio a vista e per l'onestà delle righe (sotto):
      t0 è QUANDO si è partiti, streamOk dice se lo streaming sta
      davvero raccontando i giorni o se stiamo aspettando tutto in
@@ -1938,7 +2154,7 @@ async function onb2GeneraCore(dati,t){
       g.riga=tr("Controllo che il modello risponda…");onb2GenTocca();
       const prova=await aiProva();
       if(!prova.ok)throw new Error("prova:"+(prova.motivo||"non risponde"));}
-    g.riga=tr("Sto componendo il tuo piano…");onb2GenTocca();
+    g.riga=tr("Sto componendo le tue ricette…");onb2GenTocca();
     /* L'avanzamento è quello VERO: la fase «giorno» arriva dallo
        streaming, contando i giorni già scritti nel testo. La barra si
        muove con loro — 10% a giorno per sette giorni, poi controllo ed
@@ -1968,10 +2184,10 @@ async function onb2GeneraCore(dati,t){
          «controllo», e la barra finta (arrivata a 92) sarebbe
          tornata indietro a 82 sotto gli occhi della persona. */
       if(f!=="settimana"){try{if(att&&!att.ceduta())att.vero();}catch(e){}}
-      if(f==="settimana"){g.perc=8;g.riga=tr("Sto componendo il tuo piano…");g.righe=onb2GenRighe(0,"lavoro");}
+      if(f==="settimana"){g.perc=8;g.riga=tr("Sto componendo le tue ricette…");g.righe=onb2GenRighe(0,"lavoro");}
       else if(f==="giorno"){g.streamOk=true;
         g.fatti=extra.fatti;g.perc=8+Math.round(extra.fatti*10);
-        g.riga=extra.ora?trh("Sto scrivendo {v1}…",{v1:extra.ora}):tr("Sto componendo il tuo piano…");
+        g.riga=extra.ora?trh("Sto scrivendo {v1}…",{v1:extra.ora}):tr("Sto componendo le tue ricette…");
         g.righe=onb2GenRighe(extra.fatti,"lavoro");}
       else if(f==="controllo"){g.fatti=7;g.perc=82;g.riga=tr("Controllo i conti e quello che hai escluso…");g.righe=onb2GenRighe(7,"controllo");}
       else if(f==="ritocco"){g.perc=88;g.riga=trh("Rifaccio i giorni che non tornano: {v1}…",{v1:(extra||[]).join(", ")});g.righe=onb2GenRighe(7,"controllo");}
@@ -1988,8 +2204,8 @@ async function onb2GeneraCore(dati,t){
       const q=plan.adattati.length;
       g.adattati=plan.adattati;
       g.notaAdatt=(q===1)
-        ? tr("Un piatto l'ho adattato ai tuoi vincoli: lo trovi segnato nel Piano.")
-        : trh("Ho adattato {v1} piatti ai tuoi vincoli: li trovi segnati nel Piano.",{v1:q});}
+        ? tr("Un piatto l'ho adattato ai tuoi vincoli: lo trovi segnato in Ricette.")
+        : trh("Ho adattato {v1} piatti ai tuoi vincoli: li trovi segnati in Ricette.",{v1:q});}
     /* ── UN PASTO CHE MANCA SI DICE (founder, 29/08) ──────────────
        «Ancora una volta il pasto del tardo pomeriggio non è stato
        generato, perché?» — e la risposta più scomoda non è perché il
@@ -2004,13 +2220,13 @@ async function onb2GeneraCore(dati,t){
     try{
       const mancanti=(typeof pastiMancanti==="function")?pastiMancanti(plan&&plan.problemi):[];
       if(mancanti.length)notaMancanti=" "+((mancanti.length===1)
-        ? trh("Un pasto però non è stato scritto ({v1}): lo aggiungi dal Piano, oppure rigeneri.",{v1:mancanti[0]})
-        : trh("Questi pasti però non sono stati scritti ({v1}): li aggiungi dal Piano, oppure rigeneri.",{v1:mancanti.join(", ")}));
+        ? trh("Un pasto però non è stato scritto ({v1}): lo aggiungi da Ricette, oppure rigeneri.",{v1:mancanti[0]})
+        : trh("Questi pasti però non sono stati scritti ({v1}): li aggiungi da Ricette, oppure rigeneri.",{v1:mancanti.join(", ")}));
     }catch(e){}
     try{if(att)att.ferma();}catch(e){}
     g.piano=plan||null;g.stato=plan?"fatto":"errore";g.perc=100;
-    g.riga=plan?((g.notaAdatt?(tr("Piano pronto, spesa compresa.")+" "+g.notaAdatt):tr("Piano pronto, spesa compresa."))+notaMancanti)
-               :tr("Il piano lo rifacciamo con calma da Piano: il diario intanto è già tuo.");
+    g.riga=plan?((g.notaAdatt?(tr("Ricette pronte, spesa compresa.")+" "+g.notaAdatt):tr("Ricette pronte, spesa compresa."))+notaMancanti)
+               :tr("Le ricette le rifacciamo con calma da Ricette: il diario intanto è già tuo.");
     g.righe=plan?onb2GenRighe(7,"fatto"):[];
   }catch(e){
     if(!mio())return;                   /* l'errore di un tentativo superato non conta */
@@ -2031,10 +2247,10 @@ async function onb2GeneraCore(dati,t){
       try{const tt=onb2Targets();ripiego=tt?onb2RicetteBase(dayTargetK()||tt.kcal):null;}catch(_){ripiego=null;}}
     if(ripiego){
       g.piano=ripiego;g.stato="base";g.perc=100;g.righe=[];
-      g.riga=trh("Il modello non risponde ({v1}): intanto ti ho preparato il piano di base sui tuoi numeri, quello su misura lo rifai da Piano quando vuoi.",{v1:perche||"errore"});
+      g.riga=trh("Il modello non risponde ({v1}): intanto ti ho preparato le ricette di base sui tuoi numeri, quelle su misura le rifai da Ricette quando vuoi.",{v1:perche||"errore"});
     }else{
       g.stato="errore";g.perc=100;g.righe=[];
-      g.riga=trh("Il piano non è arrivato ({v1}): lo rifacciamo da Piano, il diario intanto è già tuo.",{v1:perche||"errore"});}}
+      g.riga=trh("Le ricette non sono arrivate ({v1}): le rifacciamo da Ricette, il diario intanto è già tuo.",{v1:perche||"errore"});}}
   if(!mio())return;
   onb2GenChiusa();}
 
@@ -2071,9 +2287,9 @@ function onb2Guardiano(){
     let ripiego=null;
     try{const tt=onb2Targets();ripiego=tt?onb2RicetteBase(dayTargetK()||tt.kcal):null;}catch(_){ripiego=null;}
     if(ripiego){g.piano=ripiego;g.stato="base";g.perc=100;g.righe=[];
-      g.riga=tr("L'attesa si è interrotta: intanto ti ho preparato il piano di base sui tuoi numeri, quello su misura lo rifai da Piano quando vuoi.");}
+      g.riga=tr("L'attesa si è interrotta: intanto ti ho preparato le ricette di base sui tuoi numeri, quelle su misura le rifai da Ricette quando vuoi.");}
     else{g.stato="errore";g.perc=100;g.righe=[];
-      g.riga=tr("L'attesa si è interrotta: il piano lo rifai da Piano quando vuoi, il diario intanto è già tuo.");}
+      g.riga=tr("L'attesa si è interrotta: le ricette le rifai da Ricette quando vuoi, il diario intanto è già tuo.");}
     return onb2GenChiusa();}
   g.ultimo=Date.now();
   g.riga=tr("Riprendo da dove eravamo…");
@@ -2105,7 +2321,7 @@ function onb2GenChiusa(){
     if((S.onboard&&S.onboard.done)||g.applicaDaSolo){
       onb2RicetteApplica(g.piano,spesa,g.stato);
       try{genBoxVia();}catch(e){}
-      try{toast(tr("Piano pronto ✓ — lo trovi in Piano."));}catch(e){}
+      try{toast(tr("Ricette pronte ✓ — le trovi in Ricette."));}catch(e){}
       try{render(cur);}catch(e){}
     }else{
       /* copia PULITA su disco: le proprietà appese all'array (spesa,
@@ -2294,7 +2510,7 @@ function ONB2_PIANI(){return [
     Free non è un assaggio a tempo e che pagare AGGIUNGE.
     E resta la regola dei prezzi: nessun numero finché non è vero. */
  {k:"free",n:tr("Free"),p:tr("sempre gratis"),
-  d:tr("Il piano di base, con le quantità rifatte sui tuoi numeri. Diario, alimenti, peso, spesa e backup sul tuo Drive: tutto quello che serve per cominciare davvero.")},
+  d:tr("Le ricette di base, con le quantità rifatte sui tuoi numeri. Diario, alimenti, peso, spesa e backup sul tuo Drive: tutto quello che serve per cominciare davvero.")},
  {k:"start",n:"Start",p:tr("presto"),
   d:tr("L'AI ti propone le ricette della settimana — sui tuoi orari, i tuoi gusti, le tue intolleranze — e te le riorganizza quando la settimana cambia. Ogni piatto si cambia con un tocco. Tutto quello che c'è in Free, più questo.")},
  {k:"complete",n:"Complete",p:tr("presto"),
@@ -2306,14 +2522,20 @@ window.ONB2_PIANI=ONB2_PIANI;
 
 function onb2Piani(sc){
   const o=onb2Stato(),val=o.ris.piani;
+  /* `data-gruppo` e `data-v` ci sono per la stessa ragione delle altre
+     schermate a scelta: senza, `onb2SegnaScelta` non trovava il gruppo
+     e ripiegava sul ridisegno di tutta la pagina — «un effetto
+     fastidioso», parole del founder (02/09). Un tocco accende la carta
+     e basta, come ovunque. */
   return onb2Chip("piani")+
-   `<div class="o2ops">`+ONB2_PIANI().map(P=>
-    `<button class="o2op o2piano${val===P.k?" scelta":""}" type="button"
+   `<div class="o2ops" data-gruppo="piani">`+ONB2_PIANI().map(P=>
+    `<button class="o2op o2piano${val===P.k?" scelta":""}" type="button" data-v="${esc(P.k)}"
+       aria-pressed="${val===P.k?"true":"false"}"
        onclick="onb2Rispondi('piani','${esc(P.k)}')">
        <span class="o2pr"><b>${esc(P.n)}</b><i>${esc(P.p)}</i></span>
        <span>${esc(P.d)}</span>
      </button>`).join("")+`</div>`+
-   `<span class="o2hint">${esc(tr("Nessun pagamento adesso: quando i piani apriranno te lo diciamo."))}</span>`;}
+   `<span class="o2hint">${esc(tr("Nessun pagamento adesso: quando gli abbonamenti apriranno te lo diciamo."))}</span>`;}
 
 /* Peso obiettivo + l'unico numero che conta: quanto ci vuole DAVVERO. */
 function onb2Numero(sc){
@@ -2457,7 +2679,13 @@ function onb2RitmoHTML(){
       return `<button type="button" class="o2ritmo${on?" scelta":""}" role="radio" aria-checked="${on}"
          onclick="onb2RitmoSet(${kg})">
          <b>${esc(String(etx))}</b><span>${esc(onb2RitmoNota(kg))}</span></button>`;}).join("")+
-    `</div>`;}
+    `</div>
+    ${/* A COSA SERVE QUESTO NUMERO (founder, 02/09): «scriverei che la
+          richiesta di quanti chili perdere la settimana è solo per
+          calcolare il deficit necessario, con la formula che usiamo».
+          Detto così la scelta smette di sembrare una promessa e
+          diventa quello che è: un'impostazione del conto. */""}
+    <span class="o2hint">${esc(tr("Serve solo a calcolare quanto togliere ogni giorno: un chilo di grasso vale circa 7700 kcal. Il tuo fabbisogno lo stimo con la formula di Mifflin-St Jeor (sesso, età, altezza e peso) moltiplicata per quanto ti muovi, e da lì tolgo il deficit del ritmo che scegli."))}</span>`;}
 window.onb2RitmoHTML=onb2RitmoHTML;
 
 window.onb2RitmoSet=(kg)=>{
@@ -2498,7 +2726,7 @@ function onb2ProiezioneHTML(bioLive,goalLive){
   if(!t)return attesa(tr("Scrivi data di nascita, altezza e peso: da lì ti dico quanto ci vuole."));
   const diff=Math.round((b.w-goal)*10)/10;
   if(Math.abs(diff)<0.5)
-    return `<b>${esc(tr("Sei già dove volevi arrivare."))}</b><br><span class="o2hint">${esc(tr("Allora il piano serve a restarci: fabbisogno {k} kcal al giorno.",{k:t.tdee}))}</span>`;
+    return `<b>${esc(tr("Sei già dove volevi arrivare."))}</b><br><span class="o2hint">${esc(tr("Allora le ricette servono a restarci: fabbisogno {k} kcal al giorno.",{k:t.tdee}))}</span>`;
   if(diff<0)
     return `<b>${esc(tr("Vuoi salire di {n}.",{n:((typeof pesoTxt==="function")?pesoTxt(Math.abs(diff),1):Math.abs(diff)+" kg")}))}</b><br><span class="o2hint">${esc(tr("Con {k} kcal al giorno e {p} g di proteine si cresce piano, che è il modo giusto.",{k:t.kcal,p:t.prot}))}</span>`;
   /* 7700 kcal ≈ 1 kg: è la stessa costante del motore di proiezione.
@@ -2524,7 +2752,7 @@ function onb2ProiezioneHTML(bioLive,goalLive){
     : (mesi>=2?tr("Poco più di {m} mesi, andando piano e senza fame nera.",{m:((typeof numLoc==="function")?numLoc(mesi):mesi)}):tr("Andando piano e senza fame nera."));
   return `<b>${esc(tr("{n} in circa {s} settimane.",{n:((typeof pesoTxt==="function")?pesoTxt(diff,1):diff+" kg"),s:sett}))}</b>
     <span class="o2hint">${esc(coda)}</span>
-    ${(rr&&rr.ridotto)?`<div class="o2mini o2mini-av">${esc(trh("Il ritmo che hai scelto chiederebbe {v1} kcal di deficit al giorno: è oltre il tetto di sicurezza, quindi il piano lavora a {v2} a settimana e il tempo qui sopra è già quello vero.",{v1:rr.chiesto,v2:((typeof pesoTxt==="function")?pesoTxt(rr.kg,2):rr.kg+" kg")}))}</div>`:""}
+    ${(rr&&rr.ridotto)?`<div class="o2mini o2mini-av">${esc(trh("Il ritmo che hai scelto chiederebbe {v1} kcal di deficit al giorno: è oltre il tetto di sicurezza, quindi le ricette lavorano a {v2} a settimana e il tempo qui sopra è già quello vero.",{v1:rr.chiesto,v2:((typeof pesoTxt==="function")?pesoTxt(rr.kg,2):rr.kg+" kg")}))}</div>`:""}
     ${/* L'AVVISO SUL MEDICO NON DEVE SPARIRE QUANDO SCATTA IL TETTO
           (difetto mio, visto in prova il 29/08): la prima stesura lo
           mostrava solo se il tetto NON mordeva — cioè proprio a chi
@@ -2533,7 +2761,7 @@ function onb2ProiezioneHTML(bioLive,goalLive){
           dal ritmo VERO del piano, non da quale messaggio è
           comparso. */""}
     ${spinto?`<div class="o2mini o2mini-av">${esc(tr("A questo ritmo fatti seguire da un medico o da un nutrizionista: non è una formalità, è il ritmo in cui si perde anche muscolo se nessuno controlla."))}</div>`:""}
-    <div class="o2mini">${esc(tr("Fabbisogno {t} kcal · piano {k} kcal · {p} g di proteine",{t:t.tdee,k:kcalPiano,p:t.prot}))}</div>
+    <div class="o2mini">${esc(tr("Fabbisogno {t} kcal · ricette {k} kcal · {p} g di proteine",{t:t.tdee,k:kcalPiano,p:t.prot}))}</div>
     <div class="o2mini">${esc(tr("È una stima onesta, non una promessa: la ricalcolo insieme a te man mano."))}</div>`;}
 window.onb2ProiezioneHTML=onb2ProiezioneHTML;
 
@@ -2830,6 +3058,10 @@ window.onb2AvantiSchermo=()=>{
      prima non si poteva, perché il tocco portava via la schermata. */
   if(sc.k2&&sc.op2&&o.ris[sc.k2]==null){
     let serve=true;try{serve=!sc.se2||!!sc.se2();}catch(e){serve=true;}
+    /* `serve2`: la seconda domanda è sempre visibile ma obbligatoria
+       solo quando ha senso (chi non ha mai fatto diete non può dire
+       com'erano andate) */
+    try{if(serve&&sc.serve2)serve=!!sc.serve2();}catch(e){}
     if(serve)return dlgAlert(tr("Manca la seconda risposta: rispondi anche a quella per andare avanti."));}
   return onb2Avanti();};
 
@@ -2850,7 +3082,7 @@ function onb2Avanti(){
     if(arrivo&&arrivo.genera&&typeof onb2GeneraOra==="function")onb2GeneraOra();}catch(e){}
   o.step=Math.min(n,ONB2c().length-1);
   if(o.step>o.maxVisto)o.maxVisto=o.step;
-  onb2Salva();renderOnb2();try{window.scrollTo(0,0);}catch(e){}}
+  onb2Salva();renderOnb2();paginaInCima();}
 window.onb2Avanti=onb2Avanti;
 
 /* ═══ IL RIVEDI NON C'È PIÙ (founder, 23/08) ══════════════════════
@@ -2904,7 +3136,7 @@ window.onb2Indietro=()=>{
     return o.saltate.includes(s.k)&&o.ris[s.k]!=null;};
   while(n>0&&salta(n))n--;
   o.step=n;                          /* maxVisto NON scende: la barra non torna indietro */
-  onb2Salva();renderOnb2();try{window.scrollTo(0,0);}catch(e){}};
+  onb2Salva();renderOnb2();paginaInCima();};
 
 /* ── Voce ────────────────────────────────────────────────────────
    Si appoggia al motore vocale dell'app (voceIn): un solo microfono
@@ -3096,7 +3328,7 @@ function onb2Fine(sc){
     <div class="o2genperc">${pronto?"":`<b id="o2perc">${g.perc||0}%</b> · <span id="o2tempo">0:00</span>`}</div>
     <div class="o2gent" id="o2gent">${esc(g.riga||tr("Sto per cominciare…"))}</div>
     ${(!pronto&&S.ai&&S.ai.genMs&&typeof pensieroUltima==="function")
-      ?`<div class="hint">${esc(trh("L'ultima volta il piano ha richiesto {v1}.",{v1:pensieroUltima()}))}</div>`:""}
+      ?`<div class="hint">${esc(trh("L'ultima volta le ricette hanno richiesto {v1}.",{v1:pensieroUltima()}))}</div>`:""}
     ${onb2GenLista(g)}
     <!-- LA RIGA CHE NESSUNO VEDEVA (25/08). «Non è una prescrizione»
          esisteva solo nel percorso lungo e in «Genera nuovo piano»:
@@ -3104,7 +3336,7 @@ function onb2Fine(sc){
          una PORTA, non una scrollata di spalle: dice il limite e
          consegna lo strumento — le Correzioni — per agire. -->
     ${(g.stato==="fatto"||g.stato==="base")
-      ?`<div class="hint" style="margin-top:8px">${esc(tr("È una proposta costruita sulle tue risposte, non una prescrizione: falla vedere a un medico o a un nutrizionista. E se un piatto non ti va, dal Piano c'è «Correzioni»: lo dici, lo tolgo, non torna più."))}</div>`:""}
+      ?`<div class="hint" style="margin-top:8px">${esc(tr("È una proposta costruita sulle tue risposte, non una prescrizione: falla vedere a un medico o a un nutrizionista. E se un piatto non ti va, da Ricette c'è «Correzioni»: lo dici, lo tolgo, non torna più."))}</div>`:""}
   </div>
   <!-- «ENTRA», SENZA PROMESSE FALSE (riscontro del founder, 25/08
        sera: «se clicco entra appena è pronto comunque mi porta dentro
@@ -3112,7 +3344,7 @@ function onb2Fine(sc){
        esiste più, e il piano raggiunge la persona da solo. Un bottone
        che si chiama «appena è pronto» e agisce adesso è una bugia.
        t_piani_onboarding lo chiedeva già; era rimasto a metà. -->
-  ${pronto?"":`<div class="hint" style="text-align:center;margin-top:4px">${esc(tr("Il piano continua a scriversi e si attiva da solo."))}</div>`}`;}
+  ${pronto?"":`<div class="hint" style="text-align:center;margin-top:4px">${esc(tr("Le ricette continuano a scriversi e si attivano da sole."))}</div>`}`;}
 /* «Entra» non sta più qui dentro: sta nella barra dei comandi, di
    fianco a «Indietro» — richiesta del founder (26/08). Due bottoni,
    una riga, come in tutte le altre schermate. */
@@ -3454,7 +3686,7 @@ window.onb2Chiudi=async(modo)=>{
     onb2RicetteApplica(S.genPronto.piano,S.genPronto.spesa||null,S.genPronto.origine);
   }else if(gg.stato==="lavoro"){
     gg.applicaDaSolo=true;
-    try{toast(tr("Il piano sta ancora scrivendosi: entra pure, si attiva da solo appena è pronto."));}catch(e){}}
+    try{toast(tr("Le ricette si stanno ancora scrivendo: entra pure, si attivano da sole appena sono pronte."));}catch(e){}}
   entra();};
 
 /* Ripartire da capo: usato dalle impostazioni e dai collaudi. */
@@ -3479,7 +3711,7 @@ setTimeout(()=>{try{
   if(S.genPronto&&S.genPronto.piano){
     if(S.onboard&&S.onboard.done){
       onb2RicetteApplica(S.genPronto.piano,S.genPronto.spesa||null);
-      try{toast(tr("Piano pronto ✓ — lo trovi in Piano."));}catch(e){}
+      try{toast(tr("Ricette pronte ✓ — le trovi in Ricette."));}catch(e){}
       try{render(cur);}catch(e){}}
     return;}
   if(S.genPend&&S.genPend.dati&&S.genPend.t){

@@ -31,7 +31,7 @@ function ricetteStudioInArrivo(){
 function ricetteStudioAdotta(){
   const d=ricetteStudioInArrivo();
   if(!d)return;
-  if(!confirm(tr("Confermo questo piano come base settimanale? La settimana in corso (spunte, extra, allenamenti) viene azzerata.")))return;
+  if(!confirm(tr("Confermo queste ricette come base settimanale? La settimana in corso (spunte, extra, allenamenti) viene azzerata.")))return;
   /* stessa strada del piano personalizzato: un solo motore */
   S.ricette=d.piano;RICETTE=d.piano;S.permMeals={};S.week=freshWeek();
   S.ricetteStudioV=d.v;
@@ -56,12 +56,12 @@ window.ricetteStudioAdotta=ricetteStudioAdotta;
       const box=document.createElement("div");
       box.className="card";box.id="dieta-studio-scheda";
       box.innerHTML=
-        '<h3>'+tr("C'è un piano nuovo da {nome}",{nome:nome})+'</h3>'+
+        '<h3>'+tr("Ci sono ricette nuove da {nome}",{nome:nome})+'</h3>'+
         '<p class="hint">'+tr("Versione {v} · {autore} · {quando}",
           {v:d.v,autore:d.autore||"",quando:new Date(d.quando).toLocaleDateString()})+
         (d.nota?('<br>'+escHtml(d.nota)):'')+'</p>'+
         '<div class="riga-bottoni">'+
-        '<button class="btn" id="dieta-studio-si">'+trBtn("Adotta il piano")+'</button>'+
+        '<button class="btn" id="dieta-studio-si">'+trBtn("Adotta le ricette")+'</button>'+
         '<button class="btn ghost" id="dieta-studio-no">'+trBtn("Più tardi")+'</button></div>';
       el.insertBefore(box,el.firstChild);
       box.querySelector("#dieta-studio-si").addEventListener("click",ricetteStudioAdotta);

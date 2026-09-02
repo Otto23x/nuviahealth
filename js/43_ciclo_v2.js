@@ -147,7 +147,7 @@ function cicloSpuntino(){
   if(!inFase)return null;
   return {d:tr("Spuntino della fase: yogurt intero e cioccolato fondente (20 g)"),
           k:180,p:8,
-          perche:tr("La fame di questi giorni è vera. È già nel conto: mangiarlo non toglie niente al piano.")};}
+          perche:tr("La fame di questi giorni è vera. È già nel conto: mangiarlo non toglie niente alle ricette.")};}
 window.cicloSpuntino=cicloSpuntino;
 
 /* ── privacy: questi dati non escono ──────────────────────────── */

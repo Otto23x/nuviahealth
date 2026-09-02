@@ -146,7 +146,7 @@ const PARTNER_ESEMPI=[
   {id:"es-psi",tipo:"psicologo",demo:true,bisogni:["sostegno"],
    nome:"Studio Aurora (esempio)",riga:"Psicologi con esperienza nel rapporto col cibo",azione:"Come funziona"},
   {id:"es-nut",tipo:"nutrizionista",demo:true,bisogni:["sostegno","piano"],
-   nome:"Centro Nutrizione Verde (esempio)",riga:"Prima visita e piano personalizzato",azione:"Come funziona"},
+   nome:"Centro Nutrizione Verde (esempio)",riga:"Prima visita e percorso personalizzato",azione:"Come funziona"},
   {id:"es-pal",tipo:"palestra",demo:true,bisogni:["allenamento"],
    nome:"Palestra Ponte (esempio)",riga:"Sala pesi e corsi, primo ingresso di prova",azione:"Guarda"},
   {id:"es-spo",tipo:"attrezzi",demo:true,bisogni:["allenamento","attrezzi"],

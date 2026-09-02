@@ -47,7 +47,7 @@ async function sostituisciProdotto(ci,ii,vecchio,nuovo){
     if(shopParts(o.d).some(part=>ingrKey(part)===key))tocca.push({di,mi,o,giorno:d.day,pasto:m.n});});});
   if(!tocca.length){toast(tr("Sostituito in lista ✓"));return;}
   if(!await dlgConfirm(tr("Sostituito in lista.\n\n«{a}» compare in {b}{c}: lo aggiorno con «{d}» e ricalcolo i valori?",{a:prodottoPrima(vecchio),b:tocca.length,c:(tocca.length===1?" pasto del piano":" pasti del piano"),d:prodottoPrima(nuovo)}),
-      {ok:tr("Sì, aggiorna il piano"),ko:tr("No, solo la lista")}))return;
+      {ok:tr("Sì, aggiorna le ricette"),ko:tr("No, solo la lista")}))return;
   const box=document.getElementById("shopOut");
   try{
     const j=await aiAskJSON('In questi pasti sostituisci "'+vecchio+'" con "'+nuovo+'", adattando la grammatura per restare il più vicino possibile a kcal e proteine originali. Riscrivi la descrizione completa del piatto con tutte le grammature e ricalcola i valori REALI. '+vincoliStr()+
@@ -67,7 +67,7 @@ async function sostituisciProdotto(ci,ii,vecchio,nuovo){
       n++;});
     if(!n)throw new Error("Nessun pasto aggiornato");
     S.ricette=RICETTE;ricetteCambiate();save();render("spesa");
-    dlgAlert(tr("Fatto: «{a}» è in lista e ha sostituito «{b}» in {c}{d} del piano. Le giornate si sono aggiornate di conseguenza.",{a:prodottoPrima(nuovo),b:prodottoPrima(vecchio),c:n,d:(n===1?" pasto":" pasti")}));
+    dlgAlert(tr("Fatto: «{a}» è in lista e ha sostituito «{b}» in {c}{d} delle ricette. Le giornate si sono aggiornate di conseguenza.",{a:prodottoPrima(nuovo),b:prodottoPrima(vecchio),c:n,d:(n===1?" pasto":" pasti")}));
   }catch(e){aiFail(e);}}
 /* La lista base SHOP appartiene alla dieta standard: finché l'utente non ha un
    piano, la spesa resta vuota e si popola solo dopo la sincronizzazione. */
@@ -113,7 +113,7 @@ async function genShopCore(silent){
   if(!aiOn()){
     if(silent){try{if(!ricetteVuote()){S.customShop=buildShopFromRicette();S.shop={};save();if(cur==="spesa")render("spesa");}}catch(_){/* la lista resta quella di prima */}return null;}
     return aiFail(new Error("nokey"));}
-  if(!silent&&!await dlgConfirm(tr("Genero la lista della spesa dal piano attuale? Sostituisce quella corrente.")))return;
+  if(!silent&&!await dlgConfirm(tr("Genero la lista della spesa dalle ricette attuali? Sostituisce quella corrente.")))return;
   try{
     /* i pasti fuori casa entrano nella spesa solo se te li prepari tu */
     const meals=shopWindow().map(w=>{
@@ -261,7 +261,7 @@ function coperturaForAI(){
   let t=" COPERTURA della spesa sui prossimi 7 giorni: "+c.pc+"% degli ingredienti richiesti è in casa.";
   if(c.manca.length)t+=" MANCANO: "+c.manca.map(m=>m.k+(m.pasti.length?" (serve per: "+m.pasti[0]+")":"")).join("; ")+".";
   if(c.scarso.length)t+=" INSUFFICIENTI: "+c.scarso.map(m=>m.k+" (servono ~"+Math.round(m.g)+"g, ce ne sono ~"+Math.round(m.hai)+"g)").join("; ")+".";
-  if(c.avanza.length)t+=" IN PIÙ rispetto al piano: "+c.avanza.map(a=>a.k).join(", ")+".";
+  if(c.avanza.length)t+=" IN PIÙ rispetto alle ricette: "+c.avanza.map(a=>a.k).join(", ")+".";
   return t;}
 function spesaVoto(){
   const p=pantry();
@@ -494,10 +494,10 @@ window.ricetteMoreSheet=()=>{
   /* Le azioni rare (rifare o importare il piano) stanno in un pannello:
      la card resta pulita e ogni voce porta con sé la sua spiegazione,
      così il glossario a parte non serve più. */
-  sheetShow("Altro sul piano",`
+  sheetShow("Altro sulle ricette",`
     <button class="shrow" onclick="sheetClose();seasonalizePlan()">
       <b>Alternativa stagionale</b>
-      <small>${tr("Aggiunge a ogni pasto un'opzione con ingredienti di stagione, senza toccare il piano base.")}</small>
+      <small>${tr("Aggiunge a ogni pasto un'opzione con ingredienti di stagione, senza toccare le ricette di base.")}</small>
     </button>
     <button class="shrow" onclick="sheetClose();genRicetteAI()">
       <b>${tr("Chiedi nuove ricette")}</b>
@@ -509,7 +509,7 @@ window.ricetteMoreSheet=()=>{
     </button>
     <button class="shrow" onclick="sheetClose();vaiScontrino()">
       <b>${tr("Ricette dalla spesa")}</b>
-      <small>${tr("Dallo scontrino ai giorni di piano: si usa quello che hai comprato, e ciò che manca finisce in lista della spesa.")}</small>
+      <small>${tr("Dallo scontrino ai giorni della settimana: si usa quello che hai comprato, e ciò che manca finisce in lista della spesa.")}</small>
     </button>`);};
 window.vaiScontrino=()=>{
   show("ricette");
@@ -675,10 +675,10 @@ async function shopRipiego(e,silent){
   const locale=(function(){try{return buildShopFromRicette();}catch(_){return [];}})();
   if(!locale.length){if(!silent)aiFail(e);return;}
   const perche=aiReason(e);
-  if(!silent&&!await dlgConfirm(tr("L'AI non è riuscita a preparare la lista ({a}).\n\nPosso calcolarla direttamente dagli ingredienti del piano: le quantità restano quelle esatte dei pasti. Al prossimo cambiamento del piano si riallinea da sola.",{a:esc(perche)}),
+  if(!silent&&!await dlgConfirm(tr("L'AI non è riuscita a preparare la lista ({a}).\n\nPosso calcolarla direttamente dagli ingredienti delle ricette: le quantità restano quelle esatte dei pasti. Al prossimo cambiamento delle ricette si riallinea da sola.",{a:esc(perche)}),
     {ok:tr("Calcolala così"),ko:trBtn("Annulla")}))return;
   S.customShop=locale;S.shop={};save();render("spesa");
-  toast(tr("Lista calcolata dal piano · senza AI"));}
+  toast(tr("Lista calcolata dalle ricette · senza AI"));}
 
 /* ═══════════════════════════════════════════════════════════════
    SPESA DAL PIANO (senza AI): calcola la lista considerando per ogni
@@ -851,20 +851,20 @@ function buildShopFromRicette(){
 function shopItemSet(arr){const m={};(arr||[]).forEach(([,items])=>items.forEach(it=>{m[ingrKey(it)]=it;}));return m;}
 /* Sincronizza la lista con il piano: mostra le differenze e chiede conferma */
 window.syncShopFromRicette=()=>{
-  if(ricetteVuote())return dlgAlert(tr("Non c'è ancora un piano da cui calcolare la spesa.\n\nGenera o carica un piano dalla sezione Regole, poi torna qui."));
+  if(ricetteVuote())return dlgAlert(tr("Non ci sono ancora ricette da cui calcolare la spesa.\n\nGenera o carica le ricette dalla sezione Regole, poi torna qui."));
   const next=buildShopFromRicette();
-  if(!next.length)return dlgAlert(tr("Nessun ingrediente ricavabile dal piano."));
+  if(!next.length)return dlgAlert(tr("Nessun ingrediente ricavabile dalle ricette."));
   const cur=shopItemSet(SHOPCUR());const nw=shopItemSet(next);
   const added=Object.keys(nw).filter(k=>!cur[k]).map(k=>nw[k]);
   const removed=Object.keys(cur).filter(k=>!nw[k]).map(k=>cur[k]);
   let m=document.getElementById("syncM");
   if(!m){m=document.createElement("div");m.id="syncM";m.className="modal";document.body.appendChild(m);}
-  let inner=`<div class="mcard"><h2 style="color:var(--bosco);font-size:16px">${tr("Sincronizza la spesa col piano")}</h2>
+  let inner=`<div class="mcard"><h2 style="color:var(--bosco);font-size:16px">${tr("Sincronizza la spesa con le ricette")}</h2>
     <div class="hint" style="margin-top:4px">${trh("Calcolata considerando {b1}, sempre quella a casa (mai mensa/fuori). Ecco cosa cambierebbe rispetto alla lista attuale:",{b1:"<b>"+tr("una sola opzione per pasto")+"</b>"})}</div>`;
-  if(!added.length&&!removed.length)inner+=`<div class="hint" style="margin-top:8px">${tr("Nessuna differenza: la lista è già allineata al piano ✓")}</div>`;
+  if(!added.length&&!removed.length)inner+=`<div class="hint" style="margin-top:8px">${tr("Nessuna differenza: la lista è già allineata alle ricette ✓")}</div>`;
   if(added.length){inner+=`<div class="shopcat" style="color:var(--bosco)">Da aggiungere (${added.length})</div><div class="shopitems">`;
     added.forEach(x=>inner+=`<div class="shopitem"><span class="st">${esc(prodottoPrima(x))}</span></div>`);inner+=`</div>`;}
-  if(removed.length){inner+=`<div class="shopcat" style="color:var(--zafft)">${trh("Non più nel piano ({v1})",{v1:removed.length})}</div><div class="shopitems">`;
+  if(removed.length){inner+=`<div class="shopcat" style="color:var(--zafft)">${trh("Non più nelle ricette ({v1})",{v1:removed.length})}</div><div class="shopitems">`;
     removed.forEach(x=>inner+=`<div class="shopitem"><span class="st">${esc(prodottoPrima(x))}</span></div>`);inner+=`</div>`;}
   inner+=`<div class="hint" style="margin-top:8px">${trh("La lista completa risultante avrà {v1} voci in {v2} categorie.",{v1:next.reduce((a,c)=>a+c[1].length,0),v2:next.length})}</div>
     <div class="mtools" style="margin-top:12px">
@@ -877,7 +877,7 @@ window.applyShopSync=()=>{if(!window._pendingShop)return;
   S.customShop=window._pendingShop.map(x=>[String(x[0]),x[1].map(String)]);
   S.shop={};window._pendingShop=null;save();
   const el=document.getElementById("syncM");if(el)el.remove();
-  render("spesa");toast(tr("Lista sincronizzata col piano ✓"));};
+  render("spesa");toast(tr("Lista sincronizzata con le ricette ✓"));};
 /* Rende la lista modificabile: alla prima modifica copia quella corrente */
 function ensureCustomShop(){if(!S.customShop)S.customShop=SHOPCUR().map(x=>[String(x[0]),x[1].slice()]);}
 window.removeShopItem=async (ci,ii)=>{
@@ -1030,7 +1030,7 @@ function renderSpesa(){const el=document.getElementById("pg-spesa");
   <div class="mtools"><button class="btn small" onclick="marketAdd()">${tr("+ Aggiungi supermercato")}</button></div>
   ${marketOn()&&marketOn().p?`<label class="ck" style="margin-top:12px"><input type="checkbox" ${promoOn()?"checked":""} onchange="shopPromoSet(this.checked)">  ${trh("Mostra prima i prodotti in {b}",{b:"<b>offerta</b>"})}</label>`:""}</div>
   <div class="card"><h2>${tr("Lista della spesa")}</h2>
-  ${hint2(tr("La lista si costruisce <b>da sola</b> dagli ingredienti del piano e si aggiorna quando lo modifichi: non c'è niente da rigenerare."),tr("Vale anche per quello che aggiungi tu: cambia un pasto dal Piano e il prodotto entra in lista da sé. Per una cosa fuori piano c'è la sezione <b>Extra</b> in fondo, che sopravvive anche quando la lista si rigenera. Copre i 7 giorni da oggi e i pasti fuori casa non vengono comprati."))}
+  ${hint2(tr("La lista si costruisce <b>da sola</b> dagli ingredienti delle ricette e si aggiorna quando le modifichi: non c'è niente da rigenerare."),tr("Vale anche per quello che aggiungi tu: cambia un pasto da Ricette e il prodotto entra in lista da sé. Per una cosa fuori dal previsto c'è la sezione <b>Extra</b> in fondo, che sopravvive anche quando la lista si rigenera. Copre i 7 giorni da oggi e i pasti fuori casa non vengono comprati."))}
   ${(function(){
     const tot=SHOPCUR().reduce((a,c)=>a+((c[1]||[]).length),0)+((S.shopExtra||[]).length);
     /* Lista a zero: prima restava un titolo sopra il nulla, e chi arrivava
@@ -1043,7 +1043,7 @@ function renderSpesa(){const el=document.getElementById("pg-spesa");
       <div style="height:8px;background:var(--linea);border-radius:8px;overflow:hidden;margin:8px 0 4px">
         <div style="height:100%;width:${pc}%;background:${presi>=tot?"var(--salvia)":"var(--bosco)"};transition:width .3s var(--ease)"></div></div>`;})()}
   ${hint2(tr("Spunta il prodotto quando lo metti nel carrello."),
-   tr("Gli altri comandi sulla riga: la catenella apre la ricerca del prodotto sul sito del tuo negozio, la stella AI propone un'alternativa se è esaurito, la ✕ lo toglie dalla lista. Le spunte restano salvate finché il piano non cambia."),null,tr("gli altri comandi"))}
+   tr("Gli altri comandi sulla riga: la catenella apre la ricerca del prodotto sul sito del tuo negozio, la stella AI propone un'alternativa se è esaurito, la ✕ lo toglie dalla lista. Le spunte restano salvate finché le ricette non cambiano."),null,tr("gli altri comandi"))}
   ${(S.family||[]).length?`<label>${tr("Per chi fai la spesa?")}</label>
   <div class="ckgrid">
     <label class="ck"><input type="radio" name="shopFor" ${shopForMe()?"checked":""} onchange="shopForSet('me')"> ${tr("Solo per me")}</label>
@@ -1054,12 +1054,12 @@ function renderSpesa(){const el=document.getElementById("pg-spesa");
     <button class="btn ghost small" onclick="resetShop()">${tr("Pulisci le spunte")}</button>
     <button class="btn ghost small" onclick="waShop()">Manda su WhatsApp</button>
   </div>
-  <div class="hint" style="margin-top:8px">${trh("Copre i {b} ({v1}). Si aggiorna da sola quando cambi il piano.",{b:"<b>"+tr("7 giorni da oggi")+"</b>",v1:esc(shopWindowLabel())})}</div></div>`;
+  <div class="hint" style="margin-top:8px">${trh("Copre i {b} ({v1}). Si aggiorna da sola quando cambi le ricette.",{b:"<b>"+tr("7 giorni da oggi")+"</b>",v1:esc(shopWindowLabel())})}</div></div>`;
   if(!SHOPCUR().length)h+=`<div class="card" style="text-align:center">
     <h2 style="margin-top:4px">Lista vuota</h2>
     <div class="hint">${ricetteVuote()
-      ?"La lista si costruisce dal piano: appena avrai un piano attivo, la spesa della settimana comparirà qui da sola."
-      :"Hai tolto tutto a mano. La lista si riallinea al piano al prossimo cambiamento del piano, oppure aggiungi i prodotti con ＋."}</div></div>`;
+      ?"La lista si costruisce dalle ricette: appena le avrai, la spesa della settimana comparirà qui da sola."
+      :"Hai tolto tutto a mano. La lista si riallinea alle ricette al prossimo cambiamento, oppure aggiungi i prodotti con ＋."}</div></div>`;
   const rigaShop=(id,it,delFn,ci,ii)=>{const c=S.shop[id];   /* ci/ii: posizione in lista, serve alla sostituzione */
     return `<div class="shopitem ${c?"c":""}">
         <span class="box" onclick="tglShop('${id}')">${c?"✓":""}</span>
@@ -1076,7 +1076,7 @@ function renderSpesa(){const el=document.getElementById("pg-spesa");
      appunti restano. La riga «Aggiungi» sta in fondo, allineata come
      un prodotto: niente più ＋ sparsi sulle categorie. */
   {const ex=S.shopExtra||[];
-   h+=`<div class="shopcat">${tr("Extra — fuori dal piano")}</div><div class="shopitems">`;
+   h+=`<div class="shopcat">${tr("Extra — fuori dal previsto")}</div><div class="shopitems">`;
    ex.forEach((it,ii)=>{h+=rigaShop("x_"+ii,it,`removeShopExtra(${ii})`);});
    h+=`<div class="shopitem" onclick="addShopExtra()" style="cursor:pointer">
      <span class="box" style="border-style:dashed;color:var(--salvia);line-height:21px">＋</span>
@@ -1087,7 +1087,7 @@ function renderSpesa(){const el=document.getElementById("pg-spesa");
   if(typeof partnerBlocco==="function")h+=partnerBlocco("spesa",tr("Dove fare la spesa"));
   el.innerHTML=h;}
 window.addShopExtra=async()=>{
-  const v=await dlgPrompt(tr("Cosa devi comprare, fuori dal piano?"));if(!v||!v.trim())return;
+  const v=await dlgPrompt(tr("Cosa devi comprare, fuori dal previsto?"));if(!v||!v.trim())return;
   S.shopExtra=S.shopExtra||[];S.shopExtra.push(v.trim());save();render("spesa");};
 window.removeShopExtra=(ii)=>{
   (S.shopExtra||[]).splice(ii,1);

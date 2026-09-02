@@ -40,7 +40,7 @@
 function correzioniCardHTML(){
   const attive=String((S.pref&&S.pref.no)||"").trim();
   return `<div class="card"><h2>${tr("Correzioni")}</h2>
-  <div class="hint">${esc(tr("Il piano è costruito sulle tue risposte, non è una prescrizione: se un piatto non ti va, o non è compatibile con una tua condizione, scrivilo qui — lo tolgo e non torna più."))}</div>
+  <div class="hint">${esc(tr("Le ricette sono costruite sulle tue risposte, non sono una prescrizione: se un piatto non ti va, o non è compatibile con una tua condizione, scrivilo qui — lo tolgo e non torna più."))}</div>
   <label for="corrIn" style="margin-top:12px">${esc(tr("Cosa togliere o cambiare"))}</label>
   <input type="text" id="corrIn" placeholder="${esc(tr("es. il finocchio mi gonfia, niente fritti"))}">
   <button class="btn ghost" style="width:100%;margin-top:12px" onclick="correzioneApplica()">${esc(tr("Applica la correzione"))}</button>
@@ -100,14 +100,14 @@ window.correzioneApplica=async()=>{
 
   if(!colpiti.length){
     if(box)box.textContent=nuovi.length
-      ? trh("Registrato: {v1}. Nel piano attuale non compare — e d'ora in poi non comparirà.",{v1:nuovi.join(", ")})
-      : tr("Era già fra le regole, e nel piano attuale non compare.");
+      ? trh("Registrato: {v1}. Nelle ricette attuali non compare — e d'ora in poi non comparirà.",{v1:nuovi.join(", ")})
+      : tr("Era già fra le regole, e nelle ricette attuali non compare.");
     try{render(cur);}catch(e){}
     return;}
 
   /* ── 3 · senza AI la regola vale comunque, e si dice cosa resta ── */
   if(typeof aiOn!=="function"||!aiOn()){
-    if(box)box.innerHTML=esc(trh("Registrato: {v1}. Compare ancora in {v2}: scegli lì un'alternativa con il dado — dal prossimo piano non ci sarà più.",{v1:puliti.join(", "),v2:colpiti.map(c=>giorno(c.giorno)).join(", ")}));
+    if(box)box.innerHTML=esc(trh("Registrato: {v1}. Compare ancora in {v2}: scegli lì un'alternativa con il dado — dalle prossime ricette non ci sarà più.",{v1:puliti.join(", "),v2:colpiti.map(c=>giorno(c.giorno)).join(", ")}));
     try{render(cur);}catch(e){}
     return;}
 
@@ -124,7 +124,7 @@ window.correzioneApplica=async()=>{
     if(typeof ricetteCambiate==="function")ricetteCambiate();
     save();
     const nomi=esito.fatti.map(f=>giorno(RICETTE[f.i].day)).join(", ");
-    if(box)box.innerHTML=esc(trh("Fatto: {v1} non compare più. Ho riscritto {v2}, il resto del piano non è stato toccato.",{v1:puliti.join(", "),v2:nomi}))+
+    if(box)box.innerHTML=esc(trh("Fatto: {v1} non compare più. Ho riscritto {v2}, il resto delle ricette non è stato toccato.",{v1:puliti.join(", "),v2:nomi}))+
       (esito.rimasti.length?"<br>"+esc(trh("In {v1} non sono riuscito a toglierlo: scegli lì un'alternativa.",{v1:esito.rimasti.join(", ")})):"");
     try{render(cur);}catch(e){}
   }catch(e){

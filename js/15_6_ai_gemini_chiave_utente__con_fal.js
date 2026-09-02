@@ -675,7 +675,18 @@ async function geminiCall(prompt,imgs,pilastro){
      l'informativa lo promette («revocato, l'app smette
      immediatamente di inviare qualsiasi cosa»), e questa riga è il
      punto in cui quella promessa diventa vera. */
-  if(typeof legaleAiOk==="function"&&!legaleAiOk())throw new Error("noconsenso");
+  /* ── L'UNICA ECCEZIONE: LA PROVA TECNICA DELLA CHIAVE (02/09) ──
+     Il founder, sul telefono, senza aver ancora spuntato il consenso:
+     «Prova le chiavi» → «AI: non risponde (noconsenso)». La prova
+     manda una frase fissa («rispondi OK») e NESSUN dato della persona:
+     il consenso protegge l'invio dei dati, e qui non ne parte nessuno.
+     L'eccezione è stretta tre volte: solo il pilastro «prova», solo
+     col banco acceso (a pubblicazione avvenuta il pannello e la prova
+     non esistono), e la frase che parte è quella e basta — il
+     collaudo t_legale lo verifica leggendo il testo inviato. Tutto il
+     resto, senza consenso, si ferma qui come prima. */
+  const provaTecnica=(pilastro==="prova"&&typeof MODO_BANCO!=="undefined"&&MODO_BANCO);
+  if(typeof legaleAiOk==="function"&&!legaleAiOk()&&!provaTecnica)throw new Error("noconsenso");
   /* ═══ LA CORNICE, SU OGNI SINGOLA RICHIESTA (v15.22.0) ═══════════
      (founder, 31/08: «ritara i prompt per essere il più inattaccabili
      possibili pur mantenendo tutte le funzioni in modo corretto».)
@@ -1964,6 +1975,7 @@ window.actSteps=(v,id)=>{const e=document.getElementById(id);if(e)e.value=ACT_ST
 function aiReason(e){const m=String(e&&e.message||e);
   return {medico:"argomento medico",timeout:"tempo scaduto",rete:"rete caduta",quota:"limite Gemini raggiunto",busy:"server occupati",
     badkey:"chiave non valida",blocked:"risposta bloccata dai filtri",nokey:"chiave mancante",
+    noconsenso:"manca il consenso all'invio dei dati",
     livello:"livello di ragionamento non accettato dal modello",
     tono:"la risposta non rispettava le regole sul tono",
     troncata:"risposta troppo lunga, tagliata a metà",vuota:"risposta vuota"}[m]||m;}
@@ -2046,14 +2058,14 @@ window.aiDiagnosi=async()=>{
     esc(trh("Risposte tagliate a metà e recuperate finora: {v1}",{v1:S.ai.recuperi}))+"</div>"):"";
   box.innerHTML="<b>"+ok+" modelli su "+modelli.length+" rispondono</b><br>"+righe.join("<br>")+rigaG+rec+
     "<div class=\"hint\" style=\"margin-top:8px\">"+(ok
-      ? "La connessione funziona. Se il piano non arriva, il problema è nella lunghezza della risposta: scrivimelo e lo accorcio."
+      ? "La connessione funziona. Se le ricette non arrivano, il problema è nella lunghezza della risposta: scrivimelo e lo accorcio."
       : "Nessun modello risponde: la chiave è sbagliata, scaduta, o il limite gratuito è esaurito. Prova a crearne una nuova.")+"</div>";};
 function aiFail(e){const m=String(e&&e.message||e);
   const map={
     nokey:"Chiave Gemini mancante: impostala in ⋯ → Sistema.",
     /* NON è un guasto: è il consenso che manca o è stato revocato, e
        si dice esattamente dove si riaccende (v15.7.0). */
-    noconsenso:"Per scrivere i suggerimenti dovrei mandare i tuoi dati al modello, e il consenso non c'è (o l'hai revocato). Lo riaccendi quando vuoi da ⋯ → Documenti. Senza, il piano di partenza lo calcolo comunque io, qui.",
+    noconsenso:"Per scrivere i suggerimenti dovrei mandare i tuoi dati al modello, e il consenso non c'è (o l'hai revocato). Lo riaccendi quando vuoi da ⋯ → Documenti. Senza, le ricette di partenza le calcolo comunque io, qui.",
     quota:"Hai raggiunto il limite gratuito di Gemini (troppe richieste al minuto o al giorno). Aspetta un minuto e riprova; se càpita spesso, in Io vedi il consumo di oggi.",
     busy:"I server Gemini sono momentaneamente sovraccarichi: riprova tra poco.",
     badkey:"Chiave non valida o senza permessi per questo modello (spesso i modelli Pro richiedono fatturazione). Controlla la chiave o scegli un modello Flash.",
@@ -2061,7 +2073,7 @@ function aiFail(e){const m=String(e&&e.message||e);
     /* NON è un guasto: è il confine che ci siamo dati. Si dice cosa
        Nuvia non fa, e a chi rivolgersi — senza allarmare. */
     medico:"Questa è una domanda da medico, non da diario alimentare: preferisco non risponderti io. Nuvia adatta il cibo alle condizioni che hai dichiarato, ma su terapie, farmaci e sintomi la parola giusta è quella del tuo medico o del tuo nutrizionista.",
-    timeout:"Gemini ha superato il tempo massimo di attesa, anche dopo alcuni tentativi. Succede con le richieste più pesanti (piano settimanale, foto): riprova tra poco, magari con una rete più stabile.",
+    timeout:"Gemini ha superato il tempo massimo di attesa, anche dopo alcuni tentativi. Succede con le richieste più pesanti (ricette della settimana, foto): riprova tra poco, magari con una rete più stabile.",
     rete:"La rete è caduta durante la richiesta, anche dopo alcuni tentativi. Controlla la connessione e riprova: quello che era già stato generato non è andato perso.",
     errore:"Connessione non riuscita dopo alcuni tentativi. Controlla la rete e riprova."
   };

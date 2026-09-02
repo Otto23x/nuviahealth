@@ -116,7 +116,7 @@ function turnoHTML(){
   const k=turnoOggi();
   const V=["mattina","pomeriggio","notte","riposo"];
   let h=`<div class="card"><h2>${tr("Il turno di oggi")}</h2>
-    <div class="hint">${esc(tr("Serve solo a chiamare i pasti col nome giusto e a non suonare mentre dormi. Il piano non cambia."))}</div>
+    <div class="hint">${esc(tr("Serve solo a chiamare i pasti col nome giusto e a non suonare mentre dormi. Le ricette non cambiano."))}</div>
     <div class="turni">`;
   h+=V.map(x=>`<button class="chipbtn${k===x?" on":""}" onclick="turnoScegli('${k===x?"":x}')">${(typeof icoTurno==="function")?icoTurno(x,17):""} ${esc(turnoNome(x))}</button>`).join("");
   h+=`</div>`;

@@ -74,7 +74,7 @@ function confFrase(k){
 
   return k==="obiettivo" ?tr("Bene, so da dove partire.")
        :k==="bio"        ?tr("Fatto: non te li chiedo più.")
-       :k==="ritmi"      ?tr("Il piano si adatterà a queste ore.")
+       :k==="ritmi"      ?tr("Le ricette si adatteranno a queste ore.")
        :k==="cibo"       ?tr("Me lo ricordo, non te lo riproporrò.")
        :k==="senso"      ?tr("Grazie di averlo scritto.")
        :k==="allergie"   ?tr("Segnato: non comparirà nei tuoi piatti.")

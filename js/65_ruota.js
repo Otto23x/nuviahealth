@@ -89,7 +89,7 @@ function RUOTA(){return [
   s:tr("La torcia: vedere cosa c'è dentro, come leggere l'etichetta di un prodotto"),
   q:()=>ruotaUso("barcode")>=50},
  {k:"gebo",   r:"ᚷ",n:tr("Gebo"),    t:tr("Hai cucinato per più di te"),
-  s:tr("Il dono e lo scambio: la spesa che nasce dal piano e torna in tavola"),
+  s:tr("Il dono e lo scambio: la spesa che nasce dalle ricette e torna in tavola"),
   q:()=>ruotaUso("commensali")>=1},
  {k:"wunjo",  r:"ᚹ",n:tr("Wunjo"),   t:tr("Un pasto libero segnato senza sensi di colpa"),
   s:tr("La gioia: il pasto libero vissuto come gioia, non come colpa"),

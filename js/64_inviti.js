@@ -63,7 +63,7 @@ const INVITI=[
   /* ── DOMENICA sera: la settimana che arriva ── */
   {k:"settimana",giorni:[0],ore:[17,21],azione:"show('ricette')",
    titolo:"Come si mette la settimana?",
-   riga:"Se sai già di una cena o di una trasferta, dimmelo adesso: il piano si sistema da solo."},
+   riga:"Se sai già di una cena o di una trasferta, dimmelo adesso: le ricette si sistemano da sole."},
 
   /* ── MERCOLEDÌ: il fine settimana si prepara prima ── */
   {k:"tesoretto",giorni:[3],ore:[10,20],azione:"strumentoVai('bilanciamento')",
@@ -73,12 +73,12 @@ const INVITI=[
   /* ── LUNEDÌ: si riparte, e il frigo è quello che è ── */
   {k:"frigo",giorni:[1],ore:[17,21],azione:"strumentoVai('dalFrigo')",
    titolo:"Cosa c'è in frigo?",
-   riga:"Dimmi cosa hai e ti tiro fuori una cena che sta nel piano."},
+   riga:"Dimmi cosa hai e ti tiro fuori una cena che sta nei conti."},
 
   /* ── MARTEDÌ e GIOVEDÌ sera: le cene di corsa ── */
   {k:"dieciminuti",giorni:[2,4],ore:[18,21],azione:"strumentoVai('dieciMinuti')",
    titolo:"Poco tempo stasera?",
-   riga:"Dieci minuti di fornelli, e resta dentro il piano."},
+   riga:"Dieci minuti di fornelli, e resta nel previsto."},
 
   /* ── il pranzo fuori, nei giorni feriali ── */
   {k:"menu",giorni:[1,2,3,4,5],ore:[11,14],azione:"strumentoVai('menuSel')",
@@ -99,10 +99,10 @@ function invitoTesto(k,campo){
     perdue:["Cucini per qualcuno oggi?","Ti do le dosi per tutti, con la tua porzione già calibrata."],
     compromesso:["Si va fuori?","Guardiamo il menù insieme e scegliamo senza rovinare la settimana."],
     prepara:["Ti va di cucinare?","Un'ora oggi e i piatti dei prossimi giorni sono pronti."],
-    settimana:["Come si mette la settimana?","Se sai già di una cena o di una trasferta, dimmelo adesso: il piano si sistema da solo."],
+    settimana:["Come si mette la settimana?","Se sai già di una cena o di una trasferta, dimmelo adesso: le ricette si sistemano da sole."],
     tesoretto:["Nel fine settimana c'è qualcosa?","Se me lo dici adesso, i giorni prima si aggiustano da soli. Niente digiuni: solo un po' di margine."],
-    frigo:["Cosa c'è in frigo?","Dimmi cosa hai e ti tiro fuori una cena che sta nel piano."],
-    dieciminuti:["Poco tempo stasera?","Dieci minuti di fornelli, e resta dentro il piano."],
+    frigo:["Cosa c'è in frigo?","Dimmi cosa hai e ti tiro fuori una cena che sta nei conti."],
+    dieciminuti:["Poco tempo stasera?","Dieci minuti di fornelli, e resta nel previsto."],
     menu:["Pranzo fuori?","Fotografa il menù e ti dico cosa prendere."],
     scaffale:["Al supermercato?","Inquadra due prodotti e ti dico quale conviene, per te."]};
   const v=T[k];
@@ -113,10 +113,10 @@ function invitoTesto(k,campo){
     :k==="perdue"?(i?tr("Ti do le dosi per tutti, con la tua porzione già calibrata."):tr("Cucini per qualcuno oggi?"))
     :k==="compromesso"?(i?tr("Guardiamo il menù insieme e scegliamo senza rovinare la settimana."):tr("Si va fuori?"))
     :k==="prepara"?(i?tr("Un'ora oggi e i piatti dei prossimi giorni sono pronti."):tr("Ti va di cucinare?"))
-    :k==="settimana"?(i?tr("Se sai già di una cena o di una trasferta, dimmelo adesso: il piano si sistema da solo."):tr("Come si mette la settimana?"))
+    :k==="settimana"?(i?tr("Se sai già di una cena o di una trasferta, dimmelo adesso: le ricette si sistemano da sole."):tr("Come si mette la settimana?"))
     :k==="tesoretto"?(i?tr("Se me lo dici adesso, i giorni prima si aggiustano da soli. Niente digiuni: solo un po' di margine."):tr("Nel fine settimana c'è qualcosa?"))
-    :k==="frigo"?(i?tr("Dimmi cosa hai e ti tiro fuori una cena che sta nel piano."):tr("Cosa c'è in frigo?"))
-    :k==="dieciminuti"?(i?tr("Dieci minuti di fornelli, e resta dentro il piano."):tr("Poco tempo stasera?"))
+    :k==="frigo"?(i?tr("Dimmi cosa hai e ti tiro fuori una cena che sta nei conti."):tr("Cosa c'è in frigo?"))
+    :k==="dieciminuti"?(i?tr("Dieci minuti di fornelli, e resta nel previsto."):tr("Poco tempo stasera?"))
     :k==="menu"?(i?tr("Fotografa il menù e ti dico cosa prendere."):tr("Pranzo fuori?"))
     :(i?tr("Inquadra due prodotti e ti dico quale conviene, per te."):tr("Al supermercato?"));}
 window.invitoTesto=invitoTesto;

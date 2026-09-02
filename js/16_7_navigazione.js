@@ -16,6 +16,30 @@ function portaInVista(el,extra){
     window.scrollTo({top:Math.max(0,Math.round(y)),behavior:"auto"});
   }catch(e){try{el.scrollIntoView({block:"start"});}catch(e2){}}}
 window.portaInVista=portaInVista;
+/* ═══ OGNI PAGINA PARTE DALL'ALTO, DAVVERO (founder, 02/09) ══════════
+   «Anche questa pagina viene renderizzata più in basso. Controlla che
+   tutte le pagine partano dall'alto sempre.»
+   Lo `scrollTo(0,0)` c'era già, in show() e a ogni passo del percorso —
+   e non bastava. Sul telefono lo scorrimento arriva DOPO: la tastiera
+   che si chiude quando si lascia un campo cambia l'altezza della
+   finestra e il browser «recupera» la posizione; il campo appena
+   disegnato che riceve il fuoco viene portato in vista; l'animazione
+   d'ingresso della carta ricalcola il layout. Uno scrollTo eseguito
+   un istante prima di tutto questo viene semplicemente sovrascritto,
+   e la pagina atterra sessanta pixel più in basso — con la barra
+   dell'avanzamento nascosta sotto l'intestazione.
+   Qui si fa la cosa completa: si toglie il fuoco (così la tastiera si
+   chiude ADESSO, non dopo), si scorre subito, e si scorre di nuovo al
+   frame successivo e a due riprese entro mezzo secondo — abbastanza
+   perché ogni assestamento del browser sia già passato, e troppo poco
+   perché una persona abbia già iniziato a scorrere da sé. */
+function paginaInCima(){
+  try{const a=document.activeElement;if(a&&a!==document.body&&a.blur)a.blur();}catch(e){}
+  const su=()=>{try{window.scrollTo(0,0);}catch(e){}};
+  su();
+  try{requestAnimationFrame(su);}catch(e){}
+  setTimeout(su,120);setTimeout(su,420);}
+window.paginaInCima=paginaInCima;
 /* ── LA VIA DEL RITORNO ────────────────────────────────────────────
    Le pagine della barra in basso sono quattro; tutte le altre (Io,
    Regole, Strumenti, Guida…) si aprono dal ⋯ e finora NON avevano un
@@ -83,9 +107,9 @@ function show(p){
     if(storiaNav.length>30)storiaNav.shift();}
   /* Ogni pagina si apre dall'alto: senza questo si eredita lo scorrimento
      della pagina precedente e si atterra a metà contenuto. */
-  try{window.scrollTo(0,0);}catch(e){}
+  paginaInCima();
   document.body.classList.toggle("onb",!S.onboard.done);
-  render(p);window.scrollTo(0,0);}
+  render(p);paginaInCima();}
 /* La barra si costruisce da codice: alla prossima passata basta cambiare
    questa lista per passare da otto voci a quattro. */
 /* Quattro voci. Le altre pagine non spariscono: si raggiungono dal menù
@@ -233,7 +257,7 @@ window.assistGo=(i)=>{
 function assistContext(){
   const p=S.profile||{};
   const righe=[
-    "Sezioni dell'app: Oggi (pasti, acqua, come stai, allenamenti), Piano (i 7 giorni), Spesa, Progressi (peso, grafici, storico), e dal pulsante ⋯ in alto: Strumenti, Allenamenti, Regole del calcolo, Il tuo profilo, Sistema (chiave AI, Drive, backup), Guida.",
+    "Sezioni dell'app: Oggi (pasti, acqua, come stai, allenamenti), Ricette (i 7 giorni), Spesa, Progressi (peso, grafici, storico), e dal pulsante ⋯ in alto: Strumenti, Allenamenti, Regole del calcolo, Il tuo profilo, Sistema (chiave AI, Drive, backup), Guida.",
     "Strumenti disponibili: "+ASSIST_MAP.filter(r=>r.a).map(r=>r.t).join(", ")+".",
     "Configurazione attuale della persona: obiettivo «"+(p.goal||"non impostato")+"»"+
       (goalWeightSet()?", peso obiettivo "+goalWeightSet()+" kg":"")+
@@ -241,7 +265,7 @@ function assistContext(){
       (cycPhase()?", fase della dieta: "+cycPhase()+" (giorno "+cycPhaseDay()+" di "+cycPhaseLen()+")":"")+
       (physDelta()?", stato fisiologico attivo: "+physNote():"")+".",
     (S.family&&S.family.length)?("In casa ci sono "+S.family.length+" familiari."):"Nessun familiare inserito.",
-    ricetteVuote()?"Non ha ancora un piano alimentare.":"Ha un piano alimentare attivo.",
+    ricetteVuote()?"Non ha ancora le ricette.":"Ha le ricette attive.",
     aiOn()?"":"Non ha inserito la chiave AI: molte funzioni sono spente."
   ];
   return righe.filter(Boolean).join(" ");}
@@ -420,8 +444,8 @@ let ASSIST_MENU;
    ["Oggi è un giorno particolare (evento)",tr("Evento del giorno")],
    ["Scrivere la nota del giorno",tr("Nota del giorno")],
    ["Segnare l'acqua che ho bevuto","Acqua di oggi"]]],
- ["Piano e spesa",[
-   ["Vedere o cambiare il piano","Piano"],
+ ["Ricette e spesa",[
+   ["Vedere o cambiare le ricette","Ricette"],
    ["La lista della spesa","Spesa"],
    ["Ho fatto la spesa: fotografo lo scontrino","Ricette dalla spesa"]]],
  ["Corpo e progressi",[
@@ -500,7 +524,7 @@ function assistIsQuestion(t){
 const AZIONI=[
  {k:"ribilancia",t:"ribilanciare le calorie che restano oggi",
   q:"Ridistribuisco le calorie rimaste sui pasti che non hai ancora fatto.",f:()=>recalibrateToday()},
- {k:"lista",t:"rifare la lista della spesa dal piano",
+ {k:"lista",t:"rifare la lista della spesa dalle ricette",
   q:"Ricostruisco la lista della spesa dai pasti dei prossimi sette giorni.",f:()=>genShop()},
  {k:"programma",t:"costruire il programma di allenamento della settimana",
   q:"Preparo la settimana di allenamenti sui tuoi sport e sul recupero di questi giorni.",f:()=>trainerAI()},

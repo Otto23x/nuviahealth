@@ -210,7 +210,7 @@ function curaRitorno(){
   /* una sola volta: dopo, silenzio davvero */
   if(N.ritornoDetto)return null;
   return curaComponi({
-    messaggio:tr("Il piano si è tenuto in ordine da solo."),
+    messaggio:tr("Le ricette si sono tenute in ordine da sole."),
     mossa:tr("Guarda com'è messo")});}
 window.curaRitorno=curaRitorno;
 
